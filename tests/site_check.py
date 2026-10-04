@@ -1091,6 +1091,26 @@ async def offseason_check(browser):
     tr = ud.parse_trades('<table><tr><td>2026/5/13</td><td>山本 祐大</td><td>捕 手</td><td>50</td><td>横浜DeNA</td><td>→</td><td>39</td><td>福岡ソフトバンク</td></tr><tr><td>2026/5/13</td><td>尾形 崇斗</td><td>投 手</td><td>39</td><td>福岡ソフトバンク</td><td>→</td><td>36</td><td>横浜DeNA</td></tr><tr><td>2026/1/30</td><td>田中 千晴</td><td>投 手</td><td>48</td><td>読売</td><td>→</td><td>29</td><td>東北楽天</td></tr></table>', 2026)
     if [(x["n"], x["from"], x["to"], x["d"]) for x in tr] != [("山本 祐大", "DB", "H", "2026-05-13"), ("尾形 崇斗", "H", "DB", "2026-05-13")]:
         bad(f"[オフの動きの読み取り] NPBのトレードの公示を正しく読めない：{tr}")
+    # コーチ・監督の退団（ニュースの新着から）：球団発表の記事だけ・今の首脳陣の名前・名前のすぐ後ろに退団があるコーチだけ。
+    # 同じ記事に出てくるほかのコーチ（後任など）・観測記事（「〜か」）は入れない
+    feed = ('<rss><channel>'
+            '<item><title><![CDATA[オリックス、コーチ2人が退団 球団発表]]></title><link>https://example.com/a</link></item>'
+            '<item><title>巨人・○○コーチ退団か</title><link>https://example.com/b</link></item>'
+            '<item><title>阪神が優勝</title><link>https://example.com/c</link></item></channel></rss>')
+    art = {"https://example.com/a": '<article><p>2026.10.04</p><p>オリックスは4日、波留敏夫ヘッドコーチ、川島慶三打撃コーチの退団を発表した。波留コーチは契約満了。後任には福川将和コーチの昇格が有力。</p></article>',
+           "https://example.com/b": '<article><p>2026.10.04</p><p>巨人の杉内俊哉投手チーフコーチが退団する見通しとなった。</p></article>'}
+    keep_fetch, keep_feeds = ud.fetch, ud.STAFF_NEWS_FEEDS
+    try:
+        ud.STAFF_NEWS_FEEDS = ["https://example.com/feed"]
+        ud.fetch = lambda u: feed if u.endswith("/feed") else art.get(u)
+        staff_t = {"B": [{"role": "ヘッドコーチ", "no": "81", "n": "波留 敏夫"}, {"role": "打撃コーチ", "no": "82", "n": "川島 慶三"}, {"role": "打撃コーチ", "no": "79", "n": "福川 将和"}],
+                   "G": [{"role": "投手チーフコーチ", "no": "81", "n": "杉内 俊哉"}]}
+        got = ud.staff_news(staff_t, {"B": {"n": "岸田 護", "no": "71"}}, 2026, {}, "2026-10-04")
+        names = sorted((x["t"], x["n"], x["kind"]) for x in got)
+        if names != [("B", "川島 慶三", "coach_out"), ("B", "波留 敏夫", "coach_out")]:
+            bad(f"[首脳陣の退団（ニュース）] 拾い方が違う：{names}")
+    finally:
+        ud.fetch, ud.STAFF_NEWS_FEEDS = keep_fetch, keep_feeds
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -2474,6 +2494,158 @@ async def pennant_check(browser):
     await pg.close()
 
 
+TEAM_MARK_JS = """() => { const bad = [];
+  const norm = c => { const d = document.createElement('i'); d.style.color = c; document.body.append(d); const v = getComputedStyle(d).color; d.remove(); return v; };
+  for (const e of document.querySelectorAll('body *')) {
+    if (!e.offsetParent && getComputedStyle(e).position !== 'fixed') continue;
+    const own = [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('');
+    if (!own || own.length > 3) continue;
+    const cs = getComputedStyle(e), tc = cs.getPropertyValue('--tc').trim(), ti = cs.getPropertyValue('--ti').trim();
+    if (!tc || !ti || cs.backgroundColor !== norm(tc)) continue;
+    if (cs.color !== norm(ti)) bad.push(`${e.className || e.tagName}「${own}」の文字が${cs.color}（球団の文字色は${norm(ti)}）`);
+  }
+  return [...new Set(bad)]; }"""
+
+
+PRESSED_JS = """() => { const bad = [];
+  const groups = new Map();
+  for (const b of document.querySelectorAll('[aria-pressed]')) { if (!b.offsetParent) continue; const p = b.parentElement; if (!groups.has(p)) groups.set(p, []); groups.get(p).push(b); }
+  for (const [p, bs] of groups) {
+    const on = bs.filter(b => b.getAttribute('aria-pressed') === 'true'), off = bs.filter(b => b.getAttribute('aria-pressed') === 'false');
+    if (!on.length || !off.length) continue;
+    const sig = b => { const c = getComputedStyle(b); return [c.backgroundColor, c.backgroundImage, c.color, c.borderTopColor].join(); };
+    if (on.some(a => off.some(b => sig(a) === sig(b)))) bad.push((p.id || p.className) + ': 選んでいる／いないが同じ見た目（' + on[0].textContent.trim() + '）');
+  }
+  return bad; }"""
+
+
+async def team_mark_check(browser):
+    """球団の印（球団色の丸・四角に1文字）の文字は、どの画面・4つの見た目でも球団ごとの文字色（阪神・巨人は黒、ほかは白）。
+    日程の詳細・設定・選手の画面も。設定の「名前の色」は、選んでいるボタンがひと目で分かる"""
+    for th, scheme in [("pawa", "dark"), ("pawa", "light"), ("", "dark"), ("", "light")]:
+        ctx = await browser.new_context(viewport={"width": 390, "height": 844}, color_scheme=scheme)
+        pg = await ctx.new_page()
+        await pg.add_init_script(f"localStorage.setItem('me','T'); localStorage.setItem('theme','{th}'); localStorage.setItem('mode','auto'); localStorage.setItem('league','C')")
+        await pg.route(LIVE + "**", route_live)
+        await pg.goto(URL); await pg.wait_for_timeout(800)
+        label = {("pawa", "dark"): "パワプロ風（夜）", ("pawa", "light"): "パワプロ風（昼）", ("", "dark"): "スタイリッシュ（黒）", ("", "light"): "スタイリッシュ（白）"}[(th, scheme)]
+        await pg.evaluate(f"CONFIG.recUrl='{LIVE}records.json'; loadRec(true)")
+        # 予告先発がある日：日程の詳細にも予告先発の行が出るように
+        await pg.evaluate("""() => { const g = DATA.games.find(g => g.st === 'sched' && CL.includes(g.h) && CL.includes(g.a)) || DATA.games.find(g => CL.includes(g.h));
+          const [y, m, d] = g.d.split('-').map(Number); jst = () => ({ y, m, d, iso: g.d });
+          YK[`${g.d}|${g.h}|${g.a}`] = { h: (DATA.rosters[g.h] || [{}])[0].n || 'テスト', a: (DATA.rosters[g.a] || [{}])[0].n || 'テスト' };
+          S.calTeam = g.h; S.calMonth = m; S.calSel = g.d; g.st = 'sched'; renderAll(); }""")
+        out = set()
+        for tab in TABS:
+            await pg.evaluate(f"setTab('{tab}'); if ('{tab}' === 'cal') renderCal();")
+            await pg.wait_for_timeout(120)
+            for x in await pg.evaluate(TEAM_MARK_JS):
+                out.add(f"{tab}: {x}")
+            for x in await pg.evaluate(PRESSED_JS):   # 切り替えのボタン：選んでいる／いないが見た目で分かる
+                out.add(f"{tab}: {x}")
+        await pg.evaluate("openSheet()"); await pg.wait_for_timeout(400)
+        for x in await pg.evaluate(TEAM_MARK_JS):
+            out.add(f"設定: {x}")
+        for x in await pg.evaluate(PRESSED_JS):
+            out.add(f"設定: {x}")
+        if th == "pawa":
+            r = await pg.evaluate("""() => { const ng = [], rows = [...document.querySelectorAll('#opList .op-row')];
+              if (!rows.length) return ['名前の色の設定が出ない'];
+              const lum = c => { const v = c.match(/[\\d.]+/g).slice(0, 3).map(x => +x / 255).map(x => x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4); return .2126 * v[0] + .7152 * v[1] + .0722 * v[2]; };
+              for (const row of rows) {
+                const on = row.querySelectorAll('.op-b[aria-pressed="true"]'), off = row.querySelector('.op-b[aria-pressed="false"]');
+                if (on.length !== 1) { ng.push(`選んでいるボタンが${on.length}個`); continue; }
+                const a = getComputedStyle(on[0]), b = getComputedStyle(off);
+                if (a.backgroundColor === b.backgroundColor) ng.push('選んでいるボタンと選んでいないボタンが同じ見た目');
+                const c = getComputedStyle(on[0]).getPropertyValue('--c').trim(); const t = document.createElement('i'); t.style.color = c; document.body.append(t); const cc = getComputedStyle(t).color; t.remove();
+                if (a.backgroundColor !== cc) ng.push(`選んでいるボタンがその色で塗られていない（${a.backgroundColor} / ${cc}）`);
+                const l1 = lum(a.color), l2 = lum(a.backgroundColor); if ((Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05) < 4.5) ng.push('選んでいるボタンの文字が読みにくい');
+              }
+              // 押したら選び直せる
+              const b0 = rows[0].querySelector('.op-b[aria-pressed="false"]'); const k = b0.dataset.op; b0.click();
+              if (document.querySelector(`#opList .op-b[data-op="${k}"]`).getAttribute('aria-pressed') !== 'true') ng.push('押しても選んだ状態にならない');
+              return ng; }""")
+            for m in r:
+                out.add(f"名前の色: {m}")
+        await pg.evaluate("closeSheet()"); await pg.wait_for_timeout(350)
+        await pg.evaluate("setTab('song'); openPlayer(CL[0], DATA.rosters[CL[0]][0].n)"); await pg.wait_for_timeout(400)
+        for x in await pg.evaluate(TEAM_MARK_JS):
+            out.add(f"選手の画面: {x}")
+        for m in sorted(out)[:20]:
+            bad(f"[球団の印・{label}] {m}")
+        await ctx.close()
+
+
+async def cal_score_check(browser):
+    """日程：終わった試合の日にちに、○×△の下にスコア。並びはすぐ上の対戦（ホーム - ビジター）と同じ。試合中も同じ並び。マスからはみ出さない"""
+    for th in ["pawa", ""]:
+        for w in [320, 390]:
+            pg, errs = await open_page(browser, w, th)
+            r = await pg.evaluate("""() => { const ng = [];
+              const t = CL[0], fin = DATA.games.filter(g => g.st === 'final' && (g.h === t || g.a === t));
+              const g0 = fin[fin.length - 1]; S.calTeam = t; S.calMonth = +g0.d.slice(5, 7); S.calSel = null; setTab('cal'); renderCal();
+              const mon = DATA.games.filter(g => (g.h === t || g.a === t) && g.d.slice(5, 7) === g0.d.slice(5, 7));
+              for (const g of mon.filter(g => g.st === 'final')) {
+                const cell = document.querySelector(`#cal .day[data-d="${g.d}"]`); if (!cell) continue;
+                const day = mon.filter(x => x.d === g.d); if (day[day.length - 1] !== g) continue;   // その日の最後の試合だけ出す（ダブルヘッダーなど）
+                const sc = cell.querySelector('.fsc');
+                if (!sc) { ng.push(`${g.d}：スコアがない`); continue; }
+                if (sc.textContent !== `${g.hs}-${g.as}`) ng.push(`${g.d}：スコアの並びが対戦（${calSn(g.h)} - ${calSn(g.a)}）と違う（${sc.textContent}、本当は${g.hs}-${g.as}）`);
+                const rs = cell.querySelector('.rs'); if (rs && rs.getBoundingClientRect().bottom > sc.getBoundingClientRect().top + 1) ng.push(`${g.d}：スコアが○×△の下にない`);
+              }
+              const ov = [...document.querySelectorAll('#cal .day.has')].filter(d => d.scrollWidth > d.clientWidth + 1 || d.scrollHeight > d.clientHeight + 1).map(d => d.dataset.d);
+              if (ov.length) ng.push(`マスからはみ出す（${ov.slice(0, 3)}）`);
+              // 試合中も同じ並び
+              const g1 = mon.find(g => g.st === 'final'); const keep = { ...g1 };
+              Object.assign(g1, { st: 'live', hs: 7, as: 1, inn: '5回裏' }); renderCal();
+              const lv = document.querySelector(`#cal .day[data-d="${g1.d}"] .lvc`); if (!lv || lv.textContent !== '7-1') ng.push(`試合中のスコアの並びが対戦と違う（${lv && lv.textContent}）`);
+              Object.assign(g1, keep); renderCal();
+              return ng; }""")
+            for m in r[:10]:
+                bad(f"[日程のスコア {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] {m}")
+            for e in errs:
+                bad(f"[日程のスコア]: 画面のエラー {e}")
+            await pg.close()
+
+
+async def pitch_count_check(browser):
+    """一球速報の球数のめやす：先発は100球（80球から黄・100球から赤）、中継ぎは30球（20球から黄・30球から赤）。
+    先発か中継ぎかは、その試合の投手成績でいちばん上か（まだなければ予告先発）"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [];
+      const g = { d: '2026-10-04', h: 'T', a: 'G', st: 'live', hs: 1, as: 0, inn: '7回表' }, k = g.d + gkey(g);
+      const atk = Object.keys(YSHORT).find(x => YSHORT[x] === 'G');
+      const P = DATA.rosters.T.filter(r => r.p === '投手');
+      const one = (name, np, withBox, yk) => {
+        PD[k] = { half: '7回表', attack: atk, pitcher: { name, np: String(np), game: { np: String(np) } }, batter: { name: 'x' }, pitches: [] };
+        if (withBox) GD[k] = { pitchers: [[], [{ name: P[0].n, np: '95' }, { name: P[1].n, np: String(np) }]], lineups: [[], []] }; else delete GD[k];
+        if (yk) YK[`${g.d}|${g.h}|${g.a}`] = { h: P[0].n, a: 'x' }; else delete YK[`${g.d}|${g.h}|${g.a}`];
+        const w = document.createElement('div'); w.innerHTML = pitchHTML(g); const ga = w.querySelector('.pgauge');
+        return ga ? { cls: ga.className, label: ga.querySelector('.pgnote').textContent, barW: ga.querySelector('i').getBoundingClientRect().width, width: parseFloat(ga.querySelector('b').style.width), line: parseFloat(ga.querySelector('u').style.left) } : null; };
+      let x = one(P[0].n, 85, true); if (!x || !/先発・めやす100/.test(x.label) || !/mid/.test(x.cls)) ng.push(`先発85球：${JSON.stringify(x)}`);
+      x = one(P[0].n, 101, true); if (!x || !/hi/.test(x.cls)) ng.push(`先発101球が赤でない：${JSON.stringify(x)}`);
+      x = one(P[1].n, 15, true); if (!x || !/中継ぎ・めやす30/.test(x.label) || /mid|hi/.test(x.cls)) ng.push(`中継ぎ15球：${JSON.stringify(x)}`);
+      if (x && Math.abs(x.width - 15 / 36 * 100) > .5) ng.push(`中継ぎ15球のバーの長さが違う（${x.width}%）`);
+      if (x && Math.abs(x.line - 30 / 36 * 100) > .5) ng.push(`中継ぎのめやすの線の位置が違う（${x.line}%）`);
+      x = one(P[1].n, 22, true); if (!x || !/mid/.test(x.cls) || /hi/.test(x.cls)) ng.push(`中継ぎ22球が黄色でない：${JSON.stringify(x)}`);
+      x = one(P[1].n, 31, true); if (!x || !/hi/.test(x.cls)) ng.push(`中継ぎ31球が赤でない：${JSON.stringify(x)}`);
+      // 投手成績がまだないとき：予告先発の名前で決める
+      x = one(P[0].n, 50, false, true); if (!x || !/先発/.test(x.label)) ng.push(`予告先発の投手が先発にならない：${JSON.stringify(x)}`);
+      x = one(P[1].n, 10, false, true); if (!x || !/中継ぎ/.test(x.label)) ng.push(`予告先発でない投手が中継ぎにならない：${JSON.stringify(x)}`);
+      // 実際の画面の幅で：バーが細くつぶれない（先発・中継ぎの説明はバーの下）
+      one(P[1].n, 22, true); setTab('game'); const box = document.createElement('div'); box.className = 'tg'; box.innerHTML = pitchHTML(g); document.getElementById('today').prepend(box);
+      const bw = box.querySelector('.pgauge i').getBoundingClientRect().width, nb = box.querySelector('.pgnote').getBoundingClientRect(), ib = box.querySelector('.pgauge i').getBoundingClientRect();
+      if (bw < 50) ng.push(`球数のバーが細すぎる（${Math.round(bw)}px）`);
+      if (nb.top < ib.bottom - 1) ng.push('先発・中継ぎの説明がバーの下にない');
+      box.remove();
+      delete PD[k]; delete GD[k]; return ng; }""")
+    for m in r:
+        bad(f"[球数のめやす] {m}")
+    for e in errs:
+        bad(f"[球数のめやす]: 画面のエラー {e}")
+    await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -2486,6 +2658,13 @@ async def player_today_check(browser):
       const bt = (d.lineups[side] || [])[0], pt = (d.pitchers[side] || [])[0];
       await openPlayer(t, bt.name); await new Promise(r => setTimeout(r, 700));
       const a = document.querySelector('.ps-today'); if (!a || !a.textContent.includes('今日の試合')) ng.push(`打者（${bt.name}）の画面に今日の試合の成績が出ない`);
+      // 今日の箱は今日の数字だけ（今季の打率は出さない）。四死球は今日の打席の結果の四球・死球の数
+      if (a) { const labs = [...a.querySelectorAll('.ps-main .ps-c b, .ps-main span, .ps-main i')].map(e => e.textContent); const t = a.textContent;
+        if (/打率/.test(t)) ng.push('今日の試合の箱に今季の打率が出ている');
+        if (!/四死球/.test(t)) ng.push('今日の試合の箱に四死球がない');
+        const want = (bt.results || []).filter(r => /四|死球|敬遠/.test(r)).length;
+        const cellv = [...a.querySelectorAll('.ps-main > *')].find(e => /四死球/.test(e.textContent));
+        if (cellv && !new RegExp('(^|\\D)' + Math.max(want, parseInt(bt.bb, 10) || 0) + '($|\\D)').test(cellv.textContent.replace('四死球', ''))) ng.push(`四死球の数が違う（${cellv.textContent}・結果では${want}）`); }
       await openPlayer(t, pt.name, { kind: 'pit' }); await new Promise(r => setTimeout(r, 700));
       const c = document.querySelector('.ps-today'); if (!c || !c.textContent.includes('球数')) ng.push(`投手（${pt.name}）の画面に今日の試合の成績が出ない`);
       // 今の打者・投手を開くと、今季の対戦成績（打者 vs 投手）
@@ -2979,6 +3158,9 @@ async def main():
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)
+        await team_mark_check(browser)
+        await cal_score_check(browser)
+        await pitch_count_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

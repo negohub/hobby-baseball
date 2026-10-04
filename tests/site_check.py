@@ -2682,6 +2682,52 @@ async def off_name_tag_check(browser):
     await pg.close()
 
 
+async def cs_cal_check(browser):
+    """日程のCS：1位が決まったら、その球団のファイナルステージは「神 - 未」と開始時刻（分かっている日）。1位の球団にファーストステージは出ない。
+    2位・3位が動かなくなったら、ファーストステージは「2位 - 3位」。第7戦は第6戦の次の日。月度の支払いは、試合が残っていても確定していれば順位タブに出る"""
+    for lg in ["C", "P"]:
+        pg, errs = await open_page(browser, 390, "pawa")
+        r = await pg.evaluate("""(lg) => { const ng = [];
+          switchLeague(lg);
+          const rows = seasonTable(DATA.games, calOrder(), pendingMakeups()), lead = rows[0] && rows[0].magic === 0 ? rows[0].t : null, L3 = lockedTop3();
+          if (lead && L3[0] !== lead) ng.push(`優勝の${fn(lead)}が1位で動かない扱いになっていない（${L3}）`);
+          // 交流戦も入れた順位と同じ（前は同じリーグどうしの試合だけで数えていた）
+          if (L3[1] && rows[1].t !== L3[1]) ng.push(`2位の判定が順位表と違う（${L3[1]} / ${rows[1].t}）`);
+          const post = postGames(), csf = post.filter(g => g.stage === 'CSF').sort((a, b) => a.no - b.no);
+          const g6 = csf.find(g => g.no === 6), g7 = csf.find(g => g.no === 7);
+          if (g6 && g7) { const d = new Date(g6.d + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); if (g7.d !== d.toISOString().slice(0, 10)) ng.push(`第7戦の日付が第6戦の次の日でない（${g6.d} → ${g7.d}）`); }
+          if (lead && !seasonOver()) {
+            const m = +csf[0].d.slice(5, 7); S.calTeam = lead; S.calMonth = m; S.calSel = null; setTab('cal'); renderCal();
+            for (const g of csf.filter(g => g.no <= 6)) {
+              const cell = document.querySelector(`#cal .day[data-d="${g.d}"]`); if (!cell) { ng.push(`${g.d}：マスがない`); continue; }
+              const mu = cell.querySelector('.mu'); if (!mu || mu.textContent !== `${calSn(lead)} - ${g.a ? calSn(g.a) : '未'}`) ng.push(`${g.d}：「${calSn(lead)} - 未」になっていない（${mu && mu.textContent}）`);
+              const tm = (POST_TIME[`${lg}|CSF|${lead}`] || {})[g.no]; if (tm && !cell.textContent.includes(tm)) ng.push(`${g.d}：開始時刻 ${tm} が出ない`);
+            }
+            for (const g of post.filter(g => g.stage === 'CS1')) { const c = document.querySelector(`#cal .day[data-d="${g.d}"]`); if (c && c.classList.contains('post')) ng.push(`1位の${fn(lead)}の日程にファーストステージ（${g.d}）が出ている`); }
+          }
+          if (L3[1] && L3[2] && !seasonOver()) {
+            const cs1 = post.filter(g => g.stage === 'CS1'); if (!cs1.length) return ng;
+            S.calTeam = L3[1]; S.calMonth = +cs1[0].d.slice(5, 7); renderCal();
+            const mu = document.querySelector(`#cal .day[data-d="${cs1[0].d}"] .mu`);
+            if (!mu || mu.textContent !== `${calSn(L3[1])} - ${calSn(L3[2])}`) ng.push(`ファーストステージが「2位 - 3位」になっていない（${mu && mu.textContent}）`);
+          }
+          // 支払い：確定していれば、試合が残っていても順位タブの月度別と担当者別に出る
+          if (lg === 'C') {
+            renderStd(); const trs = [...document.querySelectorAll('#hist tbody tr')]; let n = 0;
+            periods().forEach((p, i) => { const a = analyze(DATA.games, p, CONFIG), pay = monthPayer(a), tx = trs[i] ? trs[i].textContent : '';
+              if (pay) { n++; if (!tx.includes(own(pay)) || /集計中/.test(tx)) ng.push(`${p.label}：確定した支払い（${own(pay)}）が出ない（${tx}）`); if (!a.finished && !/確定/.test(tx)) ng.push(`${p.label}：試合が残っているのに「確定」の印がない`); }
+              else if (a.played && !/集計中/.test(tx)) ng.push(`${p.label}：まだ決まっていないのに支払いが出ている`); });
+            const tot = [...document.querySelectorAll('#tot tbody tr')].reduce((s, tr) => s + (parseInt((tr.querySelector('.ya small') || {}).textContent, 10) || 0), 0);
+            if (tot !== n) ng.push(`担当者別の支払いの回数の合計（${tot}）が月度別（${n}）と違う`);
+          }
+          return ng; }""", lg)
+        for m in r:
+            bad(f"[日程のCS・支払い {lg}] {m}")
+        for e in errs:
+            bad(f"[日程のCS・支払い]: 画面のエラー {e}")
+        await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -3198,6 +3244,7 @@ async def main():
         await cal_score_check(browser)
         await pitch_count_check(browser)
         await off_name_tag_check(browser)
+        await cs_cal_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

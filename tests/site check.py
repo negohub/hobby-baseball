@@ -2576,6 +2576,38 @@ async def team_mark_check(browser):
         await ctx.close()
 
 
+async def cal_score_check(browser):
+    """日程：終わった試合の日にちに、○×△の下にスコア。並びはすぐ上の対戦（ホーム - ビジター）と同じ。試合中も同じ並び。マスからはみ出さない"""
+    for th in ["pawa", ""]:
+        for w in [320, 390]:
+            pg, errs = await open_page(browser, w, th)
+            r = await pg.evaluate("""() => { const ng = [];
+              const t = CL[0], fin = DATA.games.filter(g => g.st === 'final' && (g.h === t || g.a === t));
+              const g0 = fin[fin.length - 1]; S.calTeam = t; S.calMonth = +g0.d.slice(5, 7); S.calSel = null; setTab('cal'); renderCal();
+              const mon = DATA.games.filter(g => (g.h === t || g.a === t) && g.d.slice(5, 7) === g0.d.slice(5, 7));
+              for (const g of mon.filter(g => g.st === 'final')) {
+                const cell = document.querySelector(`#cal .day[data-d="${g.d}"]`); if (!cell) continue;
+                const day = mon.filter(x => x.d === g.d); if (day[day.length - 1] !== g) continue;   // その日の最後の試合だけ出す（ダブルヘッダーなど）
+                const sc = cell.querySelector('.fsc');
+                if (!sc) { ng.push(`${g.d}：スコアがない`); continue; }
+                if (sc.textContent !== `${g.hs}-${g.as}`) ng.push(`${g.d}：スコアの並びが対戦（${calSn(g.h)} - ${calSn(g.a)}）と違う（${sc.textContent}、本当は${g.hs}-${g.as}）`);
+                const rs = cell.querySelector('.rs'); if (rs && rs.getBoundingClientRect().bottom > sc.getBoundingClientRect().top + 1) ng.push(`${g.d}：スコアが○×△の下にない`);
+              }
+              const ov = [...document.querySelectorAll('#cal .day.has')].filter(d => d.scrollWidth > d.clientWidth + 1 || d.scrollHeight > d.clientHeight + 1).map(d => d.dataset.d);
+              if (ov.length) ng.push(`マスからはみ出す（${ov.slice(0, 3)}）`);
+              // 試合中も同じ並び
+              const g1 = mon.find(g => g.st === 'final'); const keep = { ...g1 };
+              Object.assign(g1, { st: 'live', hs: 7, as: 1, inn: '5回裏' }); renderCal();
+              const lv = document.querySelector(`#cal .day[data-d="${g1.d}"] .lvc`); if (!lv || lv.textContent !== '7-1') ng.push(`試合中のスコアの並びが対戦と違う（${lv && lv.textContent}）`);
+              Object.assign(g1, keep); renderCal();
+              return ng; }""")
+            for m in r[:10]:
+                bad(f"[日程のスコア {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] {m}")
+            for e in errs:
+                bad(f"[日程のスコア]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -3089,6 +3121,7 @@ async def main():
         await tab_group_check(browser)
         await pennant_check(browser)
         await team_mark_check(browser)
+        await cal_score_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

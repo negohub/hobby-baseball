@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261004112440">
+<meta name="build" content="20261004114513">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -865,6 +865,8 @@ html.theme-pawa.pawa-dark .pnbox .pnm:not(#z){color:#FFD84D !important}
 .pgauge.hi i b{background:linear-gradient(90deg,#E53935,#FF7A6E)}
 .pgauge i u{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.45);text-decoration:none}
 .pgauge em{font-style:normal;font-size:15px;font-weight:800;color:#F2F2F4;min-width:2.2em;text-align:right}
+.pgauge{flex-wrap:wrap;row-gap:2px}
+.pgauge .pgnote{flex:0 0 100%;font-size:10px;font-weight:600;line-height:1.2;white-space:nowrap;opacity:.9}   /* 先発・中継ぎとめやす（バーの下に小さく） */
 /* 最後に受け取った時刻 */
 .pupd{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#8A8A92;font-weight:600}
 .pupd i{width:6px;height:6px;border-radius:50%;background:#FF3B3B;animation:pupd 1.6s ease-in-out infinite}
@@ -5425,6 +5427,20 @@ function newPitch(g, last) {
   return isNew;
 }
 const YSHORT = { "DeNA": "DB", "阪神": "T", "巨人": "G", "中日": "D", "広島": "C", "ヤクルト": "S", "ソフトバンク": "H", "日本ハム": "F", "オリックス": "B", "楽天": "E", "西武": "L", "ロッテ": "M" };
+// 今投げている投手は先発か中継ぎか：試合の投手成績（出た順）でいちばん上なら先発。まだ読めていなければ予告先発の名前と比べる
+function pitcherRole(g, p, d, def) {
+  const sq = x => String(x || "").normalize("NFKC").replace(/\s+/g, "").replace(/髙/g, "高").replace(/﨑/g, "崎");
+  const now = p && p.pitcher ? sq(p.pitcher.name) : "";
+  if (!now) return "start";
+  const side = def === g.h ? 1 : 0, list = d && d.pitchers ? (d.pitchers[side] || []) : [];
+  if (list.length) {
+    const first = sq(list[0].name);
+    return first && (first === now || first.startsWith(now) || now.startsWith(first)) ? "start" : "rel";
+  }
+  const y = typeof ykOf === "function" ? ykOf(g) : null, yk = y ? sq(def === g.h ? y.h : y.a) : "";
+  if (yk) return yk === now || yk.startsWith(now) || now.startsWith(yk) ? "start" : "rel";
+  return "start";
+}
 function pitchHTML(g) {
   const p = PD[g.d + gkey(g)], d = GD[g.d + gkey(g)];
   if (!p || g.st !== "live") return "";
@@ -5507,8 +5523,12 @@ function pitchHTML(g) {
     if (/ボール/.test(r)) cb = Math.min(3, cb + 1); else if (/ファウル|ファール/.test(r)) { if (cs < 2) cs++; } else if (/見逃|空振|ストライク/.test(r)) cs = Math.min(2, cs + 1);
     return `${cb}-${cs}`; });
   const top = list.reduce((m, x) => Math.max(m, kmh(x.speed)), 0);
-  // 球数のめやす（100球で1本分）：80球から黄色、100球から赤
-  const gauge = npNow ? `<div class="pgauge ${npNow >= 100 ? "hi" : npNow >= 80 ? "mid" : ""}"><span>球数</span><i><b style="width:${Math.min(100, npNow / 1.2)}%"></b><u style="left:${100 / 1.2}%"></u></i><em class="num">${npNow}</em></div>` : "";
+  // 球数のめやす：先発と中継ぎで分ける（中継ぎは1回前後で降りるのがふつう）
+  //   先発：めやす100球（線）、80球から黄色・100球から赤、バーは120球でいっぱい
+  //   中継ぎ：めやす30球（線）、20球から黄色・30球から赤、バーは36球でいっぱい（線の位置は先発と同じ）
+  const role = pitcherRole(g, p, d, def);
+  const NP = role === "rel" ? { cap: 36, line: 30, mid: 20, hi: 30 } : { cap: 120, line: 100, mid: 80, hi: 100 };
+  const gauge = npNow ? `<div class="pgauge ${npNow >= NP.hi ? "hi" : npNow >= NP.mid ? "mid" : ""}"><span>球数</span><i><b style="width:${Math.min(100, npNow / NP.cap * 100)}%"></b><u style="left:${NP.line / NP.cap * 100}%"></u></i><em class="num">${npNow}</em><small class="pgnote">${role === "rel" ? "中継ぎ" : "先発"}・めやす${NP.line}球（線）</small></div>` : "";
   const upd = PD_AT[g.d + gkey(g)] ? new Date(PD_AT[g.d + gkey(g)]).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
   const lastRes = last ? String(last.res || "").normalize("NFKC").trim() : "";
   const abDone = !!lastRes && !/^(ボール|見逃し|空振り|ファウル|ストライク|ファール)$/.test(lastRes);

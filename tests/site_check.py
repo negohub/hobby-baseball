@@ -1111,6 +1111,13 @@ async def offseason_check(browser):
             bad(f"[首脳陣の退団（ニュース）] 拾い方が違う：{names}")
     finally:
         ud.fetch, ud.STAFF_NEWS_FEEDS = keep_fetch, keep_feeds
+    # ベースボールチャンネルの一覧の名前の欄の札（「NEW」「育成」）は名前ではない
+    for raw, want in [("松原快 育成", "松原快"), ("髙野光海 NEW 育成", "髙野光海"), ("S・コンスエグラ 育成", "S・コンスエグラ"), ("新井 貴浩", "新井 貴浩"), ("奥村光一 ※", "奥村光一")]:
+        if ud.clean_off_name(raw) != want:
+            bad(f"[入退団の名前] 「{raw}」が「{ud.clean_off_name(raw)}」になる（{want} のはず）")
+    bb = ud.parse_bbc('<h2>戦力外通告</h2><table><tr><td>9月29日</td><td>阪神</td><td>松原快 <span>育成</span></td><td>投手</td></tr><tr><td>10月4日</td><td>ロッテ</td><td>髙野光海 <b>NEW</b> <span>育成</span></td><td>外野手</td></tr></table>', 2026)
+    if [(x["n"], x["dev"]) for x in bb] != [("松原快", True), ("髙野光海", True)]:
+        bad(f"[入退団の名前] ベースボールチャンネルの名前の札を外せない：{[(x['n'], x['dev']) for x in bb]}")
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -2593,8 +2600,13 @@ async def cal_score_check(browser):
                 if (sc.textContent !== `${g.hs}-${g.as}`) ng.push(`${g.d}：スコアの並びが対戦（${calSn(g.h)} - ${calSn(g.a)}）と違う（${sc.textContent}、本当は${g.hs}-${g.as}）`);
                 const rs = cell.querySelector('.rs'); if (rs && rs.getBoundingClientRect().bottom > sc.getBoundingClientRect().top + 1) ng.push(`${g.d}：スコアが○×△の下にない`);
               }
-              const ov = [...document.querySelectorAll('#cal .day.has')].filter(d => d.scrollWidth > d.clientWidth + 1 || d.scrollHeight > d.clientHeight + 1).map(d => d.dataset.d);
-              if (ov.length) ng.push(`マスからはみ出す（${ov.slice(0, 3)}）`);
+              // 全球団・全部の月で、マスからはみ出さない（CS・日本シリーズの日も）
+              for (const tt of CL) for (const mo of [3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+                S.calTeam = tt; S.calMonth = mo; renderCal();
+                const ov = [...document.querySelectorAll('#cal .day.has')].filter(d => d.scrollWidth > d.clientWidth + 1 || d.scrollHeight > d.clientHeight + 1).map(d => d.dataset.d);
+                if (ov.length) ng.push(`${tt} ${mo}月：マスからはみ出す（${ov.slice(0, 3)}）`);
+              }
+              S.calTeam = t; S.calMonth = +g0.d.slice(5, 7); renderCal();
               // 試合中も同じ並び
               const g1 = mon.find(g => g.st === 'final'); const keep = { ...g1 };
               Object.assign(g1, { st: 'live', hs: 7, as: 1, inn: '5回裏' }); renderCal();
@@ -2643,6 +2655,30 @@ async def pitch_count_check(browser):
         bad(f"[球数のめやす] {m}")
     for e in errs:
         bad(f"[球数のめやす]: 画面のエラー {e}")
+    await pg.close()
+
+
+async def off_name_tag_check(browser):
+    """入退団：発表の一覧から「松原快 育成」「髙野光海 NEW 育成」のような札つきの名前が来ても、名前だけにして、同じ選手は1回だけ"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [], ro = DATA.rosters.T[0];
+      jst = () => ({ y: 2026, m: 10, d: 4, iso: '2026-10-04' });
+      DATA.offseason = { season: 2026, checked_at: new Date().toISOString(), teams: {}, seen: {}, items: [
+        { t: 'T', n: ro.n, no: ro.no, dev: false, kind: 'cut', date: '2026-09-29', url: 'u', title: 'x' },
+        { t: 'T', n: ro.n.replace(/\\s+/g, '') + ' 育成', no: '', dev: false, kind: 'cut', date: '2026-09-29', url: 'u', title: 'x', src: 'bbc' },
+        { t: 'T', n: 'テスト太郎 NEW 育成', no: '', dev: false, kind: 'cut', date: '2026-10-04', url: 'u', title: 'x', src: 'bbc' }] };
+      LIVE_OFF.items = [{ t: 'T', n: 'テスト太郎 NEW', kind: 'cut', date: '2026-10-04', url: 'u' }];
+      renderAll(); setTab('off'); S.offCat = 'all'; renderOff();
+      const names = [...document.querySelectorAll('#offList .onm')].map(e => e.textContent);
+      if (names.some(n => /育成|NEW/.test(n))) ng.push(`名前に札が残っている（${names.filter(n => /育成|NEW/.test(n))}）`);
+      const k = offItems().filter(x => x.t === 'T').map(x => nkOff(x.n));
+      if (k.length !== new Set(k).size) ng.push(`同じ選手が2回出ている（${k}）`);
+      const tt = offItems().find(x => nkOff(x.n) === 'テスト太郎'); if (!tt || !tt.dev) ng.push('「育成」の札から育成の印（dev）にならない');
+      LIVE_OFF.items = []; return ng; }""")
+    for m in r:
+        bad(f"[入退団の名前] {m}")
+    for e in errs:
+        bad(f"[入退団の名前]: 画面のエラー {e}")
     await pg.close()
 
 
@@ -3161,6 +3197,7 @@ async def main():
         await team_mark_check(browser)
         await cal_score_check(browser)
         await pitch_count_check(browser)
+        await off_name_tag_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261002202018">
+<meta name="build" content="20261004101803">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -6787,7 +6787,9 @@ function todayLine(t, full) {
   const cell = (k, v) => `<div><small>${k}</small><b class="num">${esc(v == null || v === "" ? "-" : String(v))}</b></div>`;
   let h = "";
   if (pt) h += `<div class="ps-main">${cell("投球回", pt.ip)}${cell("球数", pt.np)}${cell("被安打", pt.h)}${cell("奪三振", pt.so)}</div><div class="ps-main">${cell("与四死球", (Number(pt.bb) || 0) + (Number(pt.hbp) || 0))}${cell("失点", pt.r)}${cell("自責点", pt.er)}${cell("防御率", pt.era)}</div>`;
-  if (bt && (bt.results || []).length) h += `<div class="ps-main">${cell("打数", bt.ab)}${cell("安打", bt.hit)}${cell("打点", bt.rbi)}${cell("打率", bt.avg)}</div><div class="pres3 ps-res">${bt.results.map((r, i) => rcChip(r, (bt.rbis || [])[i])).join("")}</div>`;
+  // 今日の箱は全部「今日の数字」：打数・安打・打点・四死球（今季の打率は下の打撃成績に出ているので、ここには出さない）
+  const bbToday = bt ? Math.max((bt.results || []).filter(r => /四|死球|敬遠/.test(r)).length, parseInt(bt.bb, 10) || 0) : 0;
+  if (bt && (bt.results || []).length) h += `<div class="ps-main">${cell("打数", bt.ab)}${cell("安打", bt.hit)}${cell("打点", bt.rbi)}${cell("四死球", bbToday)}</div><div class="pres3 ps-res">${bt.results.map((r, i) => rcChip(r, (bt.rbis || [])[i])).join("")}</div>`;
   return h ? `<div class="ps-sec ps-today"><div class="ps-t">今日の試合${live}・${esc(fn(g.h === t ? g.a : g.h))}戦</div>${h}</div>` : "";
 }
 async function openPlayer(t, name, opt = {}) {

@@ -658,6 +658,9 @@ OFF_SEED = [
     {"t": "B", "n": "山田 修義", "kind": "retire", "date": "2026-09-24"},
     {"t": "B", "n": "西野 真弘", "kind": "retire", "date": "2026-09-24"},
     {"t": "T", "n": "西 勇輝", "kind": "retire", "date": "2026-09-25", "url": "https://hanshintigers.jp/news/topics/info_11241.html"},
+    # コーチの退団（10/4 球団発表。球団のニュース一覧から拾えなかったので補う）
+    {"t": "B", "n": "波留 敏夫", "kind": "coach_out", "role": "ヘッドコーチ", "date": "2026-10-04", "url": "https://full-count.jp/2026/10/04/post2026060/", "title": "波留敏夫ヘッドコーチ 契約満了で退団（球団発表）"},
+    {"t": "B", "n": "川島 慶三", "kind": "coach_out", "role": "打撃コーチ", "date": "2026-10-04", "url": "https://full-count.jp/2026/10/04/post2026060/", "title": "川島慶三打撃コーチ 本人の申し入れで退団（球団発表）"},
     {"t": "T", "n": "岩貞 祐太", "kind": "retire", "date": "2026-09-28"},
     {"t": "D", "n": "井上 一樹", "kind": "mgr", "role": "監督", "date": "2026-09-29"},
     {"t": "G", "n": "阿部 慎之助", "kind": "mgr", "role": "監督", "date": "2026-05-26", "mid": True},   # シーズン途中で辞任（橋上秀樹が監督代行）
@@ -975,6 +978,60 @@ def off_coach(t, url, list_title, html, staff, known, season):
     return out
 
 
+STAFF_NEWS_FEEDS = ["https://full-count.jp/feed/", "https://full-count.jp/category/npb/feed/"]
+STAFF_NEWS_TITLE = re.compile(r"(コーチ|監督|首脳陣).{0,40}(退団|退任|辞任|契約満了|契約を結ばない)|(退団|退任|辞任|契約満了).{0,40}(コーチ|監督)")
+STAFF_NEWS_ANNOUNCE = re.compile(r"球団発表|発表した|発表しました|を発表")
+
+
+def staff_news(staff, managers, season, seen, today):
+    """ニュースの新着（RSS）から、首脳陣の退団・退任の球団発表を拾う → [{t, n, kind: coach_out|mgr, role, date, url, title}]"""
+    from html import unescape
+    out, done = [], set()
+    for feed in STAFF_NEWS_FEEDS:
+        xml = fetch(feed)
+        if not xml:
+            continue
+        for item in re.findall(r"<item>(.*?)</item>", xml, re.S)[:40]:
+            g = lambda tag: unescape(re.sub(r"^<!\[CDATA\[|\]\]>$", "", (re.search(rf"<{tag}>(.*?)</{tag}>", item, re.S) or [None, ""])[1].strip()))
+            title, link = norm(g("title")), g("link").strip()
+            if not link or link in done or not STAFF_NEWS_TITLE.search(title):
+                continue
+            done.add(link)
+            if seen.get(link):
+                continue
+            html = fetch(link)
+            seen[link] = today
+            if not html:
+                continue
+            soup = BeautifulSoup(html, "html.parser")
+            for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside", "form"]):
+                tag.decompose()
+            text = norm(soup.get_text("\n"))
+            e = OFF_END.search(text, 200)
+            if e:
+                text = text[:e.start()]
+            if not STAFF_NEWS_ANNOUNCE.search(title + text[:1500]):
+                continue   # 「〜へ」「〜か」などの観測記事は入れない（球団の発表だけ）
+            for t, st_ in (staff or {}).items():
+                flat = re.sub(r"\s+", "", text)
+                for it in off_coach(t, link, title, html, st_, set(), season):
+                    k = squash(it["n"]); i = flat.find(k)
+                    # 名前のすぐ後ろ（30字以内）に退団・退任などがあるときだけ（同じ記事に出てくるほかのコーチを取り違えない）
+                    if it["kind"] == "coach_out" and i >= 0 and re.search(r"退団|退任|辞任|契約満了|契約を結ばない", flat[i:i + len(k) + 30]):
+                        it["src"] = "news"
+                        out.append(it)
+                mg = (managers or {}).get(t)
+                if mg and mg.get("n"):
+                    k, flat = squash(mg["n"]), re.sub(r"\s+", "", text)
+                    i = flat.find(k)
+                    if i >= 0 and re.search(r"退任|辞任|退団", flat[i:i + len(k) + 40]):
+                        m = OFF_DATE.search(text[:600])
+                        d = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}" if m else today
+                        if d >= f"{season}-09-01":
+                            out.append({"t": t, "n": mg["n"], "no": mg.get("no", ""), "dev": False, "kind": "mgr", "date": d, "url": link, "title": title[:80], "src": "news"})
+    return out
+
+
 def parse_draft(html):
     soup = BeautifulSoup(html, "html.parser")
     out, cur = [], None
@@ -1108,6 +1165,18 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
                 st["found"] += 1
             print(f"  [戦力外・引退 {t}] {ltitle[:40]} → {len(found)}人{('（' + why + '）') if why else ''}")
         teams[t] = st
+    # ニュースの新着（Full-Count）：コーチ・監督の退団・退任の「球団発表」の記事を読み、今の首脳陣（NPBの一覧）の名前と照らし合わせる。
+    # 球団のサイトのニュース一覧から拾えなかった発表を補う網。経歴（「〜でコーチを経て」など）を読み違えないよう、拾うのは退団・退任だけ
+    try:
+        got_news = staff_news(staff, managers, season, seen, today)
+        for it in got_news:
+            old_it = items.get((it["t"], it["n"]))
+            if not old_it or (old_it.get("kind") not in ("coach_out", "mgr") and it["date"] >= old_it.get("date", "")):
+                items[(it["t"], it["n"])] = it
+        if got_news:
+            print(f"[首脳陣（ニュース）] {len(got_news)}人")
+    except Exception as e:   # ニュースが読めなくても、ほかの更新は止めない
+        print(f"[首脳陣（ニュース）] 読めませんでした: {e}")
     # 前の回に、関係のないページ（ファンクラブの記事・新入団選手の一覧など）から拾ってしまった移籍・加入は消す
     for k in [k for k, it in items.items() if it.get("kind") in ("in", "out") and (OFF_TITLE_MOVE_NG.search(it.get("title", "")) or "/newcomer" in it.get("url", ""))]:
         del items[k]
@@ -1195,6 +1264,11 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
             for f in ("role", "mid"):
                 if x.get(f):
                     items[key][f] = x[f]
+            if x["kind"].startswith("coach"):
+                sf = next((s_ for s_ in staff.get(x["t"]) or [] if squash(s_["n"]) == squash(x["n"])), None)
+                if sf:
+                    items[key]["no"] = items[key].get("no") or sf.get("no", "")
+                    items[key]["role"] = items[key].get("role") or sf.get("role", "")
     for x in OFF_SEED:
         patch(x)
     fix_path = os.path.join(os.path.dirname(OUT), "offseason_fix.json")

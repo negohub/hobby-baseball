@@ -1177,6 +1177,18 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
             print(f"[首脳陣（ニュース）] {len(got_news)}人")
     except Exception as e:   # ニュースが読めなくても、ほかの更新は止めない
         print(f"[首脳陣（ニュース）] 読めませんでした: {e}")
+    # 前の回に「松原快 育成」「髙野光海 NEW 育成」のような札つきの名前で入ったものを、名前だけに直して1つにまとめる
+    for key in list(items.keys()):
+        it = items[key]
+        cn = clean_off_name(it.get("n", ""))
+        if cn and cn != it.get("n"):
+            del items[key]
+            if re.search(r"育成", it.get("n", "")):
+                it["dev"] = True
+            it["n"] = cn
+            k2 = (it["t"], cn)
+            if k2 not in items:
+                items[k2] = it
     # 前の回に、関係のないページ（ファンクラブの記事・新入団選手の一覧など）から拾ってしまった移籍・加入は消す
     for k in [k for k, it in items.items() if it.get("kind") in ("in", "out") and (OFF_TITLE_MOVE_NG.search(it.get("title", "")) or "/newcomer" in it.get("url", ""))]:
         del items[k]
@@ -1365,6 +1377,18 @@ BBC_SHORT = {"阪神": "T", "DeNA": "DB", "巨人": "G", "中日": "D", "広島"
              "オリックス": "B", "楽天": "E", "西武": "L", "ロッテ": "M"}
 
 
+OFF_NAME_TAGS = re.compile(r"(?:^|\s)(?:NEW|New|new|新着|育成|※|[（(]育成[）)])(?=\s|$)")
+
+
+def clean_off_name(n):
+    """発表の一覧の名前から「NEW」「育成」「※」などの札を外す（名前の一部ではない）"""
+    s = norm(n).replace("※", " ")
+    prev = None
+    while prev != s:
+        prev, s = s, OFF_NAME_TAGS.sub(" ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
 def parse_bbc(html, season):
     """一覧の表（日付｜球団｜選手｜ポジション）を、直前の見出し（戦力外通告・引退表明・自由契約・退団）ごとに読む"""
     soup = BeautifulSoup(html, "html.parser")
@@ -1390,9 +1414,10 @@ def parse_bbc(html, season):
             date = f"{y:04d}-{mo:02d}-{d:02d}"
             if date < f"{season}-09-01":
                 continue
-            name = c[2].replace("※", "").strip()
+            # 名前の欄には「NEW」「育成」などの札も並ぶ（10/4 から）→ 名前だけにして、育成は dev に
+            name = clean_off_name(c[2])
             if name:
-                out.append({"t": t, "n": name, "dev": "※" in c[2], "kind": kind, "date": date, "note": head})
+                out.append({"t": t, "n": name, "dev": bool(re.search(r"※|育成", c[2])), "kind": kind, "date": date, "note": head})
     return out
 
 

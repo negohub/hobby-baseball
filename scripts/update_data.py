@@ -1978,6 +1978,223 @@ def update_records(force=False):
     print(f"[歴代記録] 取得 {got}ページ・取れず {fail}ページ（全{len(lists)}件）")
 
 
+# ================= 球場別成績（今季の全試合の出場成績を、球団・球場・選手ごとに足し合わせる） =================
+# スポナビの週の日程（/npb/schedule/?date=）から試合のIDを集め、試合ごとの出場成績（/npb/game/{id}/stats）を読む。
+# 読んだ試合は data/boxcache.json に覚えておき（毎回読み直さない）、足し合わせた結果を data/venues.json（データタブの「球場別」が読む）に
+BOX_OUT = os.path.join(os.path.dirname(OUT), "boxcache.json")
+VEN_OUT = os.path.join(os.path.dirname(OUT), "venues.json")
+VEN_BUDGET = 150   # 1回の更新で使う秒数の上限（超えたら続きは次の回）
+YFULL = {"読売ジャイアンツ": "G", "横浜DeNAベイスターズ": "DB", "阪神タイガース": "T", "中日ドラゴンズ": "D", "広島東洋カープ": "C",
+         "東京ヤクルトスワローズ": "S", "福岡ソフトバンクホークス": "H", "北海道日本ハムファイターズ": "F", "オリックス・バファローズ": "B",
+         "東北楽天ゴールデンイーグルス": "E", "埼玉西武ライオンズ": "L", "千葉ロッテマリーンズ": "M"}
+
+
+def team_code(name):
+    n = norm(name).strip()
+    if n in YFULL:
+        return YFULL[n]
+    for full, t in YFULL.items():
+        if n and (n in full or full in n):
+            return t
+    for nm, t in TEAMS:
+        if nm in n:
+            return t
+    return None
+
+
+def ybox_title(html):
+    """出場成績のページの見出し：「2026年10月1日 阪神vs.巨人」→ (日付, ホーム, ビジター)"""
+    t = norm((re.search(r"<title>([^<]*)</title>", html) or [None, ""])[1])
+    m = re.search(r"(\d{4})年(\d{1,2})月(\d{1,2})日\s*(.+?)vs\.(.+?)(?:\s|$|[-|｜])", t)
+    if not m:
+        return None
+    h, a = team_code(m.group(4)), team_code(m.group(5))
+    if not h or not a:
+        return None
+    return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}", h, a
+
+
+def parse_ybox(html):
+    """出場成績：打者 [[ビジター], [ホーム]]・投手 [[ビジター], [ホーム]]（worker.js の parseBox と同じ読み方）"""
+    bats, pits = [], []
+    for tb in re.findall(r"<table[\s\S]*?</table>", html):
+        rows = []
+        for tr in re.findall(r"<tr[\s\S]*?</tr>", tb):
+            cells = re.findall(r"<t[dh][\s\S]*?</t[dh]>", tr)
+            rows.append([re.sub(r"\s+", " ", norm(re.sub(r"<[^>]+>", " ", re.sub(r"<br\s*/?>", " ", c)))).strip() for c in cells])
+        if not rows:
+            continue
+        h = rows[0]
+        if "投球回" in h and "奪三振" in h:
+            lst = []
+            for r in rows[1:]:
+                off = len(r) - len(h)
+                at = lambda k: (r[h.index(k) + off] if k in h and 0 <= h.index(k) + off < len(r) else "")
+                ni = h.index("選手名") + off if "選手名" in h else 0
+                name, dec = (r[ni] if 0 <= ni < len(r) else ""), ""
+                if re.fullmatch(r"勝|敗|S|H", name) and ni + 1 < len(r):
+                    dec, name = name, r[ni + 1]
+                elif ni > 0 and re.fullmatch(r"勝|敗|S|H", r[ni - 1] or ""):
+                    dec = r[ni - 1]
+                m = re.match(r"^(.*?)\s*\((勝|敗|S|H)\)\s*$", name)
+                if m:
+                    name, dec = m.group(1), dec or m.group(2)
+                if not name or re.fullmatch(r"勝|敗|S|H|合計", name):
+                    continue
+                lst.append({"n": name, "dec": dec, "ip": at("投球回"), "h": at("被安打"), "so": at("奪三振"), "bb": at("与四球"), "hbp": at("与死球"), "er": at("自責点")})
+            if lst:
+                pits.append(lst)
+        elif "打数" in h and "1回" in h:
+            i1, lst = h.index("1回"), []
+            ix = lambda k: h.index(k) if k in h else -1
+            for r in rows[1:]:
+                if len(r) < 2 or not r[1] or r[0] == "合計":
+                    continue
+                res = [x for c in r[i1:] if c for x in re.split(r"[ 、]+", c) if x]
+                g = lambda k: (r[ix(k)] if 0 <= ix(k) < len(r) else "")
+                lst.append({"n": r[1], "ab": g("打数"), "h": g("安打"), "rbi": g("打点"), "hr": g("本塁打"), "bb": g("四球"), "res": res})
+            if lst:
+                bats.append(lst)
+    return bats, pits
+
+
+def _i(x):
+    try:
+        return int(str(x).strip() or 0)
+    except ValueError:
+        return 0
+
+
+def _outs(ip):
+    m = re.match(r"^(\d+)(?:\.(\d))?$", str(ip).strip())
+    return int(m.group(1)) * 3 + int(m.group(2) or 0) if m else 0
+
+
+def box_compact(bats, pits, h, a):
+    """1試合の出場成績を小さくまとめる：打者 [球団, 名前, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打]・投手 [球団, 名前, アウト数, 自責点, 勝, 敗, S, H, 奪三振, 被安打, 与四死球]"""
+    if len(bats) != 2 or len(pits) != 2:
+        return None
+    B, P = [], []
+    for side, t in ((0, a), (1, h)):
+        for x in bats[side]:
+            res = x["res"]
+            hbp = sum(1 for r in res if "死球" in r)
+            sf = sum(1 for r in res if "犠飛" in r)
+            bb = max(_i(x["bb"]), sum(1 for r in res if re.search(r"四球|敬遠|故四", r)))
+            tb = sum(4 if "本" in r else 3 if re.search(r"3$", r) else 2 if re.search(r"2$", r) else 1 if "安" in r else 0 for r in res)
+            B.append([t, x["n"], _i(x["ab"]), _i(x["h"]), _i(x["hr"]), _i(x["rbi"]), bb, hbp, sf, tb])
+        for x in pits[side]:
+            d = x["dec"]
+            P.append([t, x["n"], _outs(x["ip"]), _i(x["er"]), int(d == "勝"), int(d == "敗"), int(d == "S"), int(d == "H"), _i(x["so"]), _i(x["h"]), _i(x["bb"]) + _i(x["hbp"])])
+    return {"bat": B, "pit": P}
+
+
+def update_venues(games, season, budget=VEN_BUDGET):
+    cache = {}
+    if os.path.exists(BOX_OUT):
+        try:
+            with open(BOX_OUT, encoding="utf-8") as f:
+                cache = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            cache = {}
+    if cache.get("season") != season:
+        cache = {"season": season, "weeks": {}, "ids": {}, "games": {}, "bad": {}}
+    today = datetime.now(JST).strftime("%Y-%m-%d")
+    fin = {(g["d"], g["h"], g["a"]): g for g in games if g.get("st") == "final" and g.get("d", "")[:4] == str(season) and g["d"] < today}
+    want = {f"{d}|{h}|{a}" for (d, h, a) in fin}
+    have = set(cache["games"])
+    start, fetched = time.time(), 0
+    # 1) 試合のID：まだIDのない試合がある週の日程を読む（月曜はじまりの週ごと）
+    need_days = sorted({k.split("|")[0] for k in want - have - set(cache["ids"].values())})
+    weeks = []
+    for d in need_days:
+        dt = datetime.strptime(d, "%Y-%m-%d")
+        wk = (dt - timedelta(days=dt.weekday())).strftime("%Y-%m-%d")
+        if wk not in weeks:
+            weeks.append(wk)
+    for wk in weeks:
+        if time.time() - start > budget:
+            break
+        if cache["weeks"].get(wk) == today:
+            continue
+        html = fetch(f"{YAHOO}/schedule/?date={wk}")
+        fetched += 1
+        cache["weeks"][wk] = today
+        for gid in dict.fromkeys(re.findall(r"/npb/game/(\d{8,12})/", html or "")):
+            if gid in cache["ids"] or cache["bad"].get(gid):
+                continue
+            cache["ids"][gid] = ""   # 中身（どの試合か）は出場成績のページの見出しで決める
+    # 2) 出場成績：まだ読んでいない試合のページを読む
+    for gid in list(cache["ids"]):
+        if time.time() - start > budget:
+            break
+        if cache["ids"][gid] and cache["ids"][gid] in cache["games"]:
+            continue
+        if cache["bad"].get(gid) in (today, "x"):
+            continue
+        k0 = cache["ids"][gid]
+        if k0 and k0 not in want and k0.split("|")[0] < today:
+            cache["bad"][gid] = "x"   # 終わった日の、今季の公式戦でない試合（ポストシーズン・中止など）はもう読まない
+            continue
+        html = fetch(f"{YAHOO}/game/{gid}/stats")
+        fetched += 1
+        tt = ybox_title(html or "")
+        if not tt:
+            cache["bad"][gid] = today
+            continue
+        d, h, a = tt
+        key = f"{d}|{h}|{a}"
+        cache["ids"][gid] = key
+        g = fin.get((d, h, a))
+        if not g:
+            # まだ終わっていない試合は明日もう一度。終わった日なのに公式戦の結果にない試合（ポストシーズンなど）はもう読まない
+            cache["bad"][gid] = today if d >= today else "x"
+            continue
+        comp = box_compact(*parse_ybox(html), h, a)
+        if comp:
+            comp.update({"v": g.get("v", ""), "id": gid})
+            cache["games"][key] = comp
+    # 3) 足し合わせ：球団 → 球場 → 選手
+    agg = {}
+    for key, gm in cache["games"].items():
+        if key not in want:
+            continue
+        v = gm.get("v") or ""
+        for row in gm["bat"]:
+            t, n = row[0], row[1]
+            cur = agg.setdefault(t, {}).setdefault(v, {"bat": {}, "pit": {}, "g": set()})["bat"].setdefault(n, [0] * 9)
+            cur[0] += 1
+            for i in range(8):
+                cur[i + 1] += row[i + 2]
+            agg[t][v]["g"].add(key)
+        for row in gm["pit"]:
+            t, n = row[0], row[1]
+            cur = agg.setdefault(t, {}).setdefault(v, {"bat": {}, "pit": {}, "g": set()})["pit"].setdefault(n, [0] * 10)
+            cur[0] += 1
+            for i in range(9):
+                cur[i + 1] += row[i + 2]
+            agg[t][v]["g"].add(key)
+    teams = {t: {v: {"games": len(x["g"]), "bat": [[n] + r for n, r in x["bat"].items()], "pit": [[n] + r for n, r in x["pit"].items()]}
+                 for v, x in vs.items()} for t, vs in agg.items()}
+    got = len(want & set(cache["games"]))
+    out = {"season": season, "at": datetime.now(JST).isoformat(timespec="seconds"), "have": got, "total": len(want),
+           "bat_cols": ["試合", "打数", "安打", "本塁打", "打点", "四球", "死球", "犠飛", "塁打"],
+           "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"], "teams": teams}
+    with open(BOX_OUT, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, separators=(",", ":"))
+    old = None
+    if os.path.exists(VEN_OUT):
+        try:
+            with open(VEN_OUT, encoding="utf-8") as f:
+                old = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            old = None
+    if not old or {k: v for k, v in old.items() if k != "at"} != {k: v for k, v in out.items() if k != "at"}:
+        with open(VEN_OUT, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"[球場別成績] {got}/{len(want)}試合（今回 {fetched}ページ）")
+
+
 def main():
     try:
         update_records()
@@ -1991,6 +2208,10 @@ def main():
                 old = json.load(f)
             except json.JSONDecodeError:
                 old = None
+    try:
+        update_venues((old or {}).get("games") or [], season)
+    except Exception as e:   # 球場別成績が取れなくても、ふだんのデータ更新は止めない
+        print(f"[球場別成績] 取得できませんでした: {e}")
     if old is not None and "tstats" not in old and os.path.exists(TSTATS_OUT):
         try:
             with open(TSTATS_OUT, encoding="utf-8") as f:

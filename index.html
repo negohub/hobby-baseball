@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005155738">
+<meta name="build" content="20261005171018">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -3852,7 +3852,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <label class="catsel"><select id="recCat" aria-label="部門"></select></label></div>
     <p class="recnote" id="recNote"></p>
     <div class="ywrap"><table class="ytab rtab rectab" id="recTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（投手＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した選手はNPBの選手のページの守備位置です。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（先発＝赤・中継ぎ＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した打者はウィキペディアの記事の守備位置、引退した投手はNPBの通算成績（1登板あたり3回以上なら先発）で決めています。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
   </section>
   <section class="view" id="v-ven" aria-label="球場別成績" hidden>
     <h2>球場別成績<small id="venAsof"></small></h2>
@@ -8015,10 +8015,15 @@ function renderRec() {
   };
   // パワプロ風の名前の札：今の選手は名簿の守備位置の色、投手の記録はピンク、引退した打者はNPBの選手のページの守備位置の色（分からないときだけ白）
   const POS1 = { "投手": "投", "捕手": "捕", "内野手": "内", "外野手": "外" };
-  const recTile = (name, h, pos) => {
+  // 投手の記録：今の投手は名簿の先発・中継ぎの色、引退した投手はNPBの通算成績（1登板あたりの投球回）から先発・中継ぎの色
+  const recTile = (name, h, pos, role) => {
     let cls, sty = "";
-    if (h) { const gr = posGroups(h.t, h.n, h.p); cls = TILEC[gr[0]] || "pi"; sty = tileStyle(gr); }
-    else if (side === "p") cls = "pp";
+    if (h) {
+      let gr = posGroups(h.t, h.n, h.p);
+      if (side === "p") { const pg = gr.filter(k => ["投", "先", "中", "抑"].includes(k)); gr = pg.length ? pg : ["投"]; }
+      cls = TILEC[gr[0]] || "pi"; sty = tileStyle(gr);
+    }
+    else if (side === "p") cls = role === "先発" ? TILEC["先"] : role === "中継ぎ" ? TILEC["中"] : "pp";
     else cls = TILEC[POS1[pos]] || "pwh";
     const bare = String(name).replace(/\s+/g, "");
     // 個人ランキングの名前の札と同じ部品（.ptile、高さ34px）。sptile は付けない（付けると「小さい札は26px」の決まりが効いてしまう）
@@ -8038,7 +8043,7 @@ function renderRec() {
     const act = (L.act && L.act[ri]) || (kind !== "ss" && ni >= 0 && nowNames.has(nk(r[ni])));
     const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
     const rk = parseInt(r[0], 10) || 0, h0 = nowHit(r, ri);
-    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm">${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
+    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm">${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";

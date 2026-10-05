@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005101427">
+<meta name="build" content="20261005110515">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2088,7 +2088,9 @@ html.theme-pawa{background:#CDEBFF}
 .ventab td.rv{font-weight:800}
 html.theme-pawa .ventab td.vn{min-width:84px}
 html.theme-pawa .ventab .recnmw{container-type:inline-size;width:100%}
-html.theme-pawa .ventab .recnmw .ptile{width:100%;box-sizing:border-box;height:26px}
+html.theme-pawa .ventab .recnmw .ptile{width:100%;box-sizing:border-box;height:26px;padding:0 4px;overflow:hidden}
+/* 名前の字は札の幅に合わせて小さくする（長い名前「キャベッジ」なども札からはみ出さない・埋もれない） */
+html.theme-pawa .ventab .recnmw .ptile b:not(#z){font-size:min(13px, calc((100cqw - 14px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
 @media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 2px !important}.ventab thead th{font-size:9.5px !important}html.theme-pawa .ventab td.vn{min-width:66px}}
 /* 歴代記録 */
 .rectab th,.rectab td{font-size:12.5px !important;padding:7px 3px !important}
@@ -2120,7 +2122,7 @@ html.theme-pawa .rectab .recnmw{container-type:inline-size;width:100%}
   .rectab td.rt{white-space:normal;line-height:1.2}
 }
 html.theme-pawa .rectab .rectile{display:flex;justify-content:center;align-items:center;box-sizing:border-box;width:100%;height:26px;padding:0 4px}
-html.theme-pawa .rectab .rectile b{font-size:min(13px, calc((100cqw - 10px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
+html.theme-pawa .rectab .rectile b{font-size:min(13px, calc((100cqw - 14px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
 html.theme-pawa .rectab td.rn .recact{margin-top:6px}
 html.theme-pawa .ptile.pwh{background:linear-gradient(180deg,#FFFFFF,#E6EAF1);border-color:#A9B4C6}
 html.theme-pawa .rectab td.rv{color:#C2185B}
@@ -5229,6 +5231,11 @@ document.addEventListener("touchstart", e => {
   const tc0 = e.touches[0]; PEEK.x = tc0.clientX; PEEK.y = tc0.clientY;
   clearTimeout(PEEK.timer);
   PEEK.timer = setTimeout(() => openPeek(x), 430);
+  // 長押しの途中で画面が描き直される（試合中の自動更新など）と、指を離した知らせが document まで届かず、のぞき窓が閉じなくなる。
+  // 知らせは最初に触った部品に必ず来るので、その部品でも受け取って閉じる
+  const tgt = e.target, end = () => { clearTimeout(PEEK.timer); if (PEEK.open) closePeek(); };
+  tgt.addEventListener("touchend", end, { once: true });
+  tgt.addEventListener("touchcancel", end, { once: true });
 }, { passive: true });
 document.addEventListener("touchmove", e => {
   if (PEEK.open) { e.preventDefault(); return; }

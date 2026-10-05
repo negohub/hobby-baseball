@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005080549">
+<meta name="build" content="20261005083354">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2070,6 +2070,18 @@ html.theme-pawa{background:#CDEBFF}
 .tabbar button .tl,.tabbar button svg{transition:none !important;will-change:transform,opacity;backface-visibility:hidden}
 /* 選択中のタブのレンズ：少し弾むばねの動きですべる */
 .tabbar .lens{transition:transform .55s cubic-bezier(.3,1.35,.45,1),width .55s cubic-bezier(.3,1.35,.45,1)}
+/* 球場別成績 */
+.venbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
+.venbar .catsel{width:100%}
+#venSide{margin-bottom:8px}
+.ventab th,.ventab td{font-size:12.5px !important;padding:7px 3px !important;text-align:right}
+.ventab thead th{font-size:10.5px !important;padding:6px 2px !important}
+.ventab th.vn,.ventab td.vn{text-align:left}
+.ventab td.rv{font-weight:800}
+html.theme-pawa .ventab td.vn{min-width:84px}
+html.theme-pawa .ventab .recnmw{container-type:inline-size;width:100%}
+html.theme-pawa .ventab .recnmw .ptile{width:100%;box-sizing:border-box;height:26px}
+@media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 2px !important}.ventab thead th{font-size:9.5px !important}html.theme-pawa .ventab td.vn{min-width:66px}}
 /* 歴代記録 */
 .rectab th,.rectab td{font-size:12.5px !important;padding:7px 3px !important}
 .rectab thead th{font-size:10.5px !important;padding:6px 2px !important}
@@ -2084,6 +2096,9 @@ html.theme-pawa{background:#CDEBFF}
 .rectab td.rt .rtm{display:block;font-size:9.5px;color:var(--muted)}
 .recact{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;vertical-align:1px;background:#17703D;color:#fff;letter-spacing:0}
 .recnote{margin:4px 2px 8px;font-size:11.5px;color:var(--muted)}
+/* パワプロ風：注記は空の上ではなく、読める地の上に（昼は白っぽい地に紺、夜は紺の地に薄い文字） */
+html.theme-pawa .recnote:not(:empty):not(#z){background:rgba(255,255,255,.9);color:#13264A !important;padding:6px 10px;border-radius:10px}
+html.theme-pawa.pawa-dark .recnote:not(:empty):not(#z){background:rgba(12,24,52,.9);color:#DEE5F2 !important}
 html:not(#y) .htab .hfix:not(#z){display:table;margin:3px auto 0;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;background:#C62828 !important;color:#fff !important;vertical-align:1px;-webkit-text-fill-color:#fff;text-shadow:none !important}   /* 「確定」の札：行の球団色の文字に負けない */
 .htab .hzan{display:block;font-size:9.5px;color:var(--muted);margin-top:2px;font-weight:600}
 /* パワプロ風：名前の札（名前の欄の幅いっぱい・名前の長さで字を小さく）。引退した打者は白い札 */
@@ -2713,6 +2728,7 @@ html.theme-pawa.pawa-dark .me-pick button small{color:#AEBCD5}
 html.theme-pawa.pawa-dark .me-pick button.none:not([aria-pressed="true"]):not(.on){background:rgba(22,36,63,.85)}
 html.theme-pawa.pawa-dark .me-pick button.none.on:not([aria-pressed="true"]):not(.on){border-color:#3F65AE}
 html.theme-pawa.pawa-dark{background:#1C2B45}
+html.theme-pawa.pawa-dark .recnote:not(:empty):not(#z){background:rgba(22,36,63,.9);color:#DEE5F2 !important}
 html.theme-pawa.pawa-dark .rectab td.rv{color:#DDA6BC}
 html.theme-pawa.pawa-dark .ptmore{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark .ptr{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
@@ -3834,6 +3850,17 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="ywrap"><table class="ytab rectab" id="recTbl"></table></div>
     <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はシーズンの記録にいちばん多く出てくる球団です（「ほか」はほかの球団にもいた選手。分からない選手は「—」）。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
   </section>
+  <section class="view" id="v-ven" aria-label="球場別成績" hidden>
+    <h2>球場別成績<small id="venAsof"></small></h2>
+    <div class="venbar">
+      <label class="catsel"><select id="venTeam" aria-label="球団"></select></label>
+      <label class="catsel"><select id="venPlace" aria-label="球場"></select></label>
+    </div>
+    <div class="seg" id="venSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
+    <p class="recnote" id="venNote"></p>
+    <div class="ywrap"><table class="ytab ventab" id="venTbl"></table></div>
+    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
+  </section>
   <p class="note" id="note"></p>
 </main>
 
@@ -4379,6 +4406,7 @@ const TAB_TITLE = {
   stats: ["hobby baseball", "成績"],
   off: ["hobby baseball", "入退団"],
   rec: ["hobby baseball", "歴代記録"],
+  ven: ["hobby baseball", "球場別成績"],
 };
 function moveLens(instant) {
   const b = document.querySelector('.tabbar button[aria-selected="true"]'), l = $("lens");
@@ -4546,7 +4574,7 @@ const TAB_GROUPS = [
   { g: "magic", pages: [["magic", ""]] },
   { g: "game", pages: [["game", "今日"], ["cal", "日程"]] },
   { g: "std", pages: [["std", ""]] },
-  { g: "data", pages: [["stats", "今季"], ["rec", "歴代"]] },
+  { g: "data", pages: [["stats", "今季"], ["rec", "歴代"], ["ven", "球場別"]] },
   { g: "player", pages: [["song", "応援歌"], ["off", "入退団"]] },
 ];
 const PAGE_GROUP = Object.fromEntries(TAB_GROUPS.flatMap(x => x.pages.map(([p]) => [p, x.g])));
@@ -4613,7 +4641,7 @@ function setTab(t) {
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.grp === grp)));
   if (groupPages(grp).length > 1 && SUB_LAST[grp] !== t) { SUB_LAST[grp] = t; try { localStorage.setItem("sub-v1", JSON.stringify(SUB_LAST)); } catch {} }
   renderSubNav();
-  ["magic", "game", "cal", "std", "song", "stats", "rec", "off"].forEach(k => { const v = $("v-" + k); v.hidden = k !== t; if (k !== t) v.classList.remove("swin"); });
+  ["magic", "game", "cal", "std", "song", "stats", "rec", "ven", "off"].forEach(k => { const v = $("v-" + k); v.hidden = k !== t; if (k !== t) v.classList.remove("swin"); });
   window.scrollTo({ top: 0 });
 }
 let autoGame = true;
@@ -7798,8 +7826,8 @@ function virtualMakeups() {
   for (const p of pendingMakeups()) for (let i = 0; i < p.n; i++) list.push({ d, h: p.a, a: p.b || "__", st: "sched", t: "", v: "", virt: true });
   return { pid: fin.id, list };
 }
-const TAB_RENDER = { magic: () => renderMagic(), game: () => renderGame(), cal: () => renderCal(), std: () => renderStd(), stats: () => renderStats(), song: () => renderSong(), off: () => renderOff(), rec: () => renderRec() };
-const TAB_IDLE_ORDER = ["game", "std", "cal", "stats", "magic", "off", "song", "rec"];   // 開かれやすい順
+const TAB_RENDER = { magic: () => renderMagic(), game: () => renderGame(), cal: () => renderCal(), std: () => renderStd(), stats: () => renderStats(), song: () => renderSong(), off: () => renderOff(), rec: () => renderRec(), ven: () => renderVen() };
+const TAB_IDLE_ORDER = ["game", "std", "cal", "stats", "magic", "off", "song", "rec", "ven"];   // 開かれやすい順
 let TAB_DIRTY = new Set(), restTimer = 0;
 function renderTab(t) { if (TAB_DIRTY.has(t)) { TAB_DIRTY.delete(t); TAB_RENDER[t](); } }
 function renderRestSoon() {
@@ -8000,12 +8028,77 @@ document.getElementById("recKind").addEventListener("click", e => { const b = e.
 document.getElementById("recSide").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.recSide = b.dataset.k; S.recKey = null; renderRec(); });
 document.getElementById("recCat").addEventListener("change", e => { S.recKey = e.target.value; renderRec(); });
 
+// ---------- 球場別成績（data/venues.json：球場別のタブを開いたときに読む。端末にも覚えておく） ----------
+let VEN = null, venBusy = false, venAt = 0;
+const venUrl = () => CONFIG.venUrl || "data/venues.json";
+function venRestore() { if (VEN) return; try { const c = JSON.parse(localStorage.getItem("ven-v1") || "null"); if (c && c.teams) VEN = c; } catch {} }
+async function loadVen(force) {
+  venRestore();
+  if (venBusy || (!force && venAt && Date.now() - venAt < 10 * 60e3)) return;
+  venBusy = true;
+  try {
+    const r = await fetch(venUrl() + "?t=" + Math.floor(Date.now() / 300e3), { cache: "no-store" });
+    if (r.ok) {
+      const d = await r.json(); venAt = Date.now();
+      if (d && d.teams && (!VEN || d.at !== VEN.at)) {
+        VEN = d; try { localStorage.setItem("ven-v1", JSON.stringify(d)); } catch {}
+        if (S.tab === "ven") renderVen(); else TAB_DIRTY.add("ven");
+      }
+    }
+  } catch {} finally { venBusy = false; if (S.tab === "ven" && !VEN) renderVen(); }
+}
+// 打率・OPS：小数第4位を四捨五入（2進数の誤差で .2995 が .299 にならないよう、整数で丸める）
+const rate3 = (n, d) => { if (!d) return "-"; const v = Math.round(n / d * 1000 + 1e-9) / 1000; return v >= 1 ? v.toFixed(3) : v.toFixed(3).replace(/^0/, ""); };
+function renderVen() {
+  venRestore();
+  const side = S.venSide || "b";
+  document.querySelectorAll("#venSide button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === side)));
+  const tbl = $("venTbl"), selT = $("venTeam"), selV = $("venPlace");
+  // 球団：今見ているリーグの6球団（はじめは自分の担当の球団）
+  const t = CL.includes(S.venTeam) ? S.venTeam : (ME() && CL.includes(ME()) ? ME() : CL[0]);
+  selT.innerHTML = CL.map(x => `<option value="${x}"${x === t ? " selected" : ""}>${esc(fn(x))}</option>`).join("");
+  if (!VEN) {
+    tbl.innerHTML = `<tbody><tr><td class="recmsg">${venBusy || !venAt ? "読み込み中…" : "球場別成績を読み込めませんでした。通信のよい所で開き直してください"}</td></tr></tbody>`;
+    selV.innerHTML = ""; $("venNote").textContent = ""; $("venAsof").textContent = "";
+    if (!venBusy) loadVen();
+    return;
+  }
+  const vs = Object.entries((VEN.teams || {})[t] || {}).sort((a, b) => b[1].games - a[1].games);
+  const v = vs.some(([k]) => k === S.venPlace) ? S.venPlace : (vs[0] || [])[0];
+  selV.innerHTML = vs.map(([k, x]) => `<option value="${esc(k)}"${k === v ? " selected" : ""}>${esc(k)}（${x.games}試合）</option>`).join("");
+  const at = String(VEN.at || "").match(/^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  $("venAsof").textContent = at ? `${+at[1]}/${+at[2]} ${at[3]}:${at[4]} 更新` : "";
+  $("venNote").textContent = VEN.have < VEN.total ? `今季の${VEN.total}試合のうち、${VEN.have}試合分を集計しています（自動更新で順に足していきます）` : "";
+  const x = v && VEN.teams[t][v];
+  if (!x) { tbl.innerHTML = `<tbody><tr><td class="recmsg">この球団の試合はまだありません</td></tr></tbody>`; return; }
+  const nameCell = (n, p) => `<td class="vn">${isPawa() ? `<div class="recnmw">${pwName(t, n, p)}</div>` : `<span class="recnm">${esc(n)}</span>`}</td>`;
+  if (side === "b") {
+    // 試合, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打
+    const rows = x.bat.filter(r => r[2] > 0 || r[6] + r[7] > 0).sort((a, b) => (b[2] + b[6] + b[7] + b[8]) - (a[2] + a[6] + a[7] + a[8]) || b[4] - a[4]);
+    const body = rows.map(([n, g, ab, h, hr, rbi, bb, hbp, sf, tb]) => {
+      const obpD = ab + bb + hbp + sf, ops = obpD && ab ? (h + bb + hbp) / obpD + tb / ab : null;   // 打数0の選手は長打率が出ないので OPS も「-」
+      return `<tr>${nameCell(n)}<td>${g}</td><td>${ab}</td><td>${h}</td><td>${hr}</td><td>${rbi}</td><td class="rv">${rate3(h, ab)}</td><td class="rv">${ops == null ? "-" : rate3(ops, 1)}</td></tr>`;
+    }).join("");
+    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>試合</th><th>打数</th><th>安打</th><th>本塁打</th><th>打点</th><th>打率</th><th>OPS</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">打席に立った選手がいません</td></tr>`}</tbody>`;
+  } else {
+    // 登板, アウト, 自責点, 勝, 敗, S, H, 奪三振, 被安打, 与四死球
+    const rows = x.pit.slice().sort((a, b) => b[2] - a[2] || b[1] - a[1]);
+    const ip = o => `${Math.floor(o / 3)}${o % 3 ? "." + (o % 3) : ""}`;
+    const body = rows.map(([n, g, outs, er, w, l, sv, hd]) => `<tr>${nameCell(n, "投手")}<td>${g}</td><td>${ip(outs)}</td><td>${w}</td><td>${l}</td><td>${sv}</td><td>${hd}</td><td class="rv">${outs ? (Math.round(er * 2700 / outs + 1e-9) / 100).toFixed(2) : "-"}</td></tr>`).join("");
+    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>登板</th><th>投球回</th><th>勝</th><th>敗</th><th>S</th><th>H</th><th>防御率</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">投げた投手がいません</td></tr>`}</tbody>`;
+  }
+}
+document.getElementById("venTeam").addEventListener("change", e => { S.venTeam = e.target.value; S.venPlace = null; renderVen(); });
+document.getElementById("venPlace").addEventListener("change", e => { S.venPlace = e.target.value; renderVen(); });
+document.getElementById("venSide").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.venSide = b.dataset.k; renderVen(); });
+
 // 開く前に、ほかのタブの中身（予告先発・放送とスタメン・試合の詳細・入退団の最新）を裏で取っておく。タブを押した瞬間に全部そろった画面を出すため
 function prefetchTabs() {
   const idle = cb => (window.requestIdleCallback ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 200));
   idle(() => { try { loadStarters(); loadPre(); if (S.tab !== "game") { loadDetails(); } } catch {} });
   idle(() => { try { if (typeof loadLiveOff === "function") loadLiveOff(); } catch {} });
   setTimeout(() => idle(() => { try { loadRec(); } catch {} }), 3000);   // 歴代記録はいちばん最後に（起動の邪魔をしない）
+  setTimeout(() => idle(() => { try { loadVen(); } catch {} }), 3500);
 }
 let lastSiteCheck = 0;
 async function check(force) {

@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005171018">
+<meta name="build" content="20261005173430">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2138,39 +2138,13 @@ button:active,.chip:active,.tbtn:active,.ptile:active,.tgx:active,.shot:active{t
 #ptTeams{margin-top:10px}
 #ptSeg{margin-top:10px}
 /* どの球団でも同じ幅：列の幅を固定（名前の列＋数字5列は均等） */
-#ptTbl{table-layout:fixed;width:100%}
-#ptTbl col.pc-r{width:32px}#ptTbl col.pc-n{width:24%}#ptTbl td:first-child,#ptTbl th:first-child{padding-left:2px !important;padding-right:2px !important}   /* 順位の欄（個人ランキングと同じ）を足した分、名前の欄を少し細く（長い名前は2行に） */
-@media (max-width:374px){#ptTbl col.pc-r{width:24px}#ptTbl col.pc-n{width:22%}#ptTbl td.num{font-size:11px !important;padding-left:1px !important;padding-right:1px !important;letter-spacing:-.02em}#ptTbl thead th{font-size:9.5px !important;letter-spacing:-.05em !important;padding-left:1px !important;padding-right:1px !important}#ptTbl th.srt .sic{width:5px !important;margin-left:0 !important}#ptTbl td:first-child{padding-left:1px !important;padding-right:1px !important}html.theme-pawa #ptTbl .rkm{width:22px;height:22px;font-size:11px}}
-#ptTbl td.pnm{width:auto;white-space:normal}
-#ptTbl td.num,#ptTbl th{white-space:nowrap}
 /* 長い名前（外国人選手など）も省略せず、小さめの文字で、入りきらなければ2行に */
-#ptTbl .ptn{display:block;line-height:1.25;overflow-wrap:anywhere;word-break:break-all}
-#ptTbl .ptn.n5{font-size:13px}
-#ptTbl .ptn.n7{font-size:11.5px;letter-spacing:-.02em}
-#ptTbl td.v{font-weight:600}
 .ptmore{display:block;width:100%;margin:10px 0 0;padding:11px 0;border-radius:12px;border:1px solid var(--soft-line,#2A2A2A);background:rgba(255,255,255,.04);color:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
 html.theme-pawa .ptmore{background:#fff;color:#13264A;border:2px solid #1D3E7C}
-html.theme-pawa #ptTbl td.pnm .ptile{max-width:none;width:100%;height:auto;min-height:32px;padding:3px 4px}
 /* 名前をタイルの真ん中に：字間（letter-spacing）は最後の文字の後ろにも付くので、その分を右の余白で打ち消す */
-html.theme-pawa #ptTbl td.pnm .ptile b{font-size:13px;white-space:normal;line-height:1.2;text-align:center;overflow-wrap:anywhere;word-break:break-all;margin:0;letter-spacing:.08em;margin-right:-.08em}
-html.theme-pawa #ptTbl td.pnm .ptile.sp b{letter-spacing:.5em;margin-right:-.5em}
-html.theme-pawa #ptTbl td.pnm .ptile.n5 b{font-size:12px;letter-spacing:0;margin-right:0}
-html.theme-pawa #ptTbl td.pnm .ptile.n7 b{font-size:10.5px;letter-spacing:-.03em;margin-right:.03em}
 /* パワプロ風は見出しが太字なので、3文字＋並べ替えの印が入りきるよう少し小さく */
-html.theme-pawa #ptTbl thead th{font-size:11px !important;letter-spacing:-.03em !important;padding-left:2px !important;padding-right:2px !important}
-html.theme-pawa #ptTbl th.srt .sic{width:6px;margin-left:1px}
-@media (max-width:374px){html.theme-pawa #ptTbl thead th{font-size:9.5px !important;letter-spacing:-.05em !important;padding-left:1px !important;padding-right:1px !important}html.theme-pawa #ptTbl th.srt .sic{width:5px;margin-left:0}}
-@media (max-width:374px){html.theme-pawa #ptTbl td.pnm{padding:5px 3px 5px 4px !important}html.theme-pawa #ptTbl td.pnm .ptile{min-height:30px}html.theme-pawa #ptTbl td.pnm .ptile b{font-size:12px}html.theme-pawa #ptTbl td.pnm .ptile.n5 b{font-size:11px}html.theme-pawa #ptTbl td.pnm .ptile.n7 b{font-size:10px}}
 html.lg-p #ptTeams .tbtn{font-size:8.5px;letter-spacing:-.04em;white-space:nowrap;overflow:hidden}
 @media (max-width:374px){
-  #ptTbl th,#ptTbl td{padding-left:1px !important;padding-right:1px !important}
-  #ptTbl td.pnm{padding-left:4px !important}
-  #ptTbl col.pc-n{width:22%}   /* 順位の欄を足した分、名前の欄を細く（長い名前は2行に） */
-  #ptTbl .ptn{font-size:12px}
-  #ptTbl .ptn.n5{font-size:11px}
-  #ptTbl .ptn.n7{font-size:10px}
-  #ptTbl thead th{font-size:9.5px !important;letter-spacing:-.05em !important}
-  #ptTbl th.srt .sic{width:6px;margin-left:1px}
 }
 /* 帯の登場の動き：自動更新で描き直したときは動かさない */
 .hero.hstill{animation:none !important}
@@ -2396,8 +2370,21 @@ html.theme-pawa .ptile b:not(#z){font-weight:700 !important;color:#1F2A44 !impor
 html.theme-pawa .ptile.sp b:not(#z){letter-spacing:.7em !important;margin-right:-.7em !important}
 html.theme-pawa .ptile.n5 b:not(#z){letter-spacing:0 !important;margin-right:0 !important}
 html.theme-pawa .ptile.n7 b:not(#z){letter-spacing:-.02em !important;margin-right:.02em !important}
-html.theme-pawa #rankList .ptile,html.theme-pawa #songList .ptile,html.theme-pawa #offList .ptile.otl,html.theme-pawa .sp-h .pstile,html.theme-pawa .pn3 .sptile{height:34px !important;min-height:34px !important}
-html.theme-pawa #ptTbl td.pnm .ptile{min-height:34px !important}
+html.theme-pawa #rankList .ptile,html.theme-pawa #ptList .ptile,html.theme-pawa #songList .ptile,html.theme-pawa #offList .ptile.otl,html.theme-pawa .sp-h .pstile,html.theme-pawa .pn3 .sptile{height:34px !important;min-height:34px !important}
+/* 個人ランキング・チーム別成績：とても長い名前（7文字以上）は省略せず、札の中で2行に（札も少し高くなる） */
+html.theme-pawa .rtab td.pnm .ptile.n7:not(#z){height:auto !important;min-height:34px !important;padding:3px 4px}
+html.theme-pawa .rtab td.pnm .ptile.n7 b:not(#z){white-space:normal;line-height:1.15;word-break:break-all;text-align:center}
+.ytab.rtab td.pnm:not(#z){white-space:normal;overflow-wrap:anywhere;word-break:break-all}
+/* 個人ランキングとチーム別成績は、まったく同じ列の幅（球団名の長さで幅が変わらないよう、幅を決めて並べる） */
+#rankList .rtab,#ptTbl{table-layout:fixed;width:100%}
+#rankList .rtab th:nth-child(1),#ptTbl th:nth-child(1){width:36px}
+#rankList .rtab th:nth-child(2),#ptTbl th:nth-child(2){width:40%}
+#rankList .rtab th:nth-child(3),#ptTbl th:nth-child(3){width:27%}
+#rankList .rtab td,#ptTbl td,#rankList .rtab th,#ptTbl th{overflow:hidden}
+#rankList .rtab th,#ptTbl th{white-space:normal;line-height:1.2}
+#rankList .rtab td.tnm,#ptTbl td.tnm{white-space:normal;line-height:1.25;overflow-wrap:anywhere}
+@media (max-width:374px){#rankList .rtab td.tnm,#ptTbl td.tnm{font-size:11px !important}#rankList .rtab th,#ptTbl th{font-size:10px !important;letter-spacing:-.03em}}
+#rankList .rtab td:first-child,#ptTbl td:first-child,#rankList .rtab th:first-child,#ptTbl th:first-child{padding-left:3px !important;padding-right:3px !important}
 html.theme-pawa #rankList .ptile b,html.theme-pawa #songList .ptile b,html.theme-pawa #offList .ptile.otl b,html.theme-pawa .sp-h .pstile b,html.theme-pawa #ptTbl td.pnm .ptile b{font-size:14px !important}
 html.theme-pawa #rankList .ptile.n5 b,html.theme-pawa #songList .ptile.n5 b,html.theme-pawa #offList .ptile.otl.n5 b,html.theme-pawa .sp-h .pstile.n5 b,html.theme-pawa #ptTbl td.pnm .ptile.n5 b{font-size:13px !important}
 html.theme-pawa #rankList .ptile.n7 b,html.theme-pawa #songList .ptile.n7 b,html.theme-pawa #offList .ptile.otl.n7 b,html.theme-pawa .sp-h .pstile.n7 b,html.theme-pawa #ptTbl td.pnm .ptile.n7 b{font-size:11.5px !important}
@@ -7475,8 +7462,10 @@ function drawTeamIn(t, d) {
   // 名前の長さで文字の大きさを変える（長い名前も省略せず、必要なら2行に折り返す）
   function lenC(nm) { const n = [...nm].length; return n >= 7 ? " n7" : n >= 5 ? " n5" : ""; }
   const cell = v => esc(v == null || v === "" ? "-" : v);
-  $("ptList").innerHTML = `<div class="ywrap"><table class="ytab rtab tst" id="ptTbl"><colgroup><col class="pc-r"><col class="pc-n">${cols.map(() => "<col>").join("")}</colgroup><thead><tr><th>順位</th><th class="tnm">選手名</th>${cols.map((c, j) => `<th class="srt${sk && j === sk.col ? " on" : ""}" data-col="${j}"${PT_SHORT[c[0]] ? ` aria-label="${c[0]}"` : ""}>${PT_SHORT[c[0]] || c[0]}${sortIco(sk && j === sk.col ? sk.dir : "none")}</th>`).join("")}</tr></thead><tbody>` +
-    view.map(x => `<tr class="${x.rk === 1 ? "lead" : ""}" style="${tv(t)}"><td class="num">${x.rk ? `<span class="rkm r${x.rk <= 3 ? x.rk : 0}">${x.rk}</span>` : `<span class="rkm r0 rkx">-</span>`}</td><td class="pnm" data-pl="${t}|${esc(x.n)}|${kind}">${pawaT ? tile(x.n) : `<span class="ptn${lenC(rankName(t, x.n))}">${esc(rankName(t, x.n))}${offTag(t, x.n)}</span>`}</td>${cols.map((c, j) => `<td class="num${sk && j === sk.col ? " v" : ""}">${cell(c[1](x.r))}</td>`).join("")}</tr>`).join("") +
+  // 表の形は個人ランキングとまったく同じ：順位｜選手名｜チーム｜選んだ項目（見出しをタップすると昇順・降順）
+  const vc = sk ? cols[sk.col] : cols[0];
+  $("ptList").innerHTML = `<div class="ywrap"><table class="ytab rtab" id="ptTbl"><thead><tr><th>順位</th><th class="tnm">選手名</th><th class="tnm">チーム</th><th class="srt on" data-col="${sk ? sk.col : 0}">${vc[0]}${sortIco(sk ? sk.dir : "desc")}</th></tr></thead><tbody>` +
+    view.map(x => `<tr class="${x.rk === 1 ? "lead" : ""}" style="${tv(t)}"><td class="num">${x.rk ? `<span class="rkm r${x.rk <= 3 ? x.rk : 0}">${x.rk}</span>` : `<span class="rkm r0 rkx">-</span>`}</td><td class="pnm" data-pl="${t}|${esc(x.n)}|${kind}">${pawaT ? tile(x.n) : `${esc(rankName(t, x.n))}${offTag(t, x.n)}`}</td><td class="tnm">${fn(t)}</td><td class="num v">${cell(vc[1](x.r))}</td></tr>`).join("") +
     `</tbody></table></div>` + (rows.length > N ? `<button type="button" class="ptmore" id="ptMore">${S.ptAll ? "上位だけ表示" : `全員を表示（${rows.length}人）`}</button>` : "");
   $("ptList").querySelectorAll("th.srt").forEach(th => (th.onclick = () => {
     const j = +th.dataset.col, c = cols[j], first = c[2] === "era" ? "asc" : "desc";

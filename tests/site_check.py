@@ -81,7 +81,7 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
 
 VEN_SAMPLE = {"season": 2026, "at": "2026-10-05T18:00:00+09:00", "have": 850, "total": 858,
   "bat_cols": ["試合", "打数", "安打", "本塁打", "打点", "四球", "死球", "犠飛", "塁打"], "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"],
-  "teams": {"T": {"甲子園": {"games": 60, "bat": [["佐藤 輝明", 55, 200, 60, 15, 45, 20, 3, 2, 120], ["近本 光司", 58, 230, 70, 3, 20, 25, 1, 1, 95], ["代打 太郎", 3, 0, 0, 0, 0, 1, 0, 0, 0]],
+  "teams": {"T": {"甲子園": {"games": 60, "bat": [["佐藤 輝明", 55, 200, 60, 15, 45, 20, 3, 2, 120], ["近本 光司", 58, 230, 70, 3, 20, 25, 1, 1, 95], ["代打 太郎", 3, 0, 0, 0, 0, 1, 0, 0, 0], ["ウィットリーキャベッジ", 40, 150, 40, 5, 20, 10, 1, 1, 60], ["サンタナ", 40, 140, 38, 6, 21, 9, 0, 0, 62]],
                                    "pit": [["才木 浩人", 12, 240, 18, 8, 2, 0, 0, 80, 60, 20], ["岩崎 優", 25, 75, 6, 1, 1, 20, 2, 25, 18, 8]]},
                         "神宮": {"games": 9, "bat": [["佐藤 輝明", 9, 33, 11, 4, 9, 4, 0, 1, 25]], "pit": [["才木 浩人", 2, 39, 3, 1, 0, 0, 0, 12, 8, 3]]}},
             "G": {"東京ドーム": {"games": 61, "bat": [["岡本 和真", 50, 180, 55, 14, 40, 22, 2, 3, 110]], "pit": [["戸郷 翔征", 11, 210, 20, 6, 3, 0, 0, 70, 55, 18]]}},
@@ -2887,6 +2887,11 @@ async def ven_check(browser):
               if (cells[6] !== '.300' || cells[7] !== '.969') ng.push(`佐藤の打率・OPSが違う（${cells.slice(6)}）`);
               if (row('代打') && [...row('代打').querySelectorAll('td')].slice(6).some(td => td.textContent !== '-')) ng.push('打数0の選手の打率・OPSが「-」でない');
               const tb = document.getElementById('venTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push(`打撃の表がはみ出す（${tb.scrollWidth}/${tb.parentElement.clientWidth}）`);
+              // 名前の札：長い名前でも字が札からはみ出さない（埋もれない）。打数の順で全員を出して確かめる
+              document.querySelector('#venKey button[data-k="ab"]').click();
+              const cut = [...document.querySelectorAll('#venTbl .ptile b')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > b.closest('.ptile').getBoundingClientRect().right + 1).map(b => b.textContent);
+              if (cut.length) ng.push(`名前が札からはみ出す（${cut}）`);
+              document.querySelector('#venKey button[data-k="avg"]').click();
               document.querySelector('#venSide button[data-k="p"]').click();
               if (hs() !== '選手|登板|投球回|勝|敗|S|H|防御率') ng.push(`投手の表の形が違う（${hs()}）`);
               const sai = row('才木'), c2 = sai ? [...sai.querySelectorAll('td')].map(td => td.textContent) : [];
@@ -2936,6 +2941,30 @@ async def ven_check(browser):
             for e in errs:
                 bad(f"[球場別成績]: 画面のエラー {e}")
             await pg.close()
+
+
+async def peek_rerender_check(browser):
+    """長押しでのぞいているあいだに画面が描き直されても（試合中の自動更新など）、指を離せば閉じ、そのあとのタップは無視する"""
+    pg, errs = await open_page(browser, 390, "pawa", touch=True)
+    r = await pg.evaluate("""async () => { const ng = [];
+      setTab('cal'); await new Promise(r => setTimeout(r, 300));
+      const el = document.querySelector('#cal .day.has'); if (!el) return ['日程にマスがない'];
+      el.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 150));
+      const rc = el.getBoundingClientRect(), tt = new Touch({ identifier: 9, target: el, clientX: rc.left + 10, clientY: rc.top + rc.height / 2 });
+      el.dispatchEvent(new TouchEvent('touchstart', { touches: [tt], targetTouches: [tt], changedTouches: [tt], bubbles: true, cancelable: true }));
+      await new Promise(r => setTimeout(r, 600));
+      if (!PEEK.open) ng.push('長押ししても、のぞき窓が開かない');
+      renderCal();   // のぞいているあいだに描き直す（元のマスは画面から外れる）
+      if (el.isConnected) ng.push('試しの準備：描き直しで元のマスが外れていない');
+      el.dispatchEvent(new TouchEvent('touchend', { changedTouches: [tt], bubbles: true, cancelable: true }));
+      if (PEEK.open) ng.push('描き直しのあと、指を離しても閉じない');
+      if (!(Date.now() < PEEK.until)) ng.push('描き直しのあと、指を離したあとのタップを無視していない');
+      return ng; }""")
+    for m in r:
+        bad(f"[長押しと描き直し] {m}")
+    for e in errs:
+        bad(f"[長押しと描き直し]: 画面のエラー {e}")
+    await pg.close()
 
 
 async def player_today_check(browser):
@@ -3456,6 +3485,7 @@ async def main():
         await off_name_tag_check(browser)
         await cs_cal_check(browser)
         await ven_check(browser)
+        await peek_rerender_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

@@ -1954,6 +1954,7 @@ REG_KANA = ["a", "i", "u", "e", "o", "ka", "ki", "ku", "ke", "ko", "sa", "si", "
 REG_ALT = {"si": "shi", "ti": "chi", "tu": "tsu", "hu": "fu"}
 REG_OUT = os.path.join(os.path.dirname(OUT), "register.json")
 REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
+REG_PARSER = 2          # 名簿の読み方の版（2：［改名］の名前も覚える）。版が変わったらすぐ取り直す
 
 
 def reg_year(y):
@@ -1986,7 +1987,7 @@ def parse_reg_history(h):
 def parse_register_page(html):
     """名簿の1ページ → {名前: [[球団, 年…], …]}・別名 {別名: 本名}"""
     soup = BeautifulSoup(html, "html.parser")
-    people, alias = {}, {}
+    people, alias, renames = {}, {}, {}
     for tr in soup.find_all("tr"):
         cells = [norm(c.get_text(" ", strip=True)) for c in tr.find_all(["td", "th"])]
         cells = [c for c in cells if c]
@@ -2001,7 +2002,14 @@ def parse_register_page(html):
             hist = parse_reg_history(re.split(r"[［\[]", cells[2])[0])   # 「［改名］…」から後ろは名前の変わった時期なので読まない
             if hist:
                 people.setdefault(name, []).append([[t, y] for t, y in hist])
-    return people, alias
+                # ［改名］のあとに出てくる名前（例：～05大塚晶文,06～大塚晶則・～10金子千尋,11～金子弌大）も、同じ人の別の名前として覚える
+                m2 = re.search(r"[［\[]改名[］\]](.*)$", cells[2])
+                if m2:
+                    for nm in re.findall(r"[^\d～~,，.\s（）()・\[\]［］]+", m2.group(1)):
+                        nm = re.sub(r"^(?:開幕|途|閉幕|春|秋|第.*?試合)+|(?:開幕|途|閉幕)+$", "", nm)
+                        if len(nm) >= 2 and nm != re.sub(r"\s+", "", name):
+                            renames.setdefault(nm, name)
+    return people, alias, renames
 
 
 def update_register(force=False):
@@ -2012,15 +2020,15 @@ def update_register(force=False):
                 prev = json.load(f)
         except (OSError, json.JSONDecodeError):
             prev = {}
-    if not force and prev.get("at_ts") and time.time() - prev["at_ts"] < REG_EVERY and prev.get("people"):
+    if not force and prev.get("at_ts") and time.time() - prev["at_ts"] < REG_EVERY and prev.get("people") and prev.get("pv") == REG_PARSER:
         return prev
-    people, alias, got, empty, failed = {}, {}, 0, [], []
+    people, alias, renames, got, empty, failed = {}, {}, {}, 0, [], []
     for k in REG_KANA:
-        p = a = None
+        p = a = rn = None
         for kk in [k] + ([REG_ALT[k]] if k in REG_ALT else []):
             html = rec_fetch(f"https://npb.jp/history/register/index_{kk}.html")
             if html:
-                p, a = parse_register_page(html)
+                p, a, rn = parse_register_page(html)
                 if p:
                     break
         if p is None:
@@ -2032,6 +2040,7 @@ def update_register(force=False):
         for n, lst in p.items():
             people.setdefault(n, []).extend(lst)
         alias.update(a)
+        renames.update(rn or {})
         got += 1
     diag = {"got": got, "people": len(people), "failed": failed, "empty": empty}
     print(f"[在籍者名簿] {diag}")
@@ -2039,7 +2048,7 @@ def update_register(force=False):
         prev = dict(prev or {})
         prev["diag"] = diag
         return prev
-    out = {"at_ts": time.time(), "people": people, "alias": alias, "diag": diag}
+    out = {"at_ts": time.time(), "people": people, "alias": alias, "renames": renames, "diag": diag, "pv": REG_PARSER}
     with open(REG_OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[在籍者名簿] {got}ページ・{len(people)}人")
@@ -2059,8 +2068,15 @@ def record_teams(name, period, reg):
     if idx is None:
         idx = {}
         for n, lst in reg["people"].items():
-            for hist in lst:
-                idx.setdefault(reg_key(n), []).append(hist)
+            keys = {reg_key(n)}
+            if "・" in norm(n):
+                keys.add(reg_key(norm(n).split("・")[0]))   # 登録名「ジオ」→ 名簿「ジオ・アルバラード」
+            for kk in keys:
+                for hist in lst:
+                    idx.setdefault(kk, []).append(hist)
+        for other, main in (reg.get("renames") or {}).items():   # 改名前・改名後の名前
+            for hist in reg["people"].get(main, []):
+                idx.setdefault(reg_key(other), []).append(hist)
         reg["_idx"] = idx
     k = reg_key(name)
     if k in alias:

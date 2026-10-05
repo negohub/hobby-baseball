@@ -2220,6 +2220,49 @@ def parse_player_pos(html):
     return m.group(1) if m else ""
 
 
+# ---------- 歴代の順位表（NPBの年度別成績：1950年〜、セ・パ） ----------
+HIST_FROM = 1950
+
+
+def parse_hist_standings(html):
+    """年度別成績のページの「チーム勝敗表」：[[球団名, 試合, 勝利, 敗北, 引分, 勝率, ゲーム差], …]（順位の順）"""
+    soup = BeautifulSoup(html, "html.parser")
+    out = []
+    for tr in soup.find_all("tr"):
+        cells = [norm(c.get_text(" ", strip=True)).strip() for c in tr.find_all(["td", "th"])]
+        cells = [c for c in cells]
+        if len(cells) < 7 or not cells[0] or re.search(r"\d", cells[0]):
+            if out:
+                break
+            continue
+        nums = cells[1:5]
+        pct = next((c for c in cells[5:] if re.fullmatch(r"\.\d{3}|1\.000|0\.000", c)), None)
+        if not all(re.fullmatch(r"\d+", c or "") for c in nums) or not pct:
+            if out:
+                break   # 勝敗表のすぐ後ろ（チーム打撃成績など）は読まない
+            continue
+        gb = cells[-1] if cells[-1] != pct else ""
+        gb = "" if re.fullmatch(r"[-－‐\s]*", gb) else gb
+        out.append([cells[0], int(nums[0]), int(nums[1]), int(nums[2]), int(nums[3]), pct, gb])
+    return out
+
+
+def update_hist_standings(prev_std, season, budget=60):
+    std = dict(prev_std or {})
+    start = time.time()
+    for y in range(season - 1, HIST_FROM - 1, -1):
+        for lg, slug in (("C", "centralleague"), ("P", "pacificleague")):
+            if (std.get(str(y)) or {}).get(lg):
+                continue
+            if time.time() - start > budget:
+                return std
+            html = rec_fetch(f"https://npb.jp/bis/yearly/{slug}_{y}.html")
+            rows = parse_hist_standings(html) if html else []
+            if rows:
+                std.setdefault(str(y), {})[lg] = rows
+    return std
+
+
 def update_records(force=False):
     prev = {}
     if os.path.exists(RECORDS_OUT):
@@ -2314,7 +2357,16 @@ def update_records(force=False):
             pass
     if reg and reg.get("_idx"):
         reg.pop("_idx", None)
-    out = {"src": "https://npb.jp/bis/history/", "at": datetime.now(JST).isoformat(timespec="seconds"), "at_ts": now,
+    # 歴代の順位表（一度読んだ年は読み直さない。新しい年はシーズンが終わってNPBのページができたら足す）
+    try:
+        season_now = int(os.environ.get("SEASON") or datetime.now(JST).year)
+        hist = update_hist_standings(prev.get("std"), season_now)
+        if hist != (prev.get("std") or {}):
+            got = got or 1
+    except Exception as e:
+        print(f"[歴代の順位表] 読めませんでした: {e}")
+        hist = prev.get("std") or {}
+    out = {"src": "https://npb.jp/bis/history/", "at": datetime.now(JST).isoformat(timespec="seconds"), "at_ts": now, "std": hist,
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],
            "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER,

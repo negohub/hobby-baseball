@@ -83,7 +83,9 @@ VEN_SAMPLE = {"season": 2026, "at": "2026-10-05T18:00:00+09:00", "have": 850, "t
   "bat_cols": ["試合", "打数", "安打", "本塁打", "打点", "四球", "死球", "犠飛", "塁打"], "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"],
   "teams": {"T": {"甲子園": {"games": 60, "bat": [["佐藤 輝明", 55, 200, 60, 15, 45, 20, 3, 2, 120], ["近本 光司", 58, 230, 70, 3, 20, 25, 1, 1, 95], ["代打 太郎", 3, 0, 0, 0, 0, 1, 0, 0, 0], ["ウィットリーキャベッジ", 40, 150, 40, 5, 20, 10, 1, 1, 60], ["サンタナ", 40, 140, 38, 6, 21, 9, 0, 0, 62]],
                                    "pit": [["才木 浩人", 12, 240, 18, 8, 2, 0, 0, 80, 60, 20], ["岩崎 優", 25, 75, 6, 1, 1, 20, 2, 25, 18, 8]]},
-                        "神宮": {"games": 9, "bat": [["佐藤 輝明", 9, 33, 11, 4, 9, 4, 0, 1, 25]], "pit": [["才木 浩人", 2, 39, 3, 1, 0, 0, 0, 12, 8, 3]]}},
+                        "神宮": {"games": 9, "bat": [["佐藤 輝明", 9, 33, 11, 4, 9, 4, 0, 1, 25]], "pit": [["才木 浩人", 2, 39, 3, 1, 0, 0, 0, 12, 8, 3]]},
+                        "倉敷": {"games": 1, "bat": [["佐藤 輝明", 1, 4, 2, 1, 3, 0, 0, 0, 5]], "pit": []},
+                        "前橋": {"games": 1, "bat": [["佐藤 輝明", 1, 3, 1, 0, 0, 1, 0, 0, 1]], "pit": []}},
             "G": {"東京ドーム": {"games": 61, "bat": [["岡本 和真", 50, 180, 55, 14, 40, 22, 2, 3, 110]], "pit": [["戸郷 翔征", 11, 210, 20, 6, 3, 0, 0, 70, 55, 18]]}},
             "H": {"甲子園": {"games": 3, "bat": [["柳田 悠岐", 3, 12, 6, 3, 7, 1, 0, 0, 16]], "pit": []}, "みずほPayPay": {"games": 60, "bat": [["近藤 健介", 55, 190, 60, 12, 40, 30, 1, 2, 100]], "pit": []}}}}
 
@@ -2876,8 +2878,15 @@ async def ven_check(browser):
             r = await pg.evaluate("""async () => { const ng = [];
               await loadVen(true); setTab('ven');
               if (document.getElementById('venTeam').value !== 'T') ng.push(`はじめの球団が自分の担当（阪神）でない（${document.getElementById('venTeam').value}）`);
+              // 球団の並び：すべて → 去年の順位の順
+              const tops = [...document.getElementById('venTeam').options].map(o => o.value);
+              if (tops.join() !== ['all', ...calOrder().filter(x => CL.includes(x))].join()) ng.push(`球団の並びが去年の順位の順でない（${tops}）`);
+              // 球場の並び：本拠地を去年の順位の順に（阪神の試合：甲子園・神宮）、最後に地方球場（倉敷＋前橋をまとめて2試合）
               const opts = [...document.getElementById('venPlace').options].map(o => o.textContent);
-              if (opts.join() !== '甲子園（60試合）,神宮（9試合）') ng.push(`球場の並び・試合数が違う（${opts}）`);
+              const want = ['甲子園（60試合）', '神宮（9試合）'].sort((a, b) => calOrder().indexOf(a.startsWith('甲子園') ? 'T' : 'S') - calOrder().indexOf(a.startsWith('甲子園') ? 'S' : 'T') > 0 ? 1 : -1);
+              const exp = venOrder().filter(v => ['甲子園', '神宮', '地方球場'].includes(v)).map(v => ({ '甲子園': '甲子園（60試合）', '神宮': '神宮（9試合）', '地方球場': '地方球場（2試合）' })[v]);
+              if (opts.join() !== exp.join() || opts[opts.length - 1] !== '地方球場（2試合）') ng.push(`球場の並び・試合数が違う（${opts} / ${exp}）`);
+              if (!venMainParks().T || venGroup('倉敷') !== '地方球場' || venGroup('甲子園') !== '甲子園') ng.push('本拠地と地方球場の分け方が違う');
               const sv = document.getElementById('venPlace'); if (sv.scrollWidth > sv.clientWidth + 1) { /* 選択肢の文字が長すぎない（短い球場名） */ }
               const hs = () => [...document.querySelectorAll('#venTbl thead th')].map(x => x.textContent).join('|');
               if (hs() !== '選手|試合|打数|安打|本塁打|打点|打率|OPS') ng.push(`打撃の表の形が違う（${hs()}）`);
@@ -2919,6 +2928,12 @@ async def ven_check(browser):
               const iw = row('岩崎'), c3 = iw ? [...iw.querySelectorAll('td')].map(td => td.textContent) : [];
               if (c3[2] !== '25' || c3[5] !== '20') ng.push(`岩崎の投球回・セーブが違う（${c3}）`);
               if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('投手の表がはみ出す');
+              // 地方球場：倉敷と前橋の成績を足す（佐藤：2試合・7打数3安打1本3打点）
+              { const pl0 = document.getElementById('venPlace'); pl0.value = '地方球場'; pl0.dispatchEvent(new Event('change'));
+                document.querySelector('#venSide button[data-k="b"]').click(); document.querySelector('#venKey button[data-k="ab"]').click();
+                const r0 = row('佐藤'), c0 = r0 ? [...r0.querySelectorAll('td')].map(td => td.textContent) : [];
+                if (c0.slice(1, 6).join() !== '2,7,3,1,3') ng.push(`地方球場の足し算が違う（${c0.slice(1, 6)}）`);
+                pl0.value = '甲子園'; pl0.dispatchEvent(new Event('change')); }
               // 打撃：項目のタブ（本塁打）で並べ替え
               document.querySelector('#venSide button[data-k="b"]').click();
               const keys = [...document.querySelectorAll('#venKey button')].map(b => b.textContent).join();

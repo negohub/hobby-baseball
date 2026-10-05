@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005134757">
+<meta name="build" content="20261005153000">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -3857,7 +3857,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <label class="catsel"><select id="recCat" aria-label="部門"></select></label></div>
     <p class="recnote" id="recNote"></p>
     <div class="ywrap"><table class="ytab rectab" id="recTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（投手＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した選手はNPBの選手のページの守備位置です。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
   </section>
   <section class="view" id="v-ven" aria-label="球場別成績" hidden>
     <h2>球場別成績<small id="venAsof"></small></h2>
@@ -3869,7 +3869,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="seg venkey" id="venKey" role="tablist" aria-label="並べる項目"></div>
     <p class="recnote" id="venNote"></p>
     <div class="ywrap"><table class="ytab ventab" id="venTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。球団は去年の順位の順、球場は各球団の本拠地を去年の順位の順に並べ、本拠地以外の球場（倉敷・前橋・ほっと神戸など）は「地方球場」にまとめています。「すべて」を選ぶと、今見ているリーグの球団の選手が一緒に並びます。</li><li>項目のタブで並べ方を選べます。打率・OPSはその球場での試合数×3.1以上の打席、防御率はその球場での試合数以上の投球回の選手だけを順位にします（規定打席・規定投球回と同じ考え方）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。球団は去年の順位の順、球場は各球団の本拠地を去年の順位の順に並べ、本拠地以外の球場（倉敷・前橋・ほっと神戸など）は「地方球場」にまとめています。「すべて」を選ぶと、今見ているリーグの球団の選手が一緒に並びます。</li><li>項目のタブで並べ方を選べます。規定打席・規定投球回にかかわらず、その球場に出た選手を並べます（打数0の打者・投球回0の投手は出しません）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
   </section>
   <p class="note" id="note"></p>
 </main>
@@ -8012,11 +8012,13 @@ function renderRec() {
     if (kind === "ss") { const y = parseInt(String(r[yi] || "").replace(/\D/g, "").slice(0, 4), 10); return y && y >= curY - 25 ? h : null; }
     return (L.act && L.act[ri]) || kind === "ac" ? h : null;
   };
-  // パワプロ風の名前の札：今の選手は名簿の守備位置の色、引退した投手はピンク、引退した打者は白（守備位置の記録がないので色を付けない）
-  const recTile = (name, h) => {
+  // パワプロ風の名前の札：今の選手は名簿の守備位置の色、投手の記録はピンク、引退した打者はNPBの選手のページの守備位置の色（分からないときだけ白）
+  const POS1 = { "投手": "投", "捕手": "捕", "内野手": "内", "外野手": "外" };
+  const recTile = (name, h, pos) => {
     let cls, sty = "";
     if (h) { const gr = posGroups(h.t, h.n, h.p); cls = TILEC[gr[0]] || "pi"; sty = tileStyle(gr); }
-    else cls = side === "p" ? "pp" : "pwh";
+    else if (side === "p") cls = "pp";
+    else cls = TILEC[POS1[pos]] || "pwh";
     const bare = String(name).replace(/\s+/g, "");
     return `<span class="ptile sptile rectile ${cls}${nmCls(bare)}" style="--n:${[...String(name)].length};${sty}"><b>${esc(name)}</b></span>`;
   };
@@ -8033,7 +8035,7 @@ function renderRec() {
   const body = L.rows.map((r, ri) => {
     const act = (L.act && L.act[ri]) || (kind !== "ss" && ni >= 0 && nowNames.has(nk(r[ni])));
     const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
-    return `<tr><td class="rk">${recCell(r[0])}</td><td class="rn">${isPawa() ? `<div class="recnmw">${recTile(r[ni], nowHit(r, ri))}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="rt">${teamOf(r, ri)}</td><td class="rv">${recCell(r[vi])}</td><td class="rp">${yv}</td></tr>`;
+    return `<tr><td class="rk">${recCell(r[0])}</td><td class="rn">${isPawa() ? `<div class="recnmw">${recTile(r[ni], nowHit(r, ri), L.pos && L.pos[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="rt">${teamOf(r, ri)}</td><td class="rv">${recCell(r[vi])}</td><td class="rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";
@@ -8066,7 +8068,7 @@ async function loadVen(force) {
 }
 // 打率・OPS：小数第4位を四捨五入（2進数の誤差で .2995 が .299 にならないよう、整数で丸める）
 const rate3 = (n, d) => { if (!d) return "-"; const v = Math.round(n / d * 1000 + 1e-9) / 1000; return v >= 1 ? v.toFixed(3) : v.toFixed(3).replace(/^0/, ""); };
-// 並べる項目（タブで選ぶ）：打者・投手それぞれ。率（打率・OPS・防御率）は、その球場での試合数に応じた「規定」以上の選手だけを順位にする
+// 並べる項目（タブで選ぶ）：打者・投手それぞれ。規定（打席・投球回）にはこだわらず全員を並べる。打数0の打者・投球回0の投手は出さない
 const VEN_KEYS = {
   b: [["avg", "打率"], ["ops", "OPS"], ["hr", "本塁打"], ["rbi", "打点"], ["h", "安打"], ["ab", "打数"]],
   p: [["era", "防御率"], ["w", "勝"], ["sv", "S"], ["hd", "H"], ["ip", "投球回"], ["g", "登板"]],
@@ -8131,10 +8133,8 @@ function renderVen() {
   $("venAsof").textContent = at ? `${+at[1]}/${+at[2]} ${at[3]}:${at[4]} 更新` : "";
   const parts = teams.map(x => [x, venMerge(x, v)]).filter(([, d]) => d);
   if (!v || !parts.length) { tbl.innerHTML = `<tbody><tr><td class="recmsg">この球団の試合はまだありません</td></tr></tbody>`; $("venNote").textContent = ""; return; }
-  const isRate = ["avg", "ops", "era"].includes(key);
   const note = [];
   if (VEN.have < VEN.total) note.push(`今季の${VEN.total}試合のうち、${VEN.have}試合分を集計しています（自動更新で順に足していきます）`);
-  if (isRate) note.push(side === "b" ? "打率・OPSは、打席がその球場での試合数×3.1以上の選手の順位です" : "防御率は、投球回がその球場での試合数以上の投手の順位です");
   $("venNote").textContent = note.join("　");
   const all = t === "all";
   const nameCell = (x, n, p) => `<td class="vn"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? pwName(x, n, p) : `<span class="vnm">${pwName(x, n, p)}</span>`}</div></td>`;   // ほかのタブと同じ呼び名（スタイリッシュも）
@@ -8143,23 +8143,21 @@ function renderVen() {
     // 試合, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打
     let rows = [];
     for (const [x, d] of parts) for (const [n, g, ab, h, hr, rbi, bb, hbp, sf, tb] of d.bat) {
-      if (!(ab > 0 || bb + hbp > 0)) continue;
+      if (!(ab > 0)) continue;   // 打数0（四死球・犠打だけ、代走だけ）の選手は出さない
       const pa = ab + bb + hbp + sf, obpD = ab + bb + hbp + sf;
       rows.push({ x, n, g, ab, h, hr, rbi, pa, tg: d.games, avg: ab ? h / ab : null, ops: obpD && ab ? (h + bb + hbp) / obpD + tb / ab : null });
     }
-    if (isRate) rows = rows.filter(r => r[key] != null && r.pa >= r.tg * 3.1);
     rows.sort((a, b) => (b[key] ?? -1) - (a[key] ?? -1) || b.pa - a.pa);
     const body = rows.slice(0, 100).map(r => `<tr>${nameCell(r.x, r.n)}<td>${r.g}</td><td class="${hi("ab")}">${r.ab}</td><td class="${hi("h")}">${r.h}</td><td class="${hi("hr")}">${r.hr}</td><td class="${hi("rbi")}">${r.rbi}</td><td class="${hi("avg")}">${rate3(r.h, r.ab)}</td><td class="${hi("ops")}">${r.ops == null ? "-" : rate3(r.ops, 1)}</td></tr>`).join("");
-    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>試合</th><th class="${hi("ab")}">打数</th><th class="${hi("h")}">安打</th><th class="${hi("hr")}">本塁打</th><th class="${hi("rbi")}">打点</th><th class="${hi("avg")}">打率</th><th class="${hi("ops")}">OPS</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">${isRate ? "規定に届いた選手がいません" : "打席に立った選手がいません"}</td></tr>`}</tbody>`;
+    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>試合</th><th class="${hi("ab")}">打数</th><th class="${hi("h")}">安打</th><th class="${hi("hr")}">本塁打</th><th class="${hi("rbi")}">打点</th><th class="${hi("avg")}">打率</th><th class="${hi("ops")}">OPS</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">打席に立った選手がいません</td></tr>`}</tbody>`;
   } else {
     // 登板, アウト, 自責点, 勝, 敗, S, H, 奪三振, 被安打, 与四死球
     let rows = [];
-    for (const [x, d] of parts) for (const [n, g, outs, er, w, l, sv, hd] of d.pit) rows.push({ x, n, g, outs, er, w, l, sv, hd, ip: outs, tg: d.games, era: outs ? er * 27 / outs : null });
-    if (isRate) rows = rows.filter(r => r.era != null && r.outs >= r.tg * 3);
-    rows.sort((a, b) => key === "era" ? a.era - b.era || b.outs - a.outs : (b[key] - a[key]) || b.outs - a.outs);
+    for (const [x, d] of parts) for (const [n, g, outs, er, w, l, sv, hd] of d.pit) if (outs > 0) rows.push({ x, n, g, outs, er, w, l, sv, hd, ip: outs, tg: d.games, era: outs ? er * 27 / outs : null });
+    rows.sort((a, b) => key === "era" ? (a.era ?? 1e9) - (b.era ?? 1e9) || b.outs - a.outs : (b[key] - a[key]) || b.outs - a.outs);
     const ip = o => `${Math.floor(o / 3)}${o % 3 ? "." + (o % 3) : ""}`;
     const body = rows.slice(0, 100).map(r => `<tr>${nameCell(r.x, r.n, "投手")}<td class="${hi("g")}">${r.g}</td><td class="${hi("ip")}">${ip(r.outs)}</td><td class="${hi("w")}">${r.w}</td><td>${r.l}</td><td class="${hi("sv")}">${r.sv}</td><td class="${hi("hd")}">${r.hd}</td><td class="${hi("era")}">${r.outs ? (Math.round(r.er * 2700 / r.outs + 1e-9) / 100).toFixed(2) : "-"}</td></tr>`).join("");
-    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th class="${hi("g")}">登板</th><th class="${hi("ip")}">投球回</th><th class="${hi("w")}">勝</th><th>敗</th><th class="${hi("sv")}">S</th><th class="${hi("hd")}">H</th><th class="${hi("era")}">防御率</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">${isRate ? "規定に届いた投手がいません" : "投げた投手がいません"}</td></tr>`}</tbody>`;
+    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th class="${hi("g")}">登板</th><th class="${hi("ip")}">投球回</th><th class="${hi("w")}">勝</th><th>敗</th><th class="${hi("sv")}">S</th><th class="${hi("hd")}">H</th><th class="${hi("era")}">防御率</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">投げた投手がいません</td></tr>`}</tbody>`;
   }
 }
 document.getElementById("venTeam").addEventListener("change", e => { S.venTeam = e.target.value; S.venPlace = null; renderVen(); });

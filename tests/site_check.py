@@ -84,7 +84,8 @@ VEN_SAMPLE = {"season": 2026, "at": "2026-10-05T18:00:00+09:00", "have": 850, "t
   "teams": {"T": {"甲子園": {"games": 60, "bat": [["佐藤 輝明", 55, 200, 60, 15, 45, 20, 3, 2, 120], ["近本 光司", 58, 230, 70, 3, 20, 25, 1, 1, 95], ["代打 太郎", 3, 0, 0, 0, 0, 1, 0, 0, 0]],
                                    "pit": [["才木 浩人", 12, 240, 18, 8, 2, 0, 0, 80, 60, 20], ["岩崎 優", 25, 75, 6, 1, 1, 20, 2, 25, 18, 8]]},
                         "神宮": {"games": 9, "bat": [["佐藤 輝明", 9, 33, 11, 4, 9, 4, 0, 1, 25]], "pit": [["才木 浩人", 2, 39, 3, 1, 0, 0, 0, 12, 8, 3]]}},
-            "G": {"東京ドーム": {"games": 61, "bat": [["岡本 和真", 50, 180, 55, 14, 40, 22, 2, 3, 110]], "pit": [["戸郷 翔征", 11, 210, 20, 6, 3, 0, 0, 70, 55, 18]]}}}}
+            "G": {"東京ドーム": {"games": 61, "bat": [["岡本 和真", 50, 180, 55, 14, 40, 22, 2, 3, 110]], "pit": [["戸郷 翔征", 11, 210, 20, 6, 3, 0, 0, 70, 55, 18]]}},
+            "H": {"甲子園": {"games": 3, "bat": [["柳田 悠岐", 3, 12, 6, 3, 7, 1, 0, 0, 16]], "pit": []}, "みずほPayPay": {"games": 60, "bat": [["近藤 健介", 55, 190, 60, 12, 40, 30, 1, 2, 100]], "pit": []}}}}
 
 
 async def route_live(route):
@@ -2891,10 +2892,42 @@ async def ven_check(browser):
               const sai = row('才木'), c2 = sai ? [...sai.querySelectorAll('td')].map(td => td.textContent) : [];
               // 才木：240アウト＝80回、自責18 → 防御率 2.03
               if (c2[2] !== '80' || c2[7] !== '2.03') ng.push(`才木の投球回・防御率が違う（${c2}）`);
+              // 防御率の順位は規定（その球場での試合数以上の投球回）の投手だけ。岩崎（25回）は入らない。セーブのタブなら出る
+              if (row('岩崎')) ng.push('防御率の順位に、規定に届かない投手（岩崎）が入っている');
+              document.querySelector('#venKey button[data-k="sv"]').click();
+              if (document.querySelector('#venKey button[aria-pressed="true"]')?.dataset.k !== 'sv') ng.push('Sのタブが選ばれた状態にならない');
+              if (!row('岩崎') || [...document.querySelectorAll('#venTbl tbody tr')][0] !== row('岩崎')) ng.push('Sで並べると岩崎（20S）がいちばん上にならない');
+              if (!document.querySelector('#venTbl thead th.rv') || document.querySelector('#venTbl thead th.rv').textContent !== 'S') ng.push('並べている項目の列が目立たない');
               const iw = row('岩崎'), c3 = iw ? [...iw.querySelectorAll('td')].map(td => td.textContent) : [];
               if (c3[2] !== '25' || c3[5] !== '20') ng.push(`岩崎の投球回・セーブが違う（${c3}）`);
               if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('投手の表がはみ出す');
+              // 打撃：項目のタブ（本塁打）で並べ替え
+              document.querySelector('#venSide button[data-k="b"]').click();
+              const keys = [...document.querySelectorAll('#venKey button')].map(b => b.textContent).join();
+              if (keys !== '打率,OPS,本塁打,打点,安打,打数') ng.push(`打撃の項目のタブが違う（${keys}）`);
+              document.querySelector('#venKey button[data-k="hr"]').click();
+              const first = [...document.querySelectorAll('#venTbl tbody tr')][0]; if (!first || !first.textContent.includes('佐藤')) ng.push('本塁打で並べると佐藤（15本）がいちばん上にならない');
+              // すべて（12球団）：その球場に来た全球団の選手が並び、球団の印が付く。球場の試合数は2球団で数えた分を2で割る
+              const sel0 = document.getElementById('venTeam');
+              if (sel0.options[0].value !== 'all' || sel0.options[0].textContent !== 'すべて（セ・リーグ）') ng.push(`球団の選択肢のいちばん上が「すべて（セ・リーグ）」でない（${sel0.options[0].textContent}）`);
+              sel0.value = 'all'; sel0.dispatchEvent(new Event('change'));
+              const op2 = [...document.getElementById('venPlace').options].map(o => o.value);
+              if (op2.includes('みずほPayPay')) ng.push('セ・リーグの「すべて」に、パ・リーグの球団だけの球場が出ている');
+              // 試合数：その球場であったセ・リーグの球団の試合を1試合ずつ数えたもの
+              const kg = DATA.games.filter(g => g.st === 'final' && g.v === '甲子園' && g.d.slice(0, 4) === '2026' && (CL.includes(g.h) || CL.includes(g.a))).length;
+              const ko = [...document.getElementById('venPlace').options].find(o => o.value === '甲子園');
+              if (kg && (!ko || ko.textContent !== `甲子園（${kg}試合）`)) ng.push(`すべての甲子園の試合数が違う（${ko && ko.textContent}・本当は${kg}）`);
+              const pl = document.getElementById('venPlace'); pl.value = '甲子園'; pl.dispatchEvent(new Event('change'));
+              if (!document.querySelector('#venTbl .ventm')) ng.push('すべてのとき、球団の印が付いていない');
+              if ([...document.querySelectorAll('#venTbl tbody tr')].some(tr => tr.textContent.includes('柳田'))) ng.push('セ・リーグの「すべて」に、パ・リーグの選手（柳田）が出ている');
+              // パ・リーグに切り替えると「すべて」はパの6球団
+              switchLeague('P'); setTab('ven'); S.venTeam = 'all'; renderVen();
+              if (document.getElementById('venTeam').options[0].textContent !== 'すべて（パ・リーグ）') ng.push('パ・リーグのとき「すべて（パ・リーグ）」にならない');
+              const pl2 = document.getElementById('venPlace'); pl2.value = '甲子園'; pl2.dispatchEvent(new Event('change'));
+              if ([...document.querySelectorAll('#venTbl tbody tr')].some(tr => /佐藤|近本/.test(tr.textContent))) ng.push('パ・リーグの「すべて」に、セ・リーグの選手が出ている');
+              switchLeague('C'); setTab('ven');
               const sel = document.getElementById('venTeam'); sel.value = 'G'; sel.dispatchEvent(new Event('change'));
+              document.querySelector('#venSide button[data-k="p"]').click();
               if (!row('戸郷')) ng.push('球団を巨人に変えても巨人の投手が出ない');
               if ([...document.getElementById('venPlace').options].map(o => o.value).join() !== '東京ドーム') ng.push('球団を変えても球場の選択肢が変わらない');
               return ng; }""")

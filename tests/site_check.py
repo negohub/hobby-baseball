@@ -79,8 +79,18 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
   "done": {}}
 
 
+VEN_SAMPLE = {"season": 2026, "at": "2026-10-05T18:00:00+09:00", "have": 850, "total": 858,
+  "bat_cols": ["試合", "打数", "安打", "本塁打", "打点", "四球", "死球", "犠飛", "塁打"], "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"],
+  "teams": {"T": {"甲子園": {"games": 60, "bat": [["佐藤 輝明", 55, 200, 60, 15, 45, 20, 3, 2, 120], ["近本 光司", 58, 230, 70, 3, 20, 25, 1, 1, 95], ["代打 太郎", 3, 0, 0, 0, 0, 1, 0, 0, 0]],
+                                   "pit": [["才木 浩人", 12, 240, 18, 8, 2, 0, 0, 80, 60, 20], ["岩崎 優", 25, 75, 6, 1, 1, 20, 2, 25, 18, 8]]},
+                        "神宮": {"games": 9, "bat": [["佐藤 輝明", 9, 33, 11, 4, 9, 4, 0, 1, 25]], "pit": [["才木 浩人", 2, 39, 3, 1, 0, 0, 0, 12, 8, 3]]}},
+            "G": {"東京ドーム": {"games": 61, "bat": [["岡本 和真", 50, 180, 55, 14, 40, 22, 2, 3, 110]], "pit": [["戸郷 翔征", 11, 210, 20, 6, 3, 0, 0, 70, 55, 18]]}}}}
+
+
 async def route_live(route):
     u = route.request.url
+    if "venues.json" in u:
+        return await route.fulfill(status=200, content_type="application/json", body=json.dumps(VEN_SAMPLE, ensure_ascii=False), headers={"Access-Control-Allow-Origin": "*"})
     if "records.json" in u:
         return await route.fulfill(status=200, content_type="application/json", body=json.dumps(REC_SAMPLE, ensure_ascii=False), headers={"Access-Control-Allow-Origin": "*"})
     if "pitch=" in u:
@@ -163,7 +173,7 @@ CHECK_JS = r"""
 }
 """
 
-TABS = ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]   # off：戦力外・引退（オフだけ出るタブ）
+TABS = ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]   # off：戦力外・引退（オフだけ出るタブ）
 
 
 async def open_page(browser, width, theme, me="S", touch=False):
@@ -190,7 +200,7 @@ async def open_page(browser, width, theme, me="S", touch=False):
         else:
             GAME.pop("h2", None)
     y, m, d = GAME["d"].split("-")
-    await pg.evaluate(f"CONFIG.recUrl='{LIVE}records.json'; loadRec(true);")
+    await pg.evaluate(f"CONFIG.recUrl='{LIVE}records.json'; loadRec(true); CONFIG.venUrl='{LIVE}venues.json'; loadVen(true);")
     await pg.evaluate(f"CONFIG.liveApi='{LIVE}'; jst=()=>({{y:{int(y)},m:{int(m)},d:{int(d)},iso:'{GAME['d']}'}}); liveWanted=()=>true; autoGame=false;")
     return pg, errs
 
@@ -522,7 +532,7 @@ async def wording_check(browser):
             if lg == "P":
                 await pg.evaluate("switchLeague('P')")
                 await pg.wait_for_timeout(200)
-            for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+            for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
                 txt = await pg.evaluate("""(tab) => { setTab(tab); const v = document.getElementById('v-' + tab); v.querySelectorAll('details').forEach(d => d.open = true); return v.innerText; }""", tab)
                 for line in txt.split("\n"):
                     if lg == "P" and OK_P in line:
@@ -597,7 +607,7 @@ async def tap_target_check(browser):
                 if lg == "P":
                     await pg.evaluate("switchLeague('P')")
                     await pg.wait_for_timeout(200)
-                for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+                for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
                     r = await pg.evaluate("""(tab) => {
                       setTab(tab);
                       const v = document.getElementById('v-' + tab), ng = new Set();
@@ -1136,6 +1146,57 @@ async def offseason_check(browser):
     bb = ud.parse_bbc('<h2>戦力外通告</h2><table><tr><td>9月29日</td><td>阪神</td><td>松原快 <span>育成</span></td><td>投手</td></tr><tr><td>10月4日</td><td>ロッテ</td><td>髙野光海 <b>NEW</b> <span>育成</span></td><td>外野手</td></tr></table>', 2026)
     if [(x["n"], x["dev"]) for x in bb] != [("松原快", True), ("髙野光海", True)]:
         bad(f"[入退団の名前] ベースボールチャンネルの名前の札を外せない：{[(x['n'], x['dev']) for x in bb]}")
+    # 球場別成績：出場成績のページを読み、球団・球場・選手ごとに足す（打者の塁打・四球・死球・犠飛は打席の結果からも数える。投手の投球回はアウト数で足す）
+    def box_html(date, home, away, bat_a, bat_h, pit_a, pit_h):
+        bt = lambda rows: '<table><tr><th>位置</th><th>選手名</th><th>打率</th><th>打数</th><th>得点</th><th>安打</th><th>打点</th><th>三振</th><th>四球</th><th>死球</th><th>犠打</th><th>盗塁</th><th>失策</th><th>本塁打</th><th>1回</th><th>2回</th><th>3回</th></tr>' + ''.join(f'<tr><td>(右)</td><td>{n}</td><td>.300</td><td>{ab}</td><td>0</td><td>{h}</td><td>{rbi}</td><td>0</td><td>{bb}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>{hr}</td>' + ''.join(f'<td>{x}</td>' for x in res) + '</tr>' for n, ab, h, rbi, bb, hr, res in rows) + '</table>'
+        pt = lambda rows: '<table><tr><th></th><th>選手名</th><th>防御率</th><th>投球回</th><th>投球数</th><th>打者</th><th>被安打</th><th>被本塁打</th><th>奪三振</th><th>与四球</th><th>与死球</th><th>失点</th><th>自責点</th></tr>' + ''.join(f'<tr><td>{d}</td><td>{n}</td><td>2.00</td><td>{ip}</td><td>90</td><td>25</td><td>5</td><td>0</td><td>6</td><td>2</td><td>0</td><td>{er}</td><td>{er}</td></tr>' for d, n, ip, er in rows) + '</table>'
+        return f'<html><head><title>{date} {home}vs.{away} - スポーツナビ</title></head><body>{bt(bat_a)}{bt(bat_h)}{pt(pit_a)}{pt(pit_h)}</body></html>'
+    pages = {
+        "https://baseball.yahoo.co.jp/npb/schedule/?date=2026-09-28": '<a href="/npb/game/2021000001/index">1</a><a href="/npb/game/2021000002/top">2</a><a href="/npb/game/2021000003/top">3</a>',
+        "https://baseball.yahoo.co.jp/npb/game/2021000001/stats": box_html("2026年9月29日", "阪神タイガース", "読売ジャイアンツ",
+            [("岡本 和真", 4, 2, 2, 0, 1, ["左本", "三振", "四球", "右2"])], [("佐藤 輝明", 3, 1, 1, 0, 0, ["左安", "死球", "中犠飛", "右3"])],
+            [("敗", "戸郷 翔征", "6.1", 3)], [("勝", "才木 浩人", "8", 1), ("S", "岩崎 優", "1", 0)]),
+        "https://baseball.yahoo.co.jp/npb/game/2021000002/stats": box_html("2026年9月30日", "阪神タイガース", "読売ジャイアンツ",
+            [("岡本 和真", 3, 0, 0, 0, 0, ["三ゴロ", "三振", "遊飛"])], [("佐藤 輝明", 4, 2, 0, 0, 1, ["左本", "中安", "三振", "二ゴロ"])],
+            [("", "戸郷 翔征", "5.2", 2)], [("", "才木 浩人", "0.2", 0)]),
+        "https://baseball.yahoo.co.jp/npb/game/2021000003/stats": box_html("2026年10月30日", "阪神タイガース", "読売ジャイアンツ", [], [], [], []),
+    }
+    keep_f, keep_bo, keep_vo = ud.fetch, ud.BOX_OUT, ud.VEN_OUT
+    import tempfile
+    tmpd = tempfile.mkdtemp()
+    try:
+        ud.fetch = lambda u: pages.get(u)
+        ud.BOX_OUT, ud.VEN_OUT = os.path.join(tmpd, "box.json"), os.path.join(tmpd, "ven.json")
+        gms = [{"d": "2026-09-29", "h": "T", "a": "G", "st": "final", "v": "甲子園"}, {"d": "2026-09-30", "h": "T", "a": "G", "st": "final", "v": "甲子園"}]
+        ud.update_venues(gms, 2026)
+        vj = json.load(open(ud.VEN_OUT, encoding="utf-8"))
+        ko = dict((r[0], r[1:]) for r in vj["teams"]["T"]["甲子園"]["bat"])
+        # 佐藤：2試合・7打数3安打1本・1打点・四球0・死球1・犠飛1・塁打 1+3+4+1=9
+        if ko.get("佐藤 輝明") != [2, 7, 3, 1, 1, 0, 1, 1, 9]:
+            bad(f"[球場別成績の集計] 佐藤の打撃の足し算が違う：{ko.get('佐藤 輝明')}")
+        go = dict((r[0], r[1:]) for r in vj["teams"]["G"]["甲子園"]["bat"])
+        # 岡本：2試合・7打数2安打・1本・2打点・四球1（打席の結果）・塁打 4+2=6
+        if go.get("岡本 和真") != [2, 7, 2, 1, 2, 1, 0, 0, 6]:
+            bad(f"[球場別成績の集計] 岡本の打撃の足し算が違う：{go.get('岡本 和真')}")
+        tp = dict((r[0], r[1:]) for r in vj["teams"]["T"]["甲子園"]["pit"])
+        # 才木：2登板・アウト 24+2=26・自責1・1勝
+        if tp.get("才木 浩人", [None])[:4] != [2, 26, 1, 1]:
+            bad(f"[球場別成績の集計] 才木の投手の足し算が違う：{tp.get('才木 浩人')}")
+        if tp.get("岩崎 優", [0] * 7)[5] != 1:
+            bad("[球場別成績の集計] セーブが数えられていない")
+        gp = dict((r[0], r[1:]) for r in vj["teams"]["G"]["甲子園"]["pit"])
+        if gp.get("戸郷 翔征", [None])[:5] != [2, 36, 5, 0, 1]:
+            bad(f"[球場別成績の集計] 戸郷の投手の足し算が違う（6.1回＋5.2回＝36アウト）：{gp.get('戸郷 翔征')}")
+        if vj["have"] != 2 or vj["total"] != 2 or vj["teams"]["T"]["甲子園"]["games"] != 2:
+            bad(f"[球場別成績の集計] 試合の数が違う：{vj['have']}/{vj['total']}")
+        # 2回目：読んだ試合はもう読まない（終わっていない試合も毎回は読まない）
+        n_calls = []
+        ud.fetch = lambda u: (n_calls.append(u), pages.get(u))[1]
+        ud.update_venues(gms, 2026)
+        if any("/game/2021000001/" in u or "/game/2021000002/" in u for u in n_calls):
+            bad(f"[球場別成績の集計] 読んだ試合をもう一度読んでいる：{n_calls}")
+    finally:
+        ud.fetch, ud.BOX_OUT, ud.VEN_OUT = keep_f, keep_bo, keep_vo
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -1687,7 +1748,7 @@ async def consistency_check(browser):
             await pg.wait_for_timeout(200)
         texts = await pg.evaluate("""() => {
           const out = [];
-          for (const t of ['magic', 'game', 'cal', 'std', 'stats', 'rec', 'song', 'off']) {
+          for (const t of ['magic', 'game', 'cal', 'std', 'stats', 'rec', 'ven', 'song', 'off']) {
             setTab(t);
             document.querySelectorAll('#v-' + t + ' *').forEach(e => { if (!e.children.length || /^(SMALL|P|B|SPAN|EM)$/.test(e.tagName)) { const x = e.innerText ? e.innerText.trim() : ''; if (x && x.length < 200) out.push(t + '｜' + x); } });
           }
@@ -2062,7 +2123,7 @@ async def uniform_check(browser):
         label = f"[見た目の統一 パワプロ風 幅{width}]"
         pg, errs = await open_page(browser, width, "pawa")
         ng = []
-        for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+        for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
             await pg.evaluate(f"setTab('{tab}')")
             await pg.wait_for_timeout(700)
             if tab == "game":
@@ -2469,7 +2530,7 @@ async def tab_group_check(browser):
           click('game'); if (S.tab !== 'game' || sub() !== '今日*,日程') ng.push(`試合：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="cal"]').click(); if (S.tab !== 'cal' || sub() !== '今日,日程*') ng.push(`日程に切り替わらない（${S.tab} ${sub()}）`);
           if (document.querySelector('.tabbar button[aria-selected="true"]').dataset.grp !== 'game') ng.push('日程のときに「試合」のタブが選ばれていない');
-          click('data'); if (S.tab !== 'stats' || sub() !== '今季*,歴代') ng.push(`データ：${S.tab} ${sub()}`);
+          click('data'); if (S.tab !== 'stats' || sub() !== '今季*,歴代,球場別') ng.push(`データ：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="rec"]').click(); if (S.tab !== 'rec') ng.push('歴代に切り替わらない');
           click('std'); if (S.tab !== 'std' || !document.getElementById('subNav').hidden) ng.push('順位で上の切り替えが出ている');
           click('game'); if (S.tab !== 'cal') ng.push(`試合を押すと最後に開いていた日程に戻らない（${S.tab}）`);
@@ -2477,7 +2538,7 @@ async def tab_group_check(browser):
           window.scrollTo(0, 400); click('data'); await new Promise(r => setTimeout(r, 700));
           if (S.tab !== 'rec' || scrollY > 5) ng.push(`今のタブをもう一度押してもいちばん上に戻らない（${S.tab} ${scrollY}）`);
           if (JSON.parse(localStorage.getItem('sub-v1') || '{}').game !== 'cal') ng.push('最後に開いていたページを端末に覚えていない');
-          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stats,rec,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
+          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stats,rec,ven,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
           // 季節で下のタブの数が変わらない
           const cols = () => getComputedStyle(document.querySelector('.tabbar nav')).gridTemplateColumns.split(' ').length;
           if (cols() !== 5) ng.push(`下のタブが5列でない（${cols()}）`);
@@ -2781,6 +2842,45 @@ async def cs_cal_check(browser):
         await pg.close()
 
 
+async def ven_check(browser):
+    """球場別成績：球団（はじめは自分の担当）と球場（試合の多い順）を選ぶと、その球場での成績。打者は打率とOPS、投手は防御率。
+    表の形はどの球場・球団でも同じ。狭い画面でもはみ出さない"""
+    for th in ["pawa", ""]:
+        for w in [320, 390]:
+            pg, errs = await open_page(browser, w, th, me="T")
+            r = await pg.evaluate("""async () => { const ng = [];
+              await loadVen(true); setTab('ven');
+              if (document.getElementById('venTeam').value !== 'T') ng.push(`はじめの球団が自分の担当（阪神）でない（${document.getElementById('venTeam').value}）`);
+              const opts = [...document.getElementById('venPlace').options].map(o => o.textContent);
+              if (opts.join() !== '甲子園（60試合）,神宮（9試合）') ng.push(`球場の並び・試合数が違う（${opts}）`);
+              const sv = document.getElementById('venPlace'); if (sv.scrollWidth > sv.clientWidth + 1) { /* 選択肢の文字が長すぎない（短い球場名） */ }
+              const hs = () => [...document.querySelectorAll('#venTbl thead th')].map(x => x.textContent).join('|');
+              if (hs() !== '選手|試合|打数|安打|本塁打|打点|打率|OPS') ng.push(`打撃の表の形が違う（${hs()}）`);
+              const row = n => [...document.querySelectorAll('#venTbl tbody tr')].find(tr => tr.textContent.includes(n));
+              const sato = row('佐藤'); const cells = sato ? [...sato.querySelectorAll('td')].map(td => td.textContent) : [];
+              // 佐藤：200打数60安打 → .300、OPS＝(60+20+3)/(200+20+3+2)＋120/200＝.369＋.600＝.969
+              if (cells[6] !== '.300' || cells[7] !== '.969') ng.push(`佐藤の打率・OPSが違う（${cells.slice(6)}）`);
+              if (row('代打') && [...row('代打').querySelectorAll('td')].slice(6).some(td => td.textContent !== '-')) ng.push('打数0の選手の打率・OPSが「-」でない');
+              const tb = document.getElementById('venTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push(`打撃の表がはみ出す（${tb.scrollWidth}/${tb.parentElement.clientWidth}）`);
+              document.querySelector('#venSide button[data-k="p"]').click();
+              if (hs() !== '選手|登板|投球回|勝|敗|S|H|防御率') ng.push(`投手の表の形が違う（${hs()}）`);
+              const sai = row('才木'), c2 = sai ? [...sai.querySelectorAll('td')].map(td => td.textContent) : [];
+              // 才木：240アウト＝80回、自責18 → 防御率 2.03
+              if (c2[2] !== '80' || c2[7] !== '2.03') ng.push(`才木の投球回・防御率が違う（${c2}）`);
+              const iw = row('岩崎'), c3 = iw ? [...iw.querySelectorAll('td')].map(td => td.textContent) : [];
+              if (c3[2] !== '25' || c3[5] !== '20') ng.push(`岩崎の投球回・セーブが違う（${c3}）`);
+              if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('投手の表がはみ出す');
+              const sel = document.getElementById('venTeam'); sel.value = 'G'; sel.dispatchEvent(new Event('change'));
+              if (!row('戸郷')) ng.push('球団を巨人に変えても巨人の投手が出ない');
+              if ([...document.getElementById('venPlace').options].map(o => o.value).join() !== '東京ドーム') ng.push('球団を変えても球場の選択肢が変わらない');
+              return ng; }""")
+            for m in r:
+                bad(f"[球場別成績 {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] {m}")
+            for e in errs:
+                bad(f"[球場別成績]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -2949,7 +3049,7 @@ async def night_check(browser):
     if await pg.evaluate("document.documentElement.classList.contains('pawa-dark')"): ng.append("「昼」を選んでも夜のまま")
     await pg.evaluate("store('mode','dark'); applyPawaMode(); renderAll()")
     if not await pg.evaluate("document.documentElement.classList.contains('pawa-dark')"): ng.append("「夜」を選んでも夜にならない")
-    for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+    for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
         await pg.evaluate(f"setTab('{tab}')"); await pg.wait_for_timeout(600)
         h = await pg.evaluate("document.documentElement.scrollHeight")
         for y in range(0, min(h, 6000), 700):
@@ -2998,7 +3098,7 @@ async def light_check(browser):
     await pg.evaluate("store('mode','dark'); applyPawaMode()")
     if await pg.evaluate("document.documentElement.classList.contains('sty-light')"): ng.append("「ダーク」を選んでもライトのまま")
     await pg.evaluate("store('mode','light'); applyPawaMode(); renderAll()")
-    for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+    for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
         await pg.evaluate(f"setTab('{tab}')"); await pg.wait_for_timeout(600)
         if tab == "game":
             await pg.evaluate("""() => { const t = CL[0], o = CL[1]; const g = DATA.games.find(x => x.h === t && x.a === o) || DATA.games.find(x => x.h === t);
@@ -3046,7 +3146,7 @@ async def contrast_all_check(browser):
         for lg in ["C", "P"]:
             if lg == "P":
                 await pg.evaluate("switchLeague('P')"); await pg.wait_for_timeout(300)
-            for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+            for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
                 await pg.evaluate(f"setTab('{tab}')"); await pg.wait_for_timeout(450)
                 if tab == "game" and lg == "C":
                     await pg.evaluate("""() => { const t = CL[0], o = CL[1]; const g = DATA.games.find(x => x.h === t && x.a === o) || DATA.games.find(x => x.h === t);
@@ -3062,7 +3162,7 @@ async def contrast_all_check(browser):
             await pg.evaluate("closeSheet()"); await pg.wait_for_timeout(300)
         # 隠れている所：折りたたみ（見方など）を全部開いた各タブ、日程の詳しい欄（勝ち・負け・引き分け）、長押しの中身、選手の画面、オフの全部の種類
         await pg.evaluate("switchLeague('C')"); await pg.wait_for_timeout(300)
-        for tab in ["magic", "game", "cal", "std", "stats", "rec", "song", "off"]:
+        for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
             await pg.evaluate(f"setTab('{tab}'); document.querySelectorAll('#v-{tab} details').forEach(d => (d.open = true))"); await pg.wait_for_timeout(350)
             h = await pg.evaluate("document.documentElement.scrollHeight")
             for y in range(0, min(h, 12000), 760):
@@ -3298,6 +3398,7 @@ async def main():
         await pitch_count_check(browser)
         await off_name_tag_check(browser)
         await cs_cal_check(browser)
+        await ven_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

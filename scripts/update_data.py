@@ -1954,7 +1954,9 @@ REG_KANA = ["a", "i", "u", "e", "o", "ka", "ki", "ku", "ke", "ko", "sa", "si", "
 REG_ALT = {"si": "shi", "ti": "chi", "tu": "tsu", "hu": "fu"}
 REG_OUT = os.path.join(os.path.dirname(OUT), "register.json")
 REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
-REG_PARSER = 2          # 名簿の読み方の版（2：［改名］の名前も覚える）。版が変わったらすぐ取り直す
+REG_PARSER = 3          # 名簿の読み方の版（2：［改名］の名前も覚える、3：選手のページの番号も覚える）。版が変わったらすぐ取り直す
+POS_BUDGET = 120        # 1回の更新で選手のページ（守備位置）を読むのに使う秒数の上限
+REG_MIN_PEOPLE = 3000   # これより少ない名簿は「取り損ね」とみなす（ほんとうは約1万人）
 
 
 def reg_year(y):
@@ -2001,7 +2003,9 @@ def parse_register_page(html):
         if len(cells) >= 3 and re.fullmatch(r"\d+", cells[1]):
             hist = parse_reg_history(re.split(r"[［\[]", cells[2])[0])   # 「［改名］…」から後ろは名前の変わった時期なので読まない
             if hist:
-                people.setdefault(name, []).append([[t, y] for t, y in hist])
+                a_ = tr.find_parent("a") or tr.find("a")
+                m_id = re.search(r"/bis/players/(\d+)\.html", (a_.get("href") if a_ else "") or "")
+                people.setdefault(name, []).append({"h": [[t, y] for t, y in hist], "id": m_id.group(1) if m_id else ""})
                 # ［改名］のあとに出てくる名前（例：～05大塚晶文,06～大塚晶則・～10金子千尋,11～金子弌大）も、同じ人の別の名前として覚える
                 m2 = re.search(r"[［\[]改名[］\]](.*)$", cells[2])
                 if m2:
@@ -2044,11 +2048,12 @@ def update_register(force=False):
         got += 1
     diag = {"got": got, "people": len(people), "failed": failed, "empty": empty}
     print(f"[在籍者名簿] {diag}")
-    if got < len(REG_KANA) * 0.7 or len(people) < 3000:   # 半端にしか取れなかったときは前の名簿を使う
+    if got < len(REG_KANA) * 0.7 or len(people) < REG_MIN_PEOPLE:   # 半端にしか取れなかったときは前の名簿を使う
         prev = dict(prev or {})
         prev["diag"] = diag
         return prev
-    out = {"at_ts": time.time(), "people": people, "alias": alias, "renames": renames, "diag": diag, "pv": REG_PARSER}
+    out = {"at_ts": time.time(), "people": people, "alias": alias, "renames": renames, "diag": diag, "pv": REG_PARSER,
+           "pos": (prev or {}).get("pos") or {}}   # 選手の守備位置（選手のページから）は取り直さずに引き継ぐ
     with open(REG_OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[在籍者名簿] {got}ページ・{len(people)}人")
@@ -2059,8 +2064,9 @@ def reg_key(n):
     return re.sub(r"\s+", "", re.sub(r"^\s*[A-Za-zＡ-Ｚ]{1,2}\s*[・.．]\s*", "", norm(n)))
 
 
-def record_teams(name, period, reg):
-    """通算記録の選手の所属：名簿で名前（外国人は頭文字を外す）が同じ人のうち、実働期間が重なる人。在籍年数の多い球団を先に"""
+def record_person(name, period, reg):
+    """通算・シーズン記録の選手を名簿の本人に：名前（外国人は頭文字を外す・別名・改名・「ジオ・アルバラード」の前半）と期間の重なりで決める
+    → (いちばん長くいた球団から並べた所属, 選手のページの番号) または None"""
     if not reg or not reg.get("people"):
         return None
     alias = {reg_key(k): v for k, v in (reg.get("alias") or {}).items()}
@@ -2072,20 +2078,22 @@ def record_teams(name, period, reg):
             if "・" in norm(n):
                 keys.add(reg_key(norm(n).split("・")[0]))   # 登録名「ジオ」→ 名簿「ジオ・アルバラード」
             for kk in keys:
-                for hist in lst:
-                    idx.setdefault(kk, []).append(hist)
+                for e in lst:
+                    idx.setdefault(kk, []).append(e)
         for other, main in (reg.get("renames") or {}).items():   # 改名前・改名後の名前
-            for hist in reg["people"].get(main, []):
-                idx.setdefault(reg_key(other), []).append(hist)
+            for e in reg["people"].get(main, []):
+                idx.setdefault(reg_key(other), []).append(e)
         reg["_idx"] = idx
     k = reg_key(name)
     if k in alias:
         k = reg_key(alias[k])
     cands = idx.get(k) or []
-    m = re.search(r"(\d{4})\D+(\d{4})", period or "")
-    lo, hi = (int(m.group(1)), int(m.group(2))) if m else (0, 9999)
+    m = re.search(r"(\d{4})\D+(\d{4})", period or "") or re.search(r"(\d{4})()", period or "")
+    lo = int(m.group(1)) if m else 0
+    hi = int(m.group(2)) if m and m.group(2) else (lo if m else 9999)
     best = None
-    for hist in cands:
+    for e in cands:
+        hist = e["h"] if isinstance(e, dict) else e
         yrs = [y for _, ys in hist for y in ys]
         if not yrs or max(yrs) < lo - 1 or min(yrs) > hi + 1:
             continue
@@ -2094,10 +2102,22 @@ def record_teams(name, period, reg):
             cnt.setdefault(t, set()).update(y for y in ys if lo - 1 <= y <= hi + 1)
             first.setdefault(t, min(ys))
         cnt = {t: len(v) for t, v in cnt.items()}
-        order = sorted(cnt, key=lambda t: (-cnt[t], first[t]))   # 長くいた球団から（同じなら先にいた球団）
-        if best is None or sum(cnt.values()) > sum(best[1].values()):
-            best = (order, cnt)
-    return best[0] if best else None
+        order = [t for t in sorted(cnt, key=lambda t: (-cnt[t], first[t])) if cnt[t] > 0]   # 長くいた球団から（同じなら先にいた球団）。期間に重ならない球団は入れない
+        if best is None or sum(cnt.values()) > best[2]:
+            best = (order, (e.get("id") if isinstance(e, dict) else "") or "", sum(cnt.values()))
+    return (best[0], best[1]) if best else None
+
+
+def record_teams(name, period, reg):
+    r = record_person(name, period, reg)
+    return r[0] if r else None
+
+
+def parse_player_pos(html):
+    """NPBの選手のページ：「ポジション 内野手」→ 内野手（投手・捕手・内野手・外野手）"""
+    text = norm(BeautifulSoup(html, "html.parser").get_text(" "))
+    m = re.search(r"ポジション\s*[:：]?\s*(投手|捕手|内野手|外野手)", text)
+    return m.group(1) if m else ""
 
 
 def update_records(force=False):
@@ -2136,26 +2156,49 @@ def update_records(force=False):
     except Exception as e:
         print(f"[在籍者名簿] 読めませんでした: {e}")
         reg = None
-    teamed = 0
+    teamed, posc, pos_start, reg_dirty = 0, 0, time.time(), False
+    poscache = dict((reg or {}).get("pos") or {})
     for k, L in lists.items():
-        if k.startswith("ss"):
-            continue
         ni = next((i for i, c in enumerate(L["cols"]) if re.search(r"選手|投手|打者", c)), -1)
-        pi = next((i for i, c in enumerate(L["cols"]) if re.search(r"実働|期間", c)), -1)
+        pi = next((i for i, c in enumerate(L["cols"]) if re.search(r"実働|期間|年度", c)), -1)
         if ni < 0 or not reg or not reg.get("people"):
             continue
-        new_team = [record_teams(r[ni], r[pi] if pi >= 0 else "", reg) or [] for r in L["rows"]]
-        teamed += sum(1 for x in new_team if x)
-        if new_team != L.get("team"):
-            L["team"] = new_team
-            got = got or 1   # 所属が変わったときだけ書き出す（毎回書き出すと、毎回コミットされてしまう）
+        persons = [record_person(r[ni], r[pi] if pi >= 0 else "", reg) for r in L["rows"]]
+        if not k.startswith("ss"):
+            new_team = [(p_[0] if p_ else []) for p_ in persons]
+            teamed += sum(1 for x in new_team if x)
+            if new_team != L.get("team"):
+                L["team"] = new_team
+                got = got or 1   # 所属が変わったときだけ書き出す（毎回書き出すと、毎回コミットされてしまう）
+        if k[2] != "b":
+            continue   # 投手の記録は全員投手（色はピンク）なので、守備位置を調べなくてよい
+        # 打撃の記録：選手のページから守備位置（投手・捕手・内野手・外野手）。読んだ選手は覚えておく（1回あたり POS_BUDGET 秒まで）
+        new_pos = []
+        for p_ in persons:
+            pid = p_[1] if p_ else ""
+            if pid and pid not in poscache and time.time() - pos_start < POS_BUDGET:
+                html = rec_fetch(f"https://npb.jp/bis/players/{pid}.html")
+                poscache[pid] = parse_player_pos(html) if html else ""
+                reg_dirty = True
+            new_pos.append(poscache.get(pid, "") if pid else "")
+        posc += sum(1 for x in new_pos if x)
+        if new_pos != L.get("pos"):
+            L["pos"] = new_pos
+            got = got or 1
+    if reg_dirty and reg:
+        reg["pos"] = poscache
+        try:
+            with open(REG_OUT, "w", encoding="utf-8") as f:
+                json.dump({k2: v2 for k2, v2 in reg.items() if k2 != "_idx"}, f, ensure_ascii=False, separators=(",", ":"))
+        except OSError:
+            pass
     if reg and reg.get("_idx"):
         reg.pop("_idx", None)
     out = {"src": "https://npb.jp/bis/history/", "at": datetime.now(JST).isoformat(timespec="seconds"), "at_ts": now,
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],
            "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER,
-           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed}
+           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed, "posd": posc}
     if got or fail or not os.path.exists(RECORDS_OUT) or prev.get("reg") != out.get("reg"):
         with open(RECORDS_OUT, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))

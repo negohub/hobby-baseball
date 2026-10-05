@@ -1938,6 +1938,134 @@ def rec_fetch(url):
     return None
 
 
+# ---------- プロ野球在籍者名簿（NPB）：通算記録の選手の所属球団を全員分入れるため ----------
+# 1行＝「名前｜在籍年数｜05～13西武,14～19ロッテ,…」。「イチロー （→ 鈴木 一朗）」のような別名の行もある。（コ）（監）は選手ではないので数えない
+REG_KANA = ["a", "i", "u", "e", "o", "ka", "ki", "ku", "ke", "ko", "sa", "shi", "su", "se", "so", "ta", "chi", "tsu", "te", "to",
+            "na", "ni", "nu", "ne", "no", "ha", "hi", "fu", "he", "ho", "ma", "mi", "mu", "me", "mo", "ya", "yu", "yo",
+            "ra", "ri", "ru", "re", "ro", "wa"]
+REG_ALT = {"shi": "si", "chi": "ti", "tsu": "tu", "fu": "hu"}
+REG_OUT = os.path.join(os.path.dirname(OUT), "register.json")
+REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
+
+
+def reg_year(y):
+    y = int(y)
+    return 1900 + y if y >= 36 else 2000 + y
+
+
+def parse_reg_history(h):
+    """「05～13西武,14～19ロッテ」「77,78クラウン」「20開幕～途巨人（育）」→ [(球団, [年…]), …]（コーチ・監督の期間は入れない）"""
+    out = []
+    pat = r"([\d～~開幕途春秋閉,，.]+?)([^\d～~,，・、（(開幕途春秋閉]+)(?:[（(]([^）)]*)[）)])?"
+    for m in re.finditer(pat, norm(h)):
+        span, team, role = m.group(1), m.group(2).strip(), m.group(3) or ""
+        if re.search(r"コ|監", role) and not re.search(r"兼", role):
+            continue
+        years = []
+        for part in re.split(r"[,，]", span):
+            nums = re.findall(r"\d{2}", part)
+            if not nums:
+                continue
+            if len(nums) >= 2 and re.search(r"[～~]", part):
+                years += list(range(reg_year(nums[0]), reg_year(nums[-1]) + 1))
+            else:
+                years += [reg_year(x) for x in nums]
+        if years and team:
+            out.append((team, sorted(set(years))))
+    return out
+
+
+def parse_register_page(html):
+    """名簿の1ページ → {名前: [[球団, 年…], …]}・別名 {別名: 本名}"""
+    soup = BeautifulSoup(html, "html.parser")
+    people, alias = {}, {}
+    for tr in soup.find_all("tr"):
+        cells = [norm(c.get_text(" ", strip=True)) for c in tr.find_all(["td", "th"])]
+        cells = [c for c in cells if c]
+        if not cells:
+            continue
+        name = re.sub(r"\s*[（(][A-Za-z'\-. ]+[）)]\s*$", "", cells[0]).strip()
+        m = re.match(r"^(.+?)\s*[（(]→\s*(.+?)[）)]$", cells[0])
+        if m:
+            alias[m.group(1).strip()] = m.group(2).strip()
+            continue
+        if len(cells) >= 3 and re.fullmatch(r"\d+", cells[1]):
+            hist = parse_reg_history(re.split(r"[［\[]", cells[2])[0])   # 「［改名］…」から後ろは名前の変わった時期なので読まない
+            if hist:
+                people.setdefault(name, []).append([[t, y] for t, y in hist])
+    return people, alias
+
+
+def update_register(force=False):
+    prev = {}
+    if os.path.exists(REG_OUT):
+        try:
+            with open(REG_OUT, encoding="utf-8") as f:
+                prev = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            prev = {}
+    if not force and prev.get("at_ts") and time.time() - prev["at_ts"] < REG_EVERY and prev.get("people"):
+        return prev
+    people, alias, got = {}, {}, 0
+    for k in REG_KANA:
+        html = rec_fetch(f"https://npb.jp/history/register/index_{k}.html")
+        if not html and k in REG_ALT:
+            html = rec_fetch(f"https://npb.jp/history/register/index_{REG_ALT[k]}.html")
+        if not html:
+            continue
+        p, a = parse_register_page(html)
+        for n, lst in p.items():
+            people.setdefault(n, []).extend(lst)
+        alias.update(a)
+        got += 1
+    if got < len(REG_KANA) * 0.8:   # 半端にしか取れなかったときは前の名簿を使う
+        print(f"[在籍者名簿] {got}ページしか取れなかったので前の分を使います")
+        return prev
+    out = {"at_ts": time.time(), "people": people, "alias": alias}
+    with open(REG_OUT, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"[在籍者名簿] {got}ページ・{len(people)}人")
+    return out
+
+
+def reg_key(n):
+    return re.sub(r"\s+", "", re.sub(r"^\s*[A-Za-zＡ-Ｚ]{1,2}\s*[・.．]\s*", "", norm(n)))
+
+
+def record_teams(name, period, reg):
+    """通算記録の選手の所属：名簿で名前（外国人は頭文字を外す）が同じ人のうち、実働期間が重なる人。在籍年数の多い球団を先に"""
+    if not reg or not reg.get("people"):
+        return None
+    alias = {reg_key(k): v for k, v in (reg.get("alias") or {}).items()}
+    idx = reg.get("_idx")
+    if idx is None:
+        idx = {}
+        for n, lst in reg["people"].items():
+            for hist in lst:
+                idx.setdefault(reg_key(n), []).append(hist)
+        reg["_idx"] = idx
+    k = reg_key(name)
+    if k in alias:
+        k = reg_key(alias[k])
+    cands = idx.get(k) or []
+    m = re.search(r"(\d{4})\D+(\d{4})", period or "")
+    lo, hi = (int(m.group(1)), int(m.group(2))) if m else (0, 9999)
+    best = None
+    for hist in cands:
+        yrs = [y for _, ys in hist for y in ys]
+        if not yrs or max(yrs) < lo - 1 or min(yrs) > hi + 1:
+            continue
+        cnt, first = {}, {}
+        for t, ys in hist:
+            cnt.setdefault(t, set()).update(y for y in ys if lo - 1 <= y <= hi + 1)
+            first.setdefault(t, min(ys))
+        cnt = {t: len(v) for t, v in cnt.items()}
+        order = sorted(cnt, key=lambda t: (-cnt[t], first[t]))   # 長くいた球団から（同じなら先にいた球団）
+        if best is None or sum(cnt.values()) > sum(best[1].values()):
+            best = (order, cnt)
+    return best[0] if best else None
+
+
 def update_records(force=False):
     prev = {}
     if os.path.exists(RECORDS_OUT):
@@ -1968,6 +2096,27 @@ def update_records(force=False):
                     lists[k] = page; done[k] = now; got += 1
                 else:
                     fail += 1
+    # 通算・現役の記録に、在籍者名簿から所属球団を付ける（行ごと：[いちばん長くいた球団, ほかの球団…]）
+    try:
+        reg = update_register()
+    except Exception as e:
+        print(f"[在籍者名簿] 読めませんでした: {e}")
+        reg = None
+    teamed = 0
+    for k, L in lists.items():
+        if k.startswith("ss"):
+            continue
+        ni = next((i for i, c in enumerate(L["cols"]) if re.search(r"選手|投手|打者", c)), -1)
+        pi = next((i for i, c in enumerate(L["cols"]) if re.search(r"実働|期間", c)), -1)
+        if ni < 0 or not reg:
+            continue
+        new_team = [record_teams(r[ni], r[pi] if pi >= 0 else "", reg) or [] for r in L["rows"]]
+        teamed += sum(1 for x in new_team if x)
+        if new_team != L.get("team"):
+            L["team"] = new_team
+            got = got or 1   # 所属が変わったときだけ書き出す（毎回書き出すと、毎回コミットされてしまう）
+    if reg and reg.get("_idx"):
+        reg.pop("_idx", None)
     out = {"src": "https://npb.jp/bis/history/", "at": datetime.now(JST).isoformat(timespec="seconds"), "at_ts": now,
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],

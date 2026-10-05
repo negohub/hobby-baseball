@@ -72,7 +72,7 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
   "lists": {
     "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1], "team": [["巨人"], ["南海", "ロッテ", "西武"], ["西武"]], "pos": ["内野手", "", "内野手"]},
     "ltb_avg": {"cols": ["順位", "選手", "打率", "実働期間", "打数", "安打"], "rows": [["1", "リー", ".320", "(1977-1987)", "4934", "1579"]], "asof": "2026年10月1日(木)", "note": "4000打数以上"},
-    "ltp_w": {"cols": ["順位", "選手", "勝利", "実働期間", "登板"], "rows": [["1", "金田 正一", "400", "(1950-1969)", "944"]], "asof": "2026年10月1日(木)", "note": ""},
+    "ltp_w": {"cols": ["順位", "選手", "勝利", "実働期間", "登板"], "rows": [["1", "金田 正一", "400", "(1950-1969)", "944"], ["2", "岩瀬 仁紀", "59", "(1999-2018)", "1002"]], "asof": "2026年10月1日(木)", "note": "", "role": ["先発", "中継ぎ"]},
     "acb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間"], "rows": [["1", "中村 剛也", "482", "(2003-2026)"]], "asof": "2026年10月1日(木)", "note": ""},
     "ssb_avg": {"cols": ["順位", "選手", "(所属)", "打率", "年度", "打数", "安打"], "rows": [["1", "バース", "(阪 神)", ".389", "(1986)", "453", "176"], ["2", "イチロー", "(オリックス)", ".387", "(2000)", "395", "153"]], "asof": "2025年度シーズン終了", "note": "打率 .350 以上(各シーズン規定以上)"},
     "ssp_so": {"cols": ["順位", "選手", "(所属)", "奪三振", "年度"], "rows": [["1", "江夏 豊", "(阪 神)", "401", "(1968)"]], "asof": "2025年度シーズン終了", "note": ""}},
@@ -1238,6 +1238,22 @@ async def offseason_check(browser):
         bad(f"[在籍者名簿の照らし合わせ] 登録名（金子 千尋）から本名の人を見つけられない：{ud.record_teams('金子 千尋', '(2006-2022)', rg2)}")
     if ud.record_teams("山田 三", "(1990-1994)", rg2) is not None:
         bad("[在籍者名簿の照らし合わせ] 同じ名字で期間の合う人が2人いるのに、どちらかに決めてしまう")
+    # 引退した投手の先発・中継ぎ：選手のページの「通算」の行（1登板あたり3回以上で先発。投球回が「整数｜端数」の2マスでも読める）
+    hp = ('<table><tr><th>年度</th><th>所属球団</th><th>登板</th><th>勝利</th><th>投球回</th><th></th></tr>'
+          '<tr><td></td><td>通 算</td><td>{g}</td><td>1</td><td>{ip}</td><td>.2</td></tr></table>')
+    if ud.parse_player_role(hp.format(g=944, ip=5526)) != "先発" or ud.parse_player_role(hp.format(g=1002, ip=985)) != "中継ぎ" or ud.parse_player_role("<p>なし</p>") != "":
+        bad("[歴代選手の先発・中継ぎ] 選手のページの通算から先発・中継ぎを決められない")
+    # 引退した打者の守備位置：ウィキペディアの記事の「ポジション」。記事に球団名がなければ別人（使わない）。名前で見つからなければ検索
+    keep_wg = ud.wiki_get
+    try:
+        wp = {"王貞治": "|ポジション = [[一塁手]]、[[外野手]]\n 読売ジャイアンツ", "タフィ・ローズ": "|ポジション = [[外野手]] 大阪近鉄バファローズ"}
+        ud.wiki_get = lambda prm: ({"query": {"search": [{"title": "タフィ・ローズ"}]}} if prm.get("list") == "search"
+                                   else {"query": {"pages": [{"title": t, "revisions": [{"slots": {"main": {"content": wp.get(t, "")}}}]} for t in prm["titles"].split("|")]}})
+        got_w = (ud.wiki_position("王 貞治", ["巨人"]), ud.wiki_position("ローズ", ["近鉄"]), ud.wiki_position("王 貞治", ["阪神"]))
+        if got_w != ("内野手", "外野手", ""):
+            bad(f"[歴代選手の守備位置] ウィキペディアの読み方が違う：{got_w}")
+    finally:
+        ud.wiki_get = keep_wg
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -2532,6 +2548,12 @@ async def rec_check(browser):
           document.querySelector('#recSide button[data-k="p"]').click();
           if (!/江夏 豊/.test(txt()) || !/401/.test(txt())) ng.push('シーズンの投手（奪三振）に切り替わらない');
           if (isPawa() && [...document.querySelectorAll('#recTbl td.pnm .ptile')].some(t => !t.classList.contains('pp') && !t.classList.contains('ps'))) ng.push('投手の記録の札がピンク（投手の色）でない');
+          // 投手：先発は先発の色、中継ぎは中継ぎの色（通算の勝利：金田＝先発・岩瀬＝中継ぎ）
+          if (isPawa()) { document.querySelector('#recKind button[data-k="lt"]').click(); const sel2 = document.getElementById('recCat'); sel2.value = 'w'; sel2.dispatchEvent(new Event('change'));
+            const tl = n => [...document.querySelectorAll('#recTbl td.pnm')].find(td => td.textContent.includes(n))?.querySelector('.ptile');
+            if (!tl('金田 正一')?.classList.contains(TILEC['先'])) ng.push(`先発の投手（金田）が先発の色でない（${tl('金田 正一')?.className}）`);
+            if (!tl('岩瀬 仁紀')?.classList.contains(TILEC['中']) || tl('岩瀬 仁紀')?.classList.contains(TILEC['先'])) ng.push(`中継ぎの投手（岩瀬）が中継ぎの色でない（${tl('岩瀬 仁紀')?.className}）`);
+            document.querySelector('#recKind button[data-k="ss"]').click(); }
           if ([...document.querySelectorAll('#recCat option')].map(o => o.value).join() !== 'so') ng.push('記録のない部門が選べてしまう');
           document.querySelector('#recKind button[data-k="ac"]').click(); document.querySelector('#recSide button[data-k="b"]').click();
           if (!/中村 剛也/.test(txt())) ng.push('現役の通算に切り替わらない');

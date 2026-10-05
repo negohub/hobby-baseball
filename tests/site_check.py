@@ -76,7 +76,11 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
     "acb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間"], "rows": [["1", "中村 剛也", "482", "(2003-2026)"]], "asof": "2026年10月1日(木)", "note": ""},
     "ssb_avg": {"cols": ["順位", "選手", "(所属)", "打率", "年度", "打数", "安打"], "rows": [["1", "バース", "(阪 神)", ".389", "(1986)", "453", "176"], ["2", "イチロー", "(オリックス)", ".387", "(2000)", "395", "153"]], "asof": "2025年度シーズン終了", "note": "打率 .350 以上(各シーズン規定以上)"},
     "ssp_so": {"cols": ["順位", "選手", "(所属)", "奪三振", "年度"], "rows": [["1", "江夏 豊", "(阪 神)", "401", "(1968)"]], "asof": "2025年度シーズン終了", "note": ""}},
-  "done": {}}
+  "done": {},
+  "std": {"2025": {"C": [["阪神タイガース", 143, 85, 54, 4, ".612", ""], ["横浜DeNAベイスターズ", 143, 71, 66, 6, ".518", "13.0"]],
+                   "P": [["福岡ソフトバンクホークス", 143, 87, 52, 4, ".626", ""], ["北海道日本ハムファイターズ", 143, 83, 57, 3, ".593", "4.5"]]},
+          "1970": {"C": [["読売ジャイアンツ", 130, 79, 47, 4, ".627", ""], ["阪神タイガース", 130, 77, 49, 4, ".611", "2.0"]],
+                   "P": [["ロッテオリオンズ", 130, 80, 47, 3, ".630", ""], ["近鉄バファローズ", 130, 65, 59, 6, ".524", "13.5"]]}}}
 
 
 VEN_SAMPLE = {"season": 2026, "at": "2026-10-05T18:00:00+09:00", "have": 850, "total": 858,
@@ -1254,6 +1258,13 @@ async def offseason_check(browser):
             bad(f"[歴代選手の守備位置] ウィキペディアの読み方が違う：{got_w}")
     finally:
         ud.wiki_get = keep_wg
+    # 歴代の順位表：年度別成績のページの「チーム勝敗表」だけ（すぐ後ろのチーム打撃成績は読まない）。1位のゲーム差は空
+    hs_ = ud.parse_hist_standings('<table><tr><th>チーム</th><th>試合</th><th>勝利</th><th>敗北</th><th>引分</th><th></th><th>勝率</th><th>ゲーム差</th></tr>'
+                                  '<tr><td>読売ジャイアンツ</td><td>130</td><td>79</td><td>47</td><td>4</td><td></td><td>.627</td><td>- -</td></tr>'
+                                  '<tr><td>阪神タイガース</td><td>130</td><td>77</td><td>49</td><td>4</td><td></td><td>.611</td><td>2.0</td></tr></table>'
+                                  '<table><tr><th>チーム</th><th>打率</th></tr><tr><td>阪神タイガース</td><td>.245</td><td>130</td><td>4300</td><td>435</td><td>1053</td><td>173</td></tr></table>')
+    if hs_ != [["読売ジャイアンツ", 130, 79, 47, 4, ".627", ""], ["阪神タイガース", 130, 77, 49, 4, ".611", "2.0"]]:
+        bad(f"[歴代の順位表の読み取り] チーム勝敗表を正しく読めない：{hs_}")
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -2558,6 +2569,19 @@ async def rec_check(browser):
           if ([...document.querySelectorAll('#recCat option')].map(o => o.value).join() !== 'so') ng.push('記録のない部門が選べてしまう');
           document.querySelector('#recKind button[data-k="ac"]').click(); document.querySelector('#recSide button[data-k="b"]').click();
           if (!/中村 剛也/.test(txt())) ng.push('現役の通算に切り替わらない');
+          // 歴代の順位表：年度を選ぶと、その年の今見ているリーグの最終順位（順位タブの順位表と同じ見出し）。1位は「優勝」。打撃｜投手の切り替えは出さない
+          document.querySelector('#recKind button[data-k="std"]').click();
+          { const ys = [...document.getElementById('recCat').options].map(o => o.value).join();
+            if (ys !== '2025,1970') ng.push(`順位表の年度の並びが違う（${ys}）`);
+            const hs2 = [...document.querySelectorAll('#recTbl thead th')].map(x => x.textContent).join('|');
+            if (hs2 !== '順位|チーム名|試合|勝利|敗戦|引分|勝率|勝差') ng.push(`順位表の見出しが順位タブと違う（${hs2}）`);
+            if (!/阪神タイガース/.test(document.getElementById('recTbl').textContent) || !/優勝/.test(document.getElementById('recTbl').textContent)) ng.push('2025年の順位表（1位は優勝）が出ない');
+            if (getComputedStyle(document.getElementById('recSide')).display !== 'none') ng.push('順位表のときに打撃｜投手の切り替えが出ている');
+            const sl = document.getElementById('recCat'); sl.value = '1970'; sl.dispatchEvent(new Event('change'));
+            if (!/読売ジャイアンツ/.test(document.getElementById('recTbl').textContent)) ng.push('1970年に切り替わらない');
+            const tb2 = document.getElementById('recTbl'); if (tb2.scrollWidth > tb2.parentElement.clientWidth + 1) ng.push('順位表がはみ出す');
+            document.querySelector('#recKind button[data-k="lt"]').click();
+            if (getComputedStyle(document.getElementById('recSide')).display === 'none') ng.push('順位表から戻っても打撃｜投手の切り替えが出ない'); }
           // どの部門も同じ形：順位｜選手｜所属｜記録｜年度（シーズン）・実働期間（通算・現役）。所属は空にしない（分からないときは —）
           for (const k of ['lt', 'ac', 'ss']) for (const sd of ['b', 'p']) for (const c of (sd === 'b' ? REC.bat : REC.pit)) {
             if (!REC.lists[k + sd + '_' + c.k]) continue; S.recKind = k; S.recSide = sd; S.recKey = c.k; renderRec();

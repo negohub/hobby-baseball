@@ -70,7 +70,7 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
   "kinds": [{"k": "lt", "n": "通算"}, {"k": "ac", "n": "現役"}, {"k": "ss", "n": "シーズン"}],
   "bat": [{"k": "hr", "n": "本塁打"}, {"k": "avg", "n": "打率"}, {"k": "sb", "n": "盗塁"}], "pit": [{"k": "w", "n": "勝利"}, {"k": "so", "n": "奪三振"}],
   "lists": {
-    "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1], "team": [["巨人"], ["南海", "ロッテ", "西武"], ["西武"]]},
+    "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1], "team": [["巨人"], ["南海", "ロッテ", "西武"], ["西武"]], "pos": ["内野手", "", "内野手"]},
     "ltb_avg": {"cols": ["順位", "選手", "打率", "実働期間", "打数", "安打"], "rows": [["1", "リー", ".320", "(1977-1987)", "4934", "1579"]], "asof": "2026年10月1日(木)", "note": "4000打数以上"},
     "ltp_w": {"cols": ["順位", "選手", "勝利", "実働期間", "登板"], "rows": [["1", "金田 正一", "400", "(1950-1969)", "944"]], "asof": "2026年10月1日(木)", "note": ""},
     "acb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間"], "rows": [["1", "中村 剛也", "482", "(2003-2026)"]], "asof": "2026年10月1日(木)", "note": ""},
@@ -82,7 +82,7 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
 VEN_SAMPLE = {"season": 2026, "at": "2026-10-05T18:00:00+09:00", "have": 850, "total": 858,
   "bat_cols": ["試合", "打数", "安打", "本塁打", "打点", "四球", "死球", "犠飛", "塁打"], "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"],
   "teams": {"T": {"甲子園": {"games": 60, "bat": [["佐藤 輝明", 55, 200, 60, 15, 45, 20, 3, 2, 120], ["近本 光司", 58, 230, 70, 3, 20, 25, 1, 1, 95], ["代打 太郎", 3, 0, 0, 0, 0, 1, 0, 0, 0], ["ウィットリーキャベッジ", 40, 150, 40, 5, 20, 10, 1, 1, 60], ["サンタナ", 40, 140, 38, 6, 21, 9, 0, 0, 62]],
-                                   "pit": [["才木 浩人", 12, 240, 18, 8, 2, 0, 0, 80, 60, 20], ["岩崎 優", 25, 75, 6, 1, 1, 20, 2, 25, 18, 8]]},
+                                   "pit": [["才木 浩人", 12, 240, 18, 8, 2, 0, 0, 80, 60, 20], ["岩崎 優", 25, 75, 6, 1, 1, 20, 2, 25, 18, 8], ["打者 一人", 1, 0, 2, 0, 0, 0, 0, 0, 2, 1]]},
                         "神宮": {"games": 9, "bat": [["佐藤 輝明", 9, 33, 11, 4, 9, 4, 0, 1, 25]], "pit": [["才木 浩人", 2, 39, 3, 1, 0, 0, 0, 12, 8, 3]]},
                         "倉敷": {"games": 1, "bat": [["佐藤 輝明", 1, 4, 2, 1, 3, 0, 0, 0, 5]], "pit": []},
                         "前橋": {"games": 1, "bat": [["佐藤 輝明", 1, 3, 1, 0, 0, 1, 0, 0, 1]], "pit": []}},
@@ -1220,6 +1220,15 @@ async def offseason_check(browser):
         got_t = ud.record_teams(n, per, regt)
         if got_t != want:
             bad(f"[在籍者名簿の照らし合わせ] {n} {per} → {got_t}（{want} のはず）")
+    # 歴代選手の守備位置：名簿の行から選手のページの番号、選手のページから守備位置
+    rq, _, _ = ud.parse_register_page('<a href="https://npb.jp/bis/players/11111111.html"><table><tr><td>王 貞治</td><td>22</td><td>59～80巨人</td></tr></table></a>'
+                                      '<table><tr><td><a href="/bis/players/22222222.html">野村 克也</a></td><td>27</td><td>54～77南海,78ロッテ,79,80西武</td></tr></table>')
+    rgq = {"people": rq}
+    if ud.record_person("王 貞治", "(1959-1980)", rgq) != (["巨人"], "11111111") or ud.record_person("野村 克也", "(1963)", rgq) != (["南海"], "22222222"):
+        bad(f"[歴代選手の守備位置] 名簿から選手のページの番号を取れない：{ud.record_person('王 貞治', '(1959-1980)', rgq)} {ud.record_person('野村 克也', '(1963)', rgq)}")
+    for html_, want in [('<table><tr><th>ポジション</th><td>外野手</td></tr></table>', "外野手"), ('<dl><dt>ポジション</dt><dd> 投手 </dd></dl>', "投手"), ('<p>経歴</p>', "")]:
+        if ud.parse_player_pos(html_) != want:
+            bad(f"[歴代選手の守備位置] 選手のページの守備位置を読めない：{html_} → {ud.parse_player_pos(html_)}")
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -2491,7 +2500,9 @@ async def rec_check(browser):
           // パワプロ風は名前の札：今の選手は名簿の守備位置の色、引退した打者は白、投手の記録はピンク。スタイリッシュは文字
           const tile = n => [...document.querySelectorAll('#recTbl td.rn')].find(td => td.textContent.includes(n))?.querySelector('.ptile');
           if (isPawa()) {
-            if (!tile('王 貞治') || !tile('王 貞治').classList.contains('pwh')) ng.push(`引退した打者（王 貞治）が白い札でない（${tile('王 貞治')?.className}）`);
+            // 引退した打者：NPBの選手のページの守備位置の色（王＝内野手の黄）。分からない選手（野村：試しのデータで空）だけ白
+            if (!tile('王 貞治') || !tile('王 貞治').classList.contains('pi')) ng.push(`引退した打者（王 貞治・内野手）が黄色の札でない（${tile('王 貞治')?.className}）`);
+            if (!tile('野村 克也') || !tile('野村 克也').classList.contains('pwh')) ng.push(`守備位置が分からない選手が白い札でない（${tile('野村 克也')?.className}）`);
             const nk2 = tile('中村 剛也'); if (!nk2 || nk2.classList.contains('pwh') || !nk2.classList.contains(TILEC[posGroups('L', '中村 剛也', '内野手')[0]])) ng.push(`今の選手（中村 剛也）が名簿の守備位置の色でない（${nk2?.className}）`);
             if (document.querySelectorAll('#recTbl td.rn').length !== document.querySelectorAll('#recTbl td.rn .ptile').length) ng.push('札になっていない名前がある');
             const ov = [...document.querySelectorAll('#recTbl .rectile b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent); if (ov.length) ng.push(`名前が札に収まらない（${ov}）`);
@@ -2894,7 +2905,7 @@ async def ven_check(browser):
               const sato = row('佐藤'); const cells = sato ? [...sato.querySelectorAll('td')].map(td => td.textContent) : [];
               // 佐藤：200打数60安打 → .300、OPS＝(60+20+3)/(200+20+3+2)＋120/200＝.369＋.600＝.969
               if (cells[6] !== '.300' || cells[7] !== '.969') ng.push(`佐藤の打率・OPSが違う（${cells.slice(6)}）`);
-              if (row('代打') && [...row('代打').querySelectorAll('td')].slice(6).some(td => td.textContent !== '-')) ng.push('打数0の選手の打率・OPSが「-」でない');
+              if (row('代打')) ng.push('打数0の選手（代打 太郎）が出ている');
               const tb = document.getElementById('venTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push(`打撃の表がはみ出す（${tb.scrollWidth}/${tb.parentElement.clientWidth}）`);
               // 名前の札：長い名前でも字が札からはみ出さない（埋もれない）。打数の順で全員を出して確かめる
               document.querySelector('#venKey button[data-k="ab"]').click();
@@ -2919,12 +2930,16 @@ async def ven_check(browser):
               const sai = row('才木'), c2 = sai ? [...sai.querySelectorAll('td')].map(td => td.textContent) : [];
               // 才木：240アウト＝80回、自責18 → 防御率 2.03
               if (c2[2] !== '80' || c2[7] !== '2.03') ng.push(`才木の投球回・防御率が違う（${c2}）`);
-              // 防御率の順位は規定（その球場での試合数以上の投球回）の投手だけ。岩崎（25回）は入らない。セーブのタブなら出る
-              if (row('岩崎')) ng.push('防御率の順位に、規定に届かない投手（岩崎）が入っている');
+              // 規定にはこだわらず全員：防御率の順に、才木（2.03）→ 岩崎（2.16）
+              const ord0 = [...document.querySelectorAll('#venTbl tbody tr')].map(tr => tr.textContent).join('|');
+              if (!row('岩崎') || ord0.indexOf('才木') > ord0.indexOf('岩崎')) ng.push('防御率の順に全員が並んでいない（規定にこだわらない）');
+              if (/規定/.test(document.getElementById('venNote').textContent)) ng.push('規定の注記が残っている');
               document.querySelector('#venKey button[data-k="sv"]').click();
               if (document.querySelector('#venKey button[aria-pressed="true"]')?.dataset.k !== 'sv') ng.push('Sのタブが選ばれた状態にならない');
               if (!row('岩崎') || [...document.querySelectorAll('#venTbl tbody tr')][0] !== row('岩崎')) ng.push('Sで並べると岩崎（20S）がいちばん上にならない');
               if (!document.querySelector('#venTbl thead th.rv') || document.querySelector('#venTbl thead th.rv').textContent !== 'S') ng.push('並べている項目の列が目立たない');
+              for (const k of ['era', 'g', 'w']) { document.querySelector(`#venKey button[data-k="${k}"]`).click(); if (row('打者 一人') || row(callName('T', '打者 一人'))) ng.push(`投球回0の投手が出ている（${k}）`); }
+              document.querySelector('#venKey button[data-k="sv"]').click();
               const iw = row('岩崎'), c3 = iw ? [...iw.querySelectorAll('td')].map(td => td.textContent) : [];
               if (c3[2] !== '25' || c3[5] !== '20') ng.push(`岩崎の投球回・セーブが違う（${c3}）`);
               if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('投手の表がはみ出す');

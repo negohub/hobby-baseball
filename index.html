@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005153000">
+<meta name="build" content="20261005155738">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2092,17 +2092,11 @@ html.theme-pawa .ventab .sptile{--w:84px;--fs:13px;width:var(--w);height:26px;pa
 html.theme-pawa .ventab .sptile b{font-size:min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))}
 @media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 1px !important}.ventab thead th{font-size:9px !important;letter-spacing:-.03em}html.theme-pawa .ventab .sptile{--w:72px;--fs:12px}.ventab .ventm{width:16px;height:16px;font-size:8.5px;margin-right:2px}}
 /* 歴代記録 */
-.rectab th,.rectab td{font-size:12.5px !important;padding:7px 3px !important}
-.rectab thead th{font-size:10.5px !important;padding:6px 2px !important}
-.rectab td.rn,.rectab th.rn{text-align:left;white-space:normal;line-height:1.25}
-.rectab td.rn .recnm{white-space:nowrap}
-.rectab td.rn .recact{display:table;margin:3px 0 0}
-.rectab td.rv{font-weight:800;font-size:13.5px !important}
-@media (max-width:374px){.rectab th,.rectab td{font-size:11px !important;padding:6px 2px !important}.rectab thead th{font-size:9.5px !important}.rectab td.rv{font-size:12px !important}}
-.rectab td.rk{font-weight:700}
+/* 歴代記録は個人ランキングと同じ表（.rtab）。ここでは歴代記録だけにある所（期間の列・現役の印・名前の札に入れる長い名前）だけ */
+.rectab td.pnm .recact{display:table;margin:3px 0 0}
+.rectab td.rp{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
 .rectab .recmsg{text-align:center;padding:24px 8px;font-weight:600;white-space:normal}
-.rectab td.rt{white-space:normal;line-height:1.2;font-size:11.5px !important}
-.rectab td.rt .rtm{display:block;font-size:9.5px;color:var(--muted)}
+.rectab td.tnm{white-space:normal;line-height:1.25}
 .recact{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;vertical-align:1px;background:#17703D;color:#fff;letter-spacing:0}
 .recnote{margin:4px 2px 8px;font-size:11.5px;color:var(--muted)}
 /* パワプロ風：注記は空の上ではなく、読める地の上に（昼は白っぽい地に紺、夜は紺の地に薄い文字） */
@@ -2112,19 +2106,20 @@ html:not(#y) .htab .hfix:not(#z){display:table;margin:3px auto 0;padding:1px 5px
 .htab .hzan{display:block;font-size:9.5px;color:var(--muted);margin-top:2px;font-weight:600}
 /* パワプロ風：名前の札（名前の欄の幅いっぱい・名前の長さで字を小さく）。引退した打者は白い札 */
 /* 表のマスは大きさの基準（container）になれないので、中の箱を基準にする（名前が長くても列が広がりすぎない） */
-html.theme-pawa .rectab td.rn{min-width:92px}
-html.theme-pawa .rectab .recnmw{container-type:inline-size;width:100%}
+html.theme-pawa .rectab .recnmw{container-type:inline-size;width:100%;max-width:130px}
 .rectab .yr{display:inline}
 @media (max-width:374px){
-  html.theme-pawa .rectab td.rn{min-width:70px}
   .rectab td.rp .yr{display:block;line-height:1.2}
-  .rectab td.rt{white-space:normal;line-height:1.2}
+  .rectab td.rp{font-size:10.5px}
+  html:not(.theme-pawa) .rectab td.pnm{padding-left:6px}
+  html:not(.theme-pawa) .rectab td.tnm{font-size:11.5px}
 }
-html.theme-pawa .rectab .rectile{display:flex;justify-content:center;align-items:center;box-sizing:border-box;width:100%;height:26px;padding:0 4px}
-html.theme-pawa .rectab .rectile b{font-size:min(13px, calc((100cqw - 14px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
-html.theme-pawa .rectab td.rn .recact{margin-top:6px}
+/* 名前の札は個人ランキングと同じ大きさ（高さ34px・最大130px）。歴代の選手はフルネームなので、長い名前だけ字を小さくする */
+html.theme-pawa .rectab .rectile{display:flex;justify-content:center;align-items:center;box-sizing:border-box;width:100%;height:34px;padding:0 4px}
+html.theme-pawa .rectab .rectile b{font-size:min(14px, calc((100cqw - 14px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
+html.theme-pawa .rectab td.pnm .recact{margin-top:6px}
 html.theme-pawa .ptile.pwh{background:linear-gradient(180deg,#FFFFFF,#E6EAF1);border-color:#A9B4C6}
-html.theme-pawa .rectab td.rv{color:#C2185B}
+
 #recKind{margin-bottom:8px}
 /* 画面の下のほう（まだ見えていない所）は、見える所まで来てから並べる。タブを押した瞬間の仕事を減らして、すぐ画面を出すため
    （対応していない古いiPhoneでは、今までどおり全部並べるだけ） */
@@ -2144,7 +2139,8 @@ button:active,.chip:active,.tbtn:active,.ptile:active,.tgx:active,.shot:active{t
 #ptSeg{margin-top:10px}
 /* どの球団でも同じ幅：列の幅を固定（名前の列＋数字5列は均等） */
 #ptTbl{table-layout:fixed;width:100%}
-#ptTbl col.pc-n{width:30%}
+#ptTbl col.pc-r{width:32px}#ptTbl col.pc-n{width:24%}#ptTbl td:first-child,#ptTbl th:first-child{padding-left:2px !important;padding-right:2px !important}   /* 順位の欄（個人ランキングと同じ）を足した分、名前の欄を少し細く（長い名前は2行に） */
+@media (max-width:374px){#ptTbl col.pc-r{width:24px}#ptTbl col.pc-n{width:22%}#ptTbl td.num{font-size:11px !important;padding-left:1px !important;padding-right:1px !important;letter-spacing:-.02em}#ptTbl thead th{font-size:9.5px !important;letter-spacing:-.05em !important;padding-left:1px !important;padding-right:1px !important}#ptTbl th.srt .sic{width:5px !important;margin-left:0 !important}#ptTbl td:first-child{padding-left:1px !important;padding-right:1px !important}html.theme-pawa #ptTbl .rkm{width:22px;height:22px;font-size:11px}}
 #ptTbl td.pnm{width:auto;white-space:normal}
 #ptTbl td.num,#ptTbl th{white-space:nowrap}
 /* 長い名前（外国人選手など）も省略せず、小さめの文字で、入りきらなければ2行に */
@@ -2167,13 +2163,13 @@ html.theme-pawa #ptTbl th.srt .sic{width:6px;margin-left:1px}
 @media (max-width:374px){html.theme-pawa #ptTbl td.pnm{padding:5px 3px 5px 4px !important}html.theme-pawa #ptTbl td.pnm .ptile{min-height:30px}html.theme-pawa #ptTbl td.pnm .ptile b{font-size:12px}html.theme-pawa #ptTbl td.pnm .ptile.n5 b{font-size:11px}html.theme-pawa #ptTbl td.pnm .ptile.n7 b{font-size:10px}}
 html.lg-p #ptTeams .tbtn{font-size:8.5px;letter-spacing:-.04em;white-space:nowrap;overflow:hidden}
 @media (max-width:374px){
-  #ptTbl th,#ptTbl td{padding-left:2px !important;padding-right:2px !important}
-  #ptTbl td.pnm{padding-left:7px !important}
-  #ptTbl col.pc-n{width:29%}
-  #ptTbl .ptn{font-size:13px}
-  #ptTbl .ptn.n5{font-size:12px}
-  #ptTbl .ptn.n7{font-size:10.5px}
-  #ptTbl thead th{font-size:10.5px !important;letter-spacing:0 !important}
+  #ptTbl th,#ptTbl td{padding-left:1px !important;padding-right:1px !important}
+  #ptTbl td.pnm{padding-left:4px !important}
+  #ptTbl col.pc-n{width:22%}   /* 順位の欄を足した分、名前の欄を細く（長い名前は2行に） */
+  #ptTbl .ptn{font-size:12px}
+  #ptTbl .ptn.n5{font-size:11px}
+  #ptTbl .ptn.n7{font-size:10px}
+  #ptTbl thead th{font-size:9.5px !important;letter-spacing:-.05em !important}
   #ptTbl th.srt .sic{width:6px;margin-left:1px}
 }
 /* 帯の登場の動き：自動更新で描き直したときは動かさない */
@@ -2738,7 +2734,6 @@ html.theme-pawa.pawa-dark .me-pick button.none:not([aria-pressed="true"]):not(.o
 html.theme-pawa.pawa-dark .me-pick button.none.on:not([aria-pressed="true"]):not(.on){border-color:#3F65AE}
 html.theme-pawa.pawa-dark{background:#1C2B45}
 html.theme-pawa.pawa-dark .recnote:not(:empty):not(#z){background:rgba(22,36,63,.9);color:#DEE5F2 !important}
-html.theme-pawa.pawa-dark .rectab td.rv{color:#DDA6BC}
 html.theme-pawa.pawa-dark .ptmore{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark .ptr{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark .sh-det summary{color:#AEBCD5}
@@ -3856,7 +3851,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="rkbar"><div class="seg" id="recSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
       <label class="catsel"><select id="recCat" aria-label="部門"></select></label></div>
     <p class="recnote" id="recNote"></p>
-    <div class="ywrap"><table class="ytab rectab" id="recTbl"></table></div>
+    <div class="ywrap"><table class="ytab rtab rectab" id="recTbl"></table></div>
     <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（投手＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した選手はNPBの選手のページの守備位置です。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
   </section>
   <section class="view" id="v-ven" aria-label="球場別成績" hidden>
@@ -7460,6 +7455,12 @@ function drawTeamIn(t, d) {
     });
   }
   if (!rows.length) { $("ptList").innerHTML = `<div class="rempty">${kind === "bat" ? "打撃" : "投手"}成績のデータがまだありません。</div>`; return; }
+  // 順位：並べている項目の値で決める（同じ値は同じ順位）。率で並べるときに下にまとめた選手（打席・投球回の少ない選手）は順位なし
+  if (sk) {
+    const c = cols[sk.col], rate = c[2] === "rate" || c[2] === "era" || /率$/.test(c[0]);
+    let prev = null, rk = 0;
+    rows.forEach((x, i) => { const v = sortVal(c, x.r); if (rate && low(x.r)) { x.rk = null; return; } if (v !== prev) { rk = i + 1; prev = v; } x.rk = (v == null || isNaN(v)) ? null : rk; });
+  } else rows.forEach((x, i) => (x.rk = i + 1));
   const N = 15, view = S.ptAll ? rows : rows.slice(0, N);
   const pawaT = document.documentElement.classList.contains("theme-pawa");
   const tile = n => {
@@ -7474,8 +7475,8 @@ function drawTeamIn(t, d) {
   // 名前の長さで文字の大きさを変える（長い名前も省略せず、必要なら2行に折り返す）
   function lenC(nm) { const n = [...nm].length; return n >= 7 ? " n7" : n >= 5 ? " n5" : ""; }
   const cell = v => esc(v == null || v === "" ? "-" : v);
-  $("ptList").innerHTML = `<div class="ywrap"><table class="ytab rtab tst" id="ptTbl"><colgroup><col class="pc-n">${cols.map(() => "<col>").join("")}</colgroup><thead><tr><th class="tnm">選手名</th>${cols.map((c, j) => `<th class="srt${sk && j === sk.col ? " on" : ""}" data-col="${j}"${PT_SHORT[c[0]] ? ` aria-label="${c[0]}"` : ""}>${PT_SHORT[c[0]] || c[0]}${sortIco(sk && j === sk.col ? sk.dir : "none")}</th>`).join("")}</tr></thead><tbody>` +
-    view.map(x => `<tr style="${tv(t)}"><td class="pnm" data-pl="${t}|${esc(x.n)}|${kind}">${pawaT ? tile(x.n) : `<span class="ptn${lenC(rankName(t, x.n))}">${esc(rankName(t, x.n))}${offTag(t, x.n)}</span>`}</td>${cols.map(c => `<td class="num v">${cell(c[1](x.r))}</td>`).join("")}</tr>`).join("") +
+  $("ptList").innerHTML = `<div class="ywrap"><table class="ytab rtab tst" id="ptTbl"><colgroup><col class="pc-r"><col class="pc-n">${cols.map(() => "<col>").join("")}</colgroup><thead><tr><th>順位</th><th class="tnm">選手名</th>${cols.map((c, j) => `<th class="srt${sk && j === sk.col ? " on" : ""}" data-col="${j}"${PT_SHORT[c[0]] ? ` aria-label="${c[0]}"` : ""}>${PT_SHORT[c[0]] || c[0]}${sortIco(sk && j === sk.col ? sk.dir : "none")}</th>`).join("")}</tr></thead><tbody>` +
+    view.map(x => `<tr class="${x.rk === 1 ? "lead" : ""}" style="${tv(t)}"><td class="num">${x.rk ? `<span class="rkm r${x.rk <= 3 ? x.rk : 0}">${x.rk}</span>` : `<span class="rkm r0 rkx">-</span>`}</td><td class="pnm" data-pl="${t}|${esc(x.n)}|${kind}">${pawaT ? tile(x.n) : `<span class="ptn${lenC(rankName(t, x.n))}">${esc(rankName(t, x.n))}${offTag(t, x.n)}</span>`}</td>${cols.map((c, j) => `<td class="num${sk && j === sk.col ? " v" : ""}">${cell(c[1](x.r))}</td>`).join("")}</tr>`).join("") +
     `</tbody></table></div>` + (rows.length > N ? `<button type="button" class="ptmore" id="ptMore">${S.ptAll ? "上位だけ表示" : `全員を表示（${rows.length}人）`}</button>` : "");
   $("ptList").querySelectorAll("th.srt").forEach(th => (th.onclick = () => {
     const j = +th.dataset.col, c = cols[j], first = c[2] === "era" ? "asc" : "desc";
@@ -8020,7 +8021,8 @@ function renderRec() {
     else if (side === "p") cls = "pp";
     else cls = TILEC[POS1[pos]] || "pwh";
     const bare = String(name).replace(/\s+/g, "");
-    return `<span class="ptile sptile rectile ${cls}${nmCls(bare)}" style="--n:${[...String(name)].length};${sty}"><b>${esc(name)}</b></span>`;
+    // 個人ランキングの名前の札と同じ部品（.ptile、高さ34px）。sptile は付けない（付けると「小さい札は26px」の決まりが効いてしまう）
+    return `<span class="ptile rectile ${cls}" style="--n:${[...String(name)].length};${sty}"><b>${esc(name)}</b></span>`;
   };
   // どの部門も同じ形：順位｜選手｜所属｜記録｜年度（シーズン）または実働期間（通算・現役）。そのほかの列（試合・打数など）は出さない
   const teamOf = (r, ri) => {
@@ -8031,11 +8033,12 @@ function renderRec() {
     const m = recTeams().get(nk(r[ni]));                                  // 名簿で見つからないとき：シーズン記録にいちばん多く出てくる球団
     return m ? esc(m.main) : `<span class="muted">—</span>`;
   };
-  const head = `<th class="rk">順位</th><th class="rn">選手</th><th class="rt">所属</th><th class="rv">${esc(label)}</th><th class="rp">${kind === "ss" ? "年度" : "実働期間"}</th>`;
+  const head = `<th>順位</th><th class="tnm">選手名</th><th class="tnm">チーム</th><th>${esc(label)}</th><th class="rp">${kind === "ss" ? "年度" : "実働期間"}</th>`;
   const body = L.rows.map((r, ri) => {
     const act = (L.act && L.act[ri]) || (kind !== "ss" && ni >= 0 && nowNames.has(nk(r[ni])));
     const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
-    return `<tr><td class="rk">${recCell(r[0])}</td><td class="rn">${isPawa() ? `<div class="recnmw">${recTile(r[ni], nowHit(r, ri), L.pos && L.pos[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="rt">${teamOf(r, ri)}</td><td class="rv">${recCell(r[vi])}</td><td class="rp">${yv}</td></tr>`;
+    const rk = parseInt(r[0], 10) || 0, h0 = nowHit(r, ri);
+    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm">${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";

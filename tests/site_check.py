@@ -1229,6 +1229,15 @@ async def offseason_check(browser):
     for html_, want in [('<table><tr><th>ポジション</th><td>外野手</td></tr></table>', "外野手"), ('<dl><dt>ポジション</dt><dd> 投手 </dd></dl>', "投手"), ('<p>経歴</p>', "")]:
         if ud.parse_player_pos(html_) != want:
             bad(f"[歴代選手の守備位置] 選手のページの守備位置を読めない：{html_} → {ud.parse_player_pos(html_)}")
+    # 名簿は本名・記録は登録名（金子 弌大＝金子 千尋）：同じ名字で在籍の最初と最後が実働期間に合う人が1人だけならその人。2人いたら決めない
+    rq2, _, _ = ud.parse_register_page('<table><tr><td>金子 弌大</td><td>18</td><td>05～18オリックス,19～22日本ハム</td></tr></table>'
+                                       '<table><tr><td>金子 誠</td><td>19</td><td>94～12日本ハム</td></tr></table>'
+                                       '<table><tr><td>山田 一</td><td>5</td><td>90～94阪神</td></tr></table><table><tr><td>山田 二</td><td>5</td><td>90～94巨人</td></tr></table>')
+    rg2 = {"people": rq2}
+    if ud.record_teams("金子 千尋", "(2006-2022)", rg2) != ["オリックス", "日本ハム"]:
+        bad(f"[在籍者名簿の照らし合わせ] 登録名（金子 千尋）から本名の人を見つけられない：{ud.record_teams('金子 千尋', '(2006-2022)', rg2)}")
+    if ud.record_teams("山田 三", "(1990-1994)", rg2) is not None:
+        bad("[在籍者名簿の照らし合わせ] 同じ名字で期間の合う人が2人いるのに、どちらかに決めてしまう")
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -1850,7 +1859,7 @@ async def team_rank_menu_check(browser):
               for (const kind of ['bat', 'pit']) {
                 S.ptKind = kind; renderTeamIn();
                 // 投手の成績は初めて開いたときに読み込むので、表が出るまで待つ（重いときでも3秒まで）
-                for (let i = 0; i < 30 && !document.getElementById('ptTbl'); i++) { await new Promise(r => setTimeout(r, 100)); renderTeamIn(); }
+                for (let i = 0; i < 80 && !document.getElementById('ptTbl'); i++) { await new Promise(r => setTimeout(r, 100)); renderTeamIn(); }   // 重いときは読み込みに時間がかかるので8秒まで待つ
                 const sel = document.getElementById('ptCat'), opts = [...sel.options].map(o => o.value).filter(Boolean);
                 const want = CATS[kind].map(c => c[1]);
                 if (opts.join() !== want.join()) ng.push(`${kind}の項目が個人ランキングと違う（${opts.length}項目）`);
@@ -1858,7 +1867,7 @@ async def team_rank_menu_check(browser):
                   sel.value = v; sel.dispatchEvent(new Event('change'));
                   const tb = document.getElementById('ptTbl');
                   if (!tb) { ng.push(`${v}を選ぶと表が出ない`); continue; }
-                  if (tb.querySelectorAll('thead th').length !== 6) ng.push(`${v}を選ぶと列の数が変わる`);
+                  if (tb.querySelectorAll('thead th').length !== 7) ng.push(`${v}を選ぶと列の数が変わる`);   // 順位・選手名・5項目（個人ランキングと同じ「順位」の欄を足した）
                   if (tb.scrollWidth > tb.parentElement.clientWidth + 1 || [...tb.querySelectorAll('td, th')].some(c => c.scrollWidth > c.clientWidth + 1)) ng.push(`${v}を選ぶと表がはみ出す`);
                   if (!tb.querySelector('th.on')) ng.push(`${v}を選んでも、その項目の見出しが選ばれた形にならない`);
                 }
@@ -2494,17 +2503,17 @@ async def rec_check(browser):
           await loadRec(true); setTab('rec');
           const txt = () => document.getElementById('recTbl').innerText;
           if (!/王 貞治/.test(txt()) || !/868/.test(txt())) ng.push('通算の本塁打が出ない');
-          const rv = [...document.querySelectorAll('#recTbl tbody td.rv')].map(e => e.textContent);
+          const rv = [...document.querySelectorAll('#recTbl tbody td.v')].map(e => e.textContent);
           if (rv[0] !== '868') ng.push(`記録の列が太字の列になっていない（${rv}）`);
           if (!document.querySelector('#recTbl .recact')) ng.push('現役の印が出ない');
           // パワプロ風は名前の札：今の選手は名簿の守備位置の色、引退した打者は白、投手の記録はピンク。スタイリッシュは文字
-          const tile = n => [...document.querySelectorAll('#recTbl td.rn')].find(td => td.textContent.includes(n))?.querySelector('.ptile');
+          const tile = n => [...document.querySelectorAll('#recTbl td.pnm')].find(td => td.textContent.includes(n))?.querySelector('.ptile');
           if (isPawa()) {
             // 引退した打者：NPBの選手のページの守備位置の色（王＝内野手の黄）。分からない選手（野村：試しのデータで空）だけ白
             if (!tile('王 貞治') || !tile('王 貞治').classList.contains('pi')) ng.push(`引退した打者（王 貞治・内野手）が黄色の札でない（${tile('王 貞治')?.className}）`);
             if (!tile('野村 克也') || !tile('野村 克也').classList.contains('pwh')) ng.push(`守備位置が分からない選手が白い札でない（${tile('野村 克也')?.className}）`);
             const nk2 = tile('中村 剛也'); if (!nk2 || nk2.classList.contains('pwh') || !nk2.classList.contains(TILEC[posGroups('L', '中村 剛也', '内野手')[0]])) ng.push(`今の選手（中村 剛也）が名簿の守備位置の色でない（${nk2?.className}）`);
-            if (document.querySelectorAll('#recTbl td.rn').length !== document.querySelectorAll('#recTbl td.rn .ptile').length) ng.push('札になっていない名前がある');
+            if (document.querySelectorAll('#recTbl td.pnm').length !== document.querySelectorAll('#recTbl td.pnm .ptile').length) ng.push('札になっていない名前がある');
             const ov = [...document.querySelectorAll('#recTbl .rectile b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent); if (ov.length) ng.push(`名前が札に収まらない（${ov}）`);
             const t1 = tile('中村 剛也'), a1 = t1 && t1.parentElement.querySelector('.recact'); if (a1 && a1.getBoundingClientRect().top < t1.getBoundingClientRect().bottom - 1) ng.push('現役の印が札に重なっている');
           } else if (document.querySelector('#recTbl .ptile')) ng.push('スタイリッシュで札になっている');
@@ -2522,7 +2531,7 @@ async def rec_check(browser):
           if (/\\(1986\\)/.test(txt())) ng.push('年度のかっこが残っている');
           document.querySelector('#recSide button[data-k="p"]').click();
           if (!/江夏 豊/.test(txt()) || !/401/.test(txt())) ng.push('シーズンの投手（奪三振）に切り替わらない');
-          if (isPawa() && [...document.querySelectorAll('#recTbl td.rn .ptile')].some(t => !t.classList.contains('pp') && !t.classList.contains('ps'))) ng.push('投手の記録の札がピンク（投手の色）でない');
+          if (isPawa() && [...document.querySelectorAll('#recTbl td.pnm .ptile')].some(t => !t.classList.contains('pp') && !t.classList.contains('ps'))) ng.push('投手の記録の札がピンク（投手の色）でない');
           if ([...document.querySelectorAll('#recCat option')].map(o => o.value).join() !== 'so') ng.push('記録のない部門が選べてしまう');
           document.querySelector('#recKind button[data-k="ac"]').click(); document.querySelector('#recSide button[data-k="b"]').click();
           if (!/中村 剛也/.test(txt())) ng.push('現役の通算に切り替わらない');
@@ -2530,16 +2539,22 @@ async def rec_check(browser):
           for (const k of ['lt', 'ac', 'ss']) for (const sd of ['b', 'p']) for (const c of (sd === 'b' ? REC.bat : REC.pit)) {
             if (!REC.lists[k + sd + '_' + c.k]) continue; S.recKind = k; S.recSide = sd; S.recKey = c.k; renderRec();
             const hs = [...document.querySelectorAll('#recTbl thead th')].map(x => x.textContent).join('|');
-            if (hs !== `順位|選手|所属|${c.n}|${k === 'ss' ? '年度' : '実働期間'}`) ng.push(`${k}${sd}_${c.k}：表の形がそろっていない（${hs}）`);
+            if (hs !== `順位|選手名|チーム|${c.n}|${k === 'ss' ? '年度' : '実働期間'}`) ng.push(`${k}${sd}_${c.k}：表の形がそろっていない（${hs}）`);
+            // 個人ランキングと同じ表：同じ部品（.rtab・順位のメダル・選手名の欄・チームの欄・記録の欄）、1位の行は強調
+            const tb = document.getElementById('recTbl');
+            if (!tb.classList.contains('rtab')) ng.push('歴代記録の表が個人ランキングと同じ表（rtab）でない');
+            const r1 = tb.querySelector('tbody tr');
+            if (r1 && (!r1.querySelector('td .rkm') || !r1.querySelector('td.pnm') || !r1.querySelector('td.tnm') || !r1.querySelector('td.v'))) ng.push(`${k}${sd}_${c.k}：行の作りが個人ランキングと違う`);
+            if (r1 && /^1$/.test(r1.querySelector('.rkm')?.textContent || '') && !r1.classList.contains('lead')) ng.push(`${k}${sd}_${c.k}：1位の行が強調されていない`);
             if ([...document.querySelectorAll('#recTbl tbody tr')].some(tr => tr.children.length !== 5)) ng.push(`${k}${sd}_${c.k}：列の数が5つでない行がある`);
-            if ([...document.querySelectorAll('#recTbl td.rt')].some(td => !td.textContent.trim())) ng.push(`${k}${sd}_${c.k}：所属が空の行がある`);
+            if ([...document.querySelectorAll('#recTbl td.tnm')].some(td => !td.textContent.trim())) ng.push(`${k}${sd}_${c.k}：所属が空の行がある`);
           }
           S.recKind = 'lt'; S.recSide = 'b'; S.recKey = 'hr'; renderRec();
           // 引退した選手の所属：在籍者名簿でいちばん長くいた球団（名簿の結果 team の1つ目）
           { const tr = n => [...document.querySelectorAll('#recTbl tbody tr')].find(x => x.textContent.includes(n));
-            if ((tr('野村 克也')?.querySelector('td.rt')?.textContent || '') !== '南海') ng.push(`野村の所属が名簿のいちばん長くいた球団（南海）になっていない（${tr('野村 克也')?.querySelector('td.rt')?.textContent}）`);
-            if ((tr('王 貞治')?.querySelector('td.rt')?.textContent || '') !== '巨人') ng.push('王の所属が巨人になっていない'); }
-          if (!/巨人/.test([...document.querySelectorAll('#recTbl tbody tr')].find(tr => /王 貞治/.test(tr.textContent))?.querySelector('td.rt')?.textContent || '')) { /* 試しのデータに王のシーズン記録がないときは「—」でよい */ }
+            if ((tr('野村 克也')?.querySelector('td.tnm')?.textContent || '') !== '南海') ng.push(`野村の所属が名簿のいちばん長くいた球団（南海）になっていない（${tr('野村 克也')?.querySelector('td.tnm')?.textContent}）`);
+            if ((tr('王 貞治')?.querySelector('td.tnm')?.textContent || '') !== '巨人') ng.push('王の所属が巨人になっていない'); }
+          if (!/巨人/.test([...document.querySelectorAll('#recTbl tbody tr')].find(tr => /王 貞治/.test(tr.textContent))?.querySelector('td.tnm')?.textContent || '')) { /* 試しのデータに王のシーズン記録がないときは「—」でよい */ }
           // 読み込めないとき
           const keep = REC; REC = null; recAt = Date.now(); recBusy = false; localStorage.removeItem('rec-v1'); CONFIG.recUrl = 'https://live.example/none.json'; renderRec();
           await new Promise(r => setTimeout(r, 600));
@@ -3008,6 +3023,43 @@ async def peek_rerender_check(browser):
     for e in errs:
         bad(f"[長押しと描き直し]: 画面のエラー {e}")
     await pg.close()
+
+
+async def rank_format_check(browser):
+    """個人ランキング・チーム別成績・歴代記録は同じ表の形：.rtab、1列目「順位」（メダル .rkm）、2列目「選手名」（名前の札／名前）、1位の行は強調（lead）、名前の札の大きさも同じ"""
+    for th in ["pawa", ""]:
+        pg, errs = await open_page(browser, 390, th)
+        r = await pg.evaluate("""async () => { const ng = [];
+          DATA.tstats = null; DATA.tstats_at = null; setTab('stats');
+          for (const t of CL) { const bat = {}, pit = {};
+            (DATA.rosters[t] || []).forEach((x, i) => { const k = x.n.replace(/\\s+/g, '');
+              if (x.p === '投手') pit[k] = { 登板: String(50 - i), 投球回: '100.1', 防御率: (2 + i / 10).toFixed(2), 勝利: '5', 敗北: '5', 三振: '100' };
+              else bat[k] = { 試合: '100', 打席: String(500 - i), 打率: '.' + (300 - i), 本塁打: '10', 打点: '50', 出塁率: '.350', 長打率: '.450' }; });
+            PST[t] = { at: Date.now(), d: { bat, pit, asof: '9/28' } }; }
+          S.ptTeam = CL[0]; S.ptKind = 'bat'; renderTeamIn(); renderStats();
+          await loadRec(true);
+          const check = (name, tb) => {
+            if (!tb) { ng.push(`${name}：表がない`); return; }
+            if (!tb.classList.contains('rtab')) ng.push(`${name}：個人ランキングと同じ表（rtab）でない`);
+            const hs = [...tb.querySelectorAll('thead th')].map(x => x.textContent.trim());
+            if (hs[0] !== '順位' || hs[1] !== '選手名') ng.push(`${name}：見出しが「順位｜選手名」で始まらない（${hs.slice(0, 3)}）`);
+            const tr = tb.querySelector('tbody tr');
+            if (!tr || !tr.children[0].querySelector('.rkm') || !tr.children[1].classList.contains('pnm')) ng.push(`${name}：行が「順位のメダル｜選手名」の形でない`);
+            if (tr && tr.querySelector('.rkm')?.textContent.trim() === '1' && !tr.classList.contains('lead')) ng.push(`${name}：1位の行が強調されていない`);
+            const tile = tb.querySelector('tbody td.pnm .ptile');
+            return tile ? Math.round(tile.getBoundingClientRect().height) : null;
+          };
+          const h1 = check('個人ランキング', document.querySelector('#rankList table'));
+          const h2 = check('チーム別成績', document.getElementById('ptTbl'));
+          setTab('rec'); S.recKind = 'lt'; S.recSide = 'b'; S.recKey = 'hr'; renderRec();
+          const h3 = check('歴代記録', document.getElementById('recTbl'));
+          if (isPawa() && h1 && h3 && Math.abs(h1 - h3) > 1) ng.push(`歴代記録の名前の札の高さが個人ランキングと違う（${h3} / ${h1}）`);
+          return ng; }""")
+        for m in r:
+            bad(f"[表の形の統一 {'パワプロ風' if th else 'スタイリッシュ'}] {m}")
+        for e in errs:
+            bad(f"[表の形の統一]: 画面のエラー {e}")
+        await pg.close()
 
 
 async def player_today_check(browser):
@@ -3529,6 +3581,7 @@ async def main():
         await cs_cal_check(browser)
         await ven_check(browser)
         await peek_rerender_check(browser)
+        await rank_format_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

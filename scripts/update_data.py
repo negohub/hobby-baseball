@@ -658,6 +658,11 @@ OFF_SEED = [
     {"t": "B", "n": "山田 修義", "kind": "retire", "date": "2026-09-24"},
     {"t": "B", "n": "西野 真弘", "kind": "retire", "date": "2026-09-24"},
     {"t": "T", "n": "西 勇輝", "kind": "retire", "date": "2026-09-25", "url": "https://hanshintigers.jp/news/topics/info_11241.html"},
+    # 10/5 巨人の発表（球団のニュース一覧・ベースボールチャンネルにまだ出ていなかったので補う）
+    {"t": "G", "n": "岡田 悠希", "kind": "cut", "date": "2026-10-05", "url": "https://news.yahoo.co.jp/articles/c1b91c1a5acbd8e36a59ac20663f9b80c5b58b62", "title": "巨人 岡田悠希ら支配下3選手に戦力外通告（球団発表）"},
+    {"t": "G", "n": "山田 龍聖", "kind": "cut", "date": "2026-10-05", "url": "https://news.yahoo.co.jp/articles/c1b91c1a5acbd8e36a59ac20663f9b80c5b58b62", "title": "巨人 岡田悠希ら支配下3選手に戦力外通告（球団発表）"},
+    {"t": "G", "n": "郡 拓也", "kind": "cut", "date": "2026-10-05", "url": "https://news.yahoo.co.jp/articles/c1b91c1a5acbd8e36a59ac20663f9b80c5b58b62", "title": "巨人 岡田悠希ら支配下3選手に戦力外通告（球団発表）"},
+    {"t": "G", "n": "萩尾 匡也", "kind": "offer", "date": "2026-10-05", "url": "https://www.tokyo-sports.co.jp/articles/-/405558", "title": "巨人 萩尾匡也が自由契約 育成契約を打診の見込み（球団発表）"},
     # コーチの退団（10/4 球団発表。球団のニュース一覧から拾えなかったので補う）
     {"t": "B", "n": "波留 敏夫", "kind": "coach_out", "role": "ヘッドコーチ", "date": "2026-10-04", "url": "https://full-count.jp/2026/10/04/post2026060/", "title": "波留敏夫ヘッドコーチ 契約満了で退団（球団発表）"},
     {"t": "B", "n": "川島 慶三", "kind": "coach_out", "role": "打撃コーチ", "date": "2026-10-04", "url": "https://full-count.jp/2026/10/04/post2026060/", "title": "川島慶三打撃コーチ 本人の申し入れで退団（球団発表）"},
@@ -983,6 +988,74 @@ STAFF_NEWS_TITLE = re.compile(r"(コーチ|監督|首脳陣).{0,40}(退団|退�
 STAFF_NEWS_ANNOUNCE = re.compile(r"球団発表|発表した|発表しました|を発表")
 
 
+PLAYER_NEWS_FEEDS = ["https://full-count.jp/feed/", "https://full-count.jp/category/npb/feed/", "https://baseballking.jp/feed", "https://www.baseballchannel.jp/feed/"]
+PLAYER_NEWS_TITLE = re.compile(r"戦力外|来季の契約を結ばない|契約を結ばない|自由契約")
+PLAYER_CUT_RE = re.compile(r"戦力外|来季の?(?:選手)?契約を結ばない|契約を結ばない(?:こと)?を(?:発表|通告|通知)|自由契約")
+
+
+def player_news(rosters, season, seen, today):
+    """ニュースの新着（RSS）から、選手の戦力外・自由契約の球団発表を拾う → [{t, n, no, dev, kind: cut|offer, date, url, title}]
+    名前は今の名簿（12球団）にいて、戦力外などの言葉と同じ文の中にある選手だけ。同じ名前が2球団にいれば入れない。観測記事（「〜か」「見通し」）は入れない"""
+    from html import unescape
+    names = {}
+    for t, ro in (rosters or {}).items():
+        for r in ro:
+            k = squash(r["n"])
+            names.setdefault(k, []).append((t, r))
+    out, done = [], set()
+    for feed in PLAYER_NEWS_FEEDS:
+        xml = fetch(feed)
+        if not xml:
+            continue
+        for item in re.findall(r"<item>(.*?)</item>", xml, re.S)[:50]:
+            g = lambda tag: unescape(re.sub(r"^<!\[CDATA\[|\]\]>$", "", (re.search(rf"<{tag}>(.*?)</{tag}>", item, re.S) or [None, ""])[1].strip()))
+            title, link = norm(g("title")), g("link").strip()
+            if not link or link in done or not PLAYER_NEWS_TITLE.search(title) or re.search(r"[かか]？?$|見通し|濃厚|へ$", title):
+                continue
+            done.add(link)
+            if seen.get(link):
+                continue
+            html = fetch(link)
+            seen[link] = today
+            if not html:
+                continue
+            soup = BeautifulSoup(html, "html.parser")
+            for tag in soup(["script", "style", "noscript", "header", "footer", "nav", "aside", "form"]):
+                tag.decompose()
+            text = norm(soup.get_text("\n"))
+            e = OFF_END.search(text, 200)
+            if e:
+                text = text[:e.start()]
+            if not STAFF_NEWS_ANNOUNCE.search(title + text[:1500]) or re.search(r"見通し|濃厚|とみられる", title):
+                continue
+            m = OFF_DATE.search(text[:600])
+            d = f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}" if m else today
+            if d < f"{season}-09-01":
+                continue
+            for sent in re.split(r"[。\n]", text[:4000]):
+                flat = re.sub(r"\s+", "", sent)
+                if not PLAYER_CUT_RE.search(flat):
+                    continue
+                # この記事の球団：見出し（なければ最初の文）に出てくる球団名。球団が分からない記事・2球団以上の記事は使わない
+                head_teams = {t for nm, t in TEAMS if nm in title} or {t for nm, t in TEAMS if nm in text[:300]}
+                if len(head_teams) != 1:
+                    break
+                for k, cands in names.items():
+                    if len(k) < 2 or k not in flat or len(cands) != 1:
+                        continue
+                    t, r = cands[0]
+                    if t not in head_teams:
+                        continue   # 記事の球団と違う球団の選手（「昨年○○を戦力外になった」など）は入れない
+                    i = flat.find(k)
+                    kind = "offer" if re.search(r"育成(?:選手)?(?:として|での)?(?:再)?契約を(?:打診|結ぶ|予定)|育成契約を打診|育成で再契約", flat[i:]) else "cut"
+                    out.append({"t": t, "n": r["n"], "no": r.get("no", ""), "dev": bool(r.get("dev")), "kind": kind, "date": d, "url": link, "title": title[:80], "src": "news"})
+    # 同じ選手は1回だけ
+    uniq = {}
+    for x in out:
+        uniq.setdefault((x["t"], squash(x["n"])), x)
+    return list(uniq.values())
+
+
 def staff_news(staff, managers, season, seen, today):
     """ニュースの新着（RSS）から、首脳陣の退団・退任の球団発表を拾う → [{t, n, kind: coach_out|mgr, role, date, url, title}]"""
     from html import unescape
@@ -1169,6 +1242,12 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
     # 球団のサイトのニュース一覧から拾えなかった発表を補う網。経歴（「〜でコーチを経て」など）を読み違えないよう、拾うのは退団・退任だけ
     try:
         got_news = staff_news(staff, managers, season, seen, today)
+        got_players = player_news(rosters, season, seen, today)
+        for it in got_players:
+            if not any(k[0] == it["t"] and squash(k[1]) == squash(it["n"]) for k in items):
+                items[(it["t"], it["n"])] = it
+        if got_players:
+            print(f"[戦力外（ニュース）] {len(got_players)}人")
         for it in got_news:
             old_it = items.get((it["t"], it["n"]))
             if not old_it or (old_it.get("kind") not in ("coach_out", "mgr") and it["date"] >= old_it.get("date", "")):
@@ -1791,6 +1870,7 @@ REC_KINDS = [("lt", "通算"), ("ac", "現役"), ("ss", "シーズン")]
 REC_ROWS = 50          # 1つの記録で残す順位（ページの上から）
 REC_EVERY = 20 * 3600  # これより新しければ取りに行かない
 REC_BUDGET = 150       # 1回の更新で記録に使う秒数の上限（超えたら残りは次の回に）
+REC_PARSER = 2         # ページの読み方の版（2：投手のページの見出し「投手」も読む）
 
 
 def parse_record_page(html):
@@ -1806,7 +1886,8 @@ def parse_record_page(html):
         if len(trs) < 2:
             continue
         head = [norm(c.get_text(" ", strip=True)) for c in trs[0].find_all(["th", "td"])]
-        if not head or head[0] != "順位" or not any("選手" in h for h in head):
+        # 見出しは「順位｜選手」（打撃）か「順位｜投手」（投手）。投手のページを読めていなかった（10/5 直し）
+        if not head or head[0] != "順位" or not any(re.search(r"選手|投手|打者", h) for h in head):
             continue
         rows = []
         for tr in trs[1:]:
@@ -1868,6 +1949,8 @@ def update_records(force=False):
     lists = dict(prev.get("lists") or {})
     done = dict(prev.get("done") or {})
     tried = dict(prev.get("tried") or {})   # 取りに行った時刻（ないページ：たとえば通算の出塁率 も、1日1回だけ試す）
+    if prev.get("pv") != REC_PARSER:
+        tried = {}   # 読み方を直したら、読めなかったページをすぐ取り直す
     now = time.time()
     start, got, fail = time.time(), 0, 0
     for kind, _ in REC_KINDS:
@@ -1888,7 +1971,7 @@ def update_records(force=False):
     out = {"src": "https://npb.jp/bis/history/", "at": datetime.now(JST).isoformat(timespec="seconds"), "at_ts": now,
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],
-           "lists": lists, "done": done, "tried": tried}
+           "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER}
     if got or fail or not os.path.exists(RECORDS_OUT):
         with open(RECORDS_OUT, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))

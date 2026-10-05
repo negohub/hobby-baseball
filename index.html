@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005090257">
+<meta name="build" content="20261005101427">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2074,6 +2074,14 @@ html.theme-pawa{background:#CDEBFF}
 .venbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
 .venbar .catsel{width:100%}
 #venSide{margin-bottom:8px}
+/* 並べる項目のタブ：横にすべらせて選ぶ（成績タブの項目と同じボタン） */
+.venkey{display:flex !important;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin:0 0 8px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:100% !important;max-width:100% !important;min-width:0;box-sizing:border-box}   /* 画面の幅の中で横にすべらせる（ページ全体をはみ出させない） */
+.venkey::-webkit-scrollbar{display:none}
+.venkey button{flex:0 0 auto;white-space:nowrap}
+.ventab .ventm{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-style:normal;font-size:9.5px;font-weight:900;background:var(--tc);color:var(--ti) !important;margin:0 4px 0 0;vertical-align:middle;flex:none}
+.ventab td.vn{white-space:nowrap}
+.ventab .venc{display:flex;align-items:center;min-width:0}
+.ventab .venc .recnmw{flex:1;min-width:0}
 .ventab th,.ventab td{font-size:12.5px !important;padding:7px 3px !important;text-align:right}
 .ventab thead th{font-size:10.5px !important;padding:6px 2px !important}
 .ventab th.vn,.ventab td.vn{text-align:left}
@@ -3857,9 +3865,10 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <label class="catsel"><select id="venPlace" aria-label="球場"></select></label>
     </div>
     <div class="seg" id="venSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
+    <div class="seg venkey" id="venKey" role="tablist" aria-label="並べる項目"></div>
     <p class="recnote" id="venNote"></p>
     <div class="ywrap"><table class="ytab ventab" id="venTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。「すべて」を選ぶと、今見ているリーグの球団の選手が一緒に並びます。</li><li>項目のタブで並べ方を選べます。打率・OPSはその球場での試合数×3.1以上の打席、防御率はその球場での試合数以上の投球回の選手だけを順位にします（規定打席・規定投球回と同じ考え方）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
   </section>
   <p class="note" id="note"></p>
 </main>
@@ -8051,48 +8060,77 @@ async function loadVen(force) {
 }
 // 打率・OPS：小数第4位を四捨五入（2進数の誤差で .2995 が .299 にならないよう、整数で丸める）
 const rate3 = (n, d) => { if (!d) return "-"; const v = Math.round(n / d * 1000 + 1e-9) / 1000; return v >= 1 ? v.toFixed(3) : v.toFixed(3).replace(/^0/, ""); };
+// 並べる項目（タブで選ぶ）：打者・投手それぞれ。率（打率・OPS・防御率）は、その球場での試合数に応じた「規定」以上の選手だけを順位にする
+const VEN_KEYS = {
+  b: [["avg", "打率"], ["ops", "OPS"], ["hr", "本塁打"], ["rbi", "打点"], ["h", "安打"], ["ab", "打数"]],
+  p: [["era", "防御率"], ["w", "勝"], ["sv", "S"], ["hd", "H"], ["ip", "投球回"], ["g", "登板"]],
+};
 function renderVen() {
   venRestore();
   const side = S.venSide || "b";
   document.querySelectorAll("#venSide button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === side)));
   const tbl = $("venTbl"), selT = $("venTeam"), selV = $("venPlace");
-  // 球団：今見ているリーグの6球団（はじめは自分の担当の球団）
-  const t = CL.includes(S.venTeam) ? S.venTeam : (ME() && CL.includes(ME()) ? ME() : CL[0]);
-  selT.innerHTML = CL.map(x => `<option value="${x}"${x === t ? " selected" : ""}>${esc(fn(x))}</option>`).join("");
+  // 球団：「すべて」（今見ているリーグの6球団）か、その中の1球団（はじめは自分の担当の球団）
+  const t = S.venTeam === "all" || CL.includes(S.venTeam) ? S.venTeam : (ME() && CL.includes(ME()) ? ME() : CL[0]);
+  selT.innerHTML = `<option value="all"${t === "all" ? " selected" : ""}>すべて（${isPL() ? "パ" : "セ"}・リーグ）</option>` + CL.map(x => `<option value="${x}"${x === t ? " selected" : ""}>${esc(fn(x))}</option>`).join("");
+  const keys = VEN_KEYS[side], key = keys.some(([k]) => k === S.venKey) ? S.venKey : keys[0][0];
+  $("venKey").innerHTML = keys.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${k === key}">${l}</button>`).join("");
   if (!VEN) {
     tbl.innerHTML = `<tbody><tr><td class="recmsg">${venBusy || !venAt ? "読み込み中…" : "球場別成績を読み込めませんでした。通信のよい所で開き直してください"}</td></tr></tbody>`;
     selV.innerHTML = ""; $("venNote").textContent = ""; $("venAsof").textContent = "";
     if (!venBusy) loadVen();
     return;
   }
-  const vs = Object.entries((VEN.teams || {})[t] || {}).sort((a, b) => b[1].games - a[1].games);
+  const teams = t === "all" ? CL.slice() : [t];
+  // 球場ごとの試合数：1球団ならその球団の試合数。すべてなら、その球場であったこのリーグの球団の試合（終わった公式戦）を1試合ずつ数える
+  const vg = {};
+  for (const x of teams) for (const [v, d] of Object.entries((VEN.teams || {})[x] || {})) vg[v] = (vg[v] || 0) + d.games;
+  if (t === "all") {
+    const yr = String(VEN.season || jst().y);
+    for (const v in vg) vg[v] = DATA.games.filter(g => g.st === "final" && g.v === v && g.d.slice(0, 4) === yr && (CL.includes(g.h) || CL.includes(g.a))).length || vg[v];
+  }
+  const vs = Object.entries(vg).sort((a, b) => b[1] - a[1]);
   const v = vs.some(([k]) => k === S.venPlace) ? S.venPlace : (vs[0] || [])[0];
-  selV.innerHTML = vs.map(([k, x]) => `<option value="${esc(k)}"${k === v ? " selected" : ""}>${esc(k)}（${x.games}試合）</option>`).join("");
+  selV.innerHTML = vs.map(([k, g]) => `<option value="${esc(k)}"${k === v ? " selected" : ""}>${esc(k)}（${g}試合）</option>`).join("");
   const at = String(VEN.at || "").match(/^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   $("venAsof").textContent = at ? `${+at[1]}/${+at[2]} ${at[3]}:${at[4]} 更新` : "";
-  $("venNote").textContent = VEN.have < VEN.total ? `今季の${VEN.total}試合のうち、${VEN.have}試合分を集計しています（自動更新で順に足していきます）` : "";
-  const x = v && VEN.teams[t][v];
-  if (!x) { tbl.innerHTML = `<tbody><tr><td class="recmsg">この球団の試合はまだありません</td></tr></tbody>`; return; }
-  const nameCell = (n, p) => `<td class="vn">${isPawa() ? `<div class="recnmw">${pwName(t, n, p)}</div>` : `<span class="recnm">${esc(n)}</span>`}</td>`;
+  const parts = teams.map(x => [x, ((VEN.teams || {})[x] || {})[v]]).filter(([, d]) => d);
+  if (!v || !parts.length) { tbl.innerHTML = `<tbody><tr><td class="recmsg">この球団の試合はまだありません</td></tr></tbody>`; $("venNote").textContent = ""; return; }
+  const isRate = ["avg", "ops", "era"].includes(key);
+  const note = [];
+  if (VEN.have < VEN.total) note.push(`今季の${VEN.total}試合のうち、${VEN.have}試合分を集計しています（自動更新で順に足していきます）`);
+  if (isRate) note.push(side === "b" ? "打率・OPSは、打席がその球場での試合数×3.1以上の選手の順位です" : "防御率は、投球回がその球場での試合数以上の投手の順位です");
+  $("venNote").textContent = note.join("　");
+  const all = t === "all";
+  const nameCell = (x, n, p) => `<td class="vn"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? `<div class="recnmw">${pwName(x, n, p)}</div>` : `<span class="recnm">${esc(n)}</span>`}</div></td>`;
+  const hi = k => (k === key ? " rv" : "");
   if (side === "b") {
     // 試合, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打
-    const rows = x.bat.filter(r => r[2] > 0 || r[6] + r[7] > 0).sort((a, b) => (b[2] + b[6] + b[7] + b[8]) - (a[2] + a[6] + a[7] + a[8]) || b[4] - a[4]);
-    const body = rows.map(([n, g, ab, h, hr, rbi, bb, hbp, sf, tb]) => {
-      const obpD = ab + bb + hbp + sf, ops = obpD && ab ? (h + bb + hbp) / obpD + tb / ab : null;   // 打数0の選手は長打率が出ないので OPS も「-」
-      return `<tr>${nameCell(n)}<td>${g}</td><td>${ab}</td><td>${h}</td><td>${hr}</td><td>${rbi}</td><td class="rv">${rate3(h, ab)}</td><td class="rv">${ops == null ? "-" : rate3(ops, 1)}</td></tr>`;
-    }).join("");
-    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>試合</th><th>打数</th><th>安打</th><th>本塁打</th><th>打点</th><th>打率</th><th>OPS</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">打席に立った選手がいません</td></tr>`}</tbody>`;
+    let rows = [];
+    for (const [x, d] of parts) for (const [n, g, ab, h, hr, rbi, bb, hbp, sf, tb] of d.bat) {
+      if (!(ab > 0 || bb + hbp > 0)) continue;
+      const pa = ab + bb + hbp + sf, obpD = ab + bb + hbp + sf;
+      rows.push({ x, n, g, ab, h, hr, rbi, pa, tg: d.games, avg: ab ? h / ab : null, ops: obpD && ab ? (h + bb + hbp) / obpD + tb / ab : null });
+    }
+    if (isRate) rows = rows.filter(r => r[key] != null && r.pa >= r.tg * 3.1);
+    rows.sort((a, b) => (b[key] ?? -1) - (a[key] ?? -1) || b.pa - a.pa);
+    const body = rows.slice(0, 100).map(r => `<tr>${nameCell(r.x, r.n)}<td>${r.g}</td><td class="${hi("ab")}">${r.ab}</td><td class="${hi("h")}">${r.h}</td><td class="${hi("hr")}">${r.hr}</td><td class="${hi("rbi")}">${r.rbi}</td><td class="${hi("avg")}">${rate3(r.h, r.ab)}</td><td class="${hi("ops")}">${r.ops == null ? "-" : rate3(r.ops, 1)}</td></tr>`).join("");
+    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>試合</th><th class="${hi("ab")}">打数</th><th class="${hi("h")}">安打</th><th class="${hi("hr")}">本塁打</th><th class="${hi("rbi")}">打点</th><th class="${hi("avg")}">打率</th><th class="${hi("ops")}">OPS</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">${isRate ? "規定に届いた選手がいません" : "打席に立った選手がいません"}</td></tr>`}</tbody>`;
   } else {
     // 登板, アウト, 自責点, 勝, 敗, S, H, 奪三振, 被安打, 与四死球
-    const rows = x.pit.slice().sort((a, b) => b[2] - a[2] || b[1] - a[1]);
+    let rows = [];
+    for (const [x, d] of parts) for (const [n, g, outs, er, w, l, sv, hd] of d.pit) rows.push({ x, n, g, outs, er, w, l, sv, hd, ip: outs, tg: d.games, era: outs ? er * 27 / outs : null });
+    if (isRate) rows = rows.filter(r => r.era != null && r.outs >= r.tg * 3);
+    rows.sort((a, b) => key === "era" ? a.era - b.era || b.outs - a.outs : (b[key] - a[key]) || b.outs - a.outs);
     const ip = o => `${Math.floor(o / 3)}${o % 3 ? "." + (o % 3) : ""}`;
-    const body = rows.map(([n, g, outs, er, w, l, sv, hd]) => `<tr>${nameCell(n, "投手")}<td>${g}</td><td>${ip(outs)}</td><td>${w}</td><td>${l}</td><td>${sv}</td><td>${hd}</td><td class="rv">${outs ? (Math.round(er * 2700 / outs + 1e-9) / 100).toFixed(2) : "-"}</td></tr>`).join("");
-    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>登板</th><th>投球回</th><th>勝</th><th>敗</th><th>S</th><th>H</th><th>防御率</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">投げた投手がいません</td></tr>`}</tbody>`;
+    const body = rows.slice(0, 100).map(r => `<tr>${nameCell(r.x, r.n, "投手")}<td class="${hi("g")}">${r.g}</td><td class="${hi("ip")}">${ip(r.outs)}</td><td class="${hi("w")}">${r.w}</td><td>${r.l}</td><td class="${hi("sv")}">${r.sv}</td><td class="${hi("hd")}">${r.hd}</td><td class="${hi("era")}">${r.outs ? (Math.round(r.er * 2700 / r.outs + 1e-9) / 100).toFixed(2) : "-"}</td></tr>`).join("");
+    tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th class="${hi("g")}">登板</th><th class="${hi("ip")}">投球回</th><th class="${hi("w")}">勝</th><th>敗</th><th class="${hi("sv")}">S</th><th class="${hi("hd")}">H</th><th class="${hi("era")}">防御率</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">${isRate ? "規定に届いた投手がいません" : "投げた投手がいません"}</td></tr>`}</tbody>`;
   }
 }
 document.getElementById("venTeam").addEventListener("change", e => { S.venTeam = e.target.value; S.venPlace = null; renderVen(); });
 document.getElementById("venPlace").addEventListener("change", e => { S.venPlace = e.target.value; renderVen(); });
-document.getElementById("venSide").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.venSide = b.dataset.k; renderVen(); });
+document.getElementById("venSide").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.venSide = b.dataset.k; S.venKey = null; renderVen(); });
+document.getElementById("venKey").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (!b) return; S.venKey = b.dataset.k; renderVen(); });
 
 // 開く前に、ほかのタブの中身（予告先発・放送とスタメン・試合の詳細・入退団の最新）を裏で取っておく。タブを押した瞬間に全部そろった画面を出すため
 function prefetchTabs() {

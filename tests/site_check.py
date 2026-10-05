@@ -2530,7 +2530,7 @@ async def tab_group_check(browser):
           click('game'); if (S.tab !== 'game' || sub() !== '今日*,日程') ng.push(`試合：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="cal"]').click(); if (S.tab !== 'cal' || sub() !== '今日,日程*') ng.push(`日程に切り替わらない（${S.tab} ${sub()}）`);
           if (document.querySelector('.tabbar button[aria-selected="true"]').dataset.grp !== 'game') ng.push('日程のときに「試合」のタブが選ばれていない');
-          click('data'); if (S.tab !== 'stats' || sub() !== '今季*,歴代,球場別') ng.push(`データ：${S.tab} ${sub()}`);
+          click('data'); if (S.tab !== 'stats' || sub() !== '今季*,球場別,歴代') ng.push(`データ：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="rec"]').click(); if (S.tab !== 'rec') ng.push('歴代に切り替わらない');
           click('std'); if (S.tab !== 'std' || !document.getElementById('subNav').hidden) ng.push('順位で上の切り替えが出ている');
           click('game'); if (S.tab !== 'cal') ng.push(`試合を押すと最後に開いていた日程に戻らない（${S.tab}）`);
@@ -2538,7 +2538,7 @@ async def tab_group_check(browser):
           window.scrollTo(0, 400); click('data'); await new Promise(r => setTimeout(r, 700));
           if (S.tab !== 'rec' || scrollY > 5) ng.push(`今のタブをもう一度押してもいちばん上に戻らない（${S.tab} ${scrollY}）`);
           if (JSON.parse(localStorage.getItem('sub-v1') || '{}').game !== 'cal') ng.push('最後に開いていたページを端末に覚えていない');
-          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stats,rec,ven,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
+          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stats,ven,rec,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
           // 季節で下のタブの数が変わらない
           const cols = () => getComputedStyle(document.querySelector('.tabbar nav')).gridTemplateColumns.split(' ').length;
           if (cols() !== 5) ng.push(`下のタブが5列でない（${cols()}）`);

@@ -70,7 +70,7 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
   "kinds": [{"k": "lt", "n": "通算"}, {"k": "ac", "n": "現役"}, {"k": "ss", "n": "シーズン"}],
   "bat": [{"k": "hr", "n": "本塁打"}, {"k": "avg", "n": "打率"}, {"k": "sb", "n": "盗塁"}], "pit": [{"k": "w", "n": "勝利"}, {"k": "so", "n": "奪三振"}],
   "lists": {
-    "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1]},
+    "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1], "team": [["巨人"], ["南海", "ロッテ", "西武"], ["西武"]]},
     "ltb_avg": {"cols": ["順位", "選手", "打率", "実働期間", "打数", "安打"], "rows": [["1", "リー", ".320", "(1977-1987)", "4934", "1579"]], "asof": "2026年10月1日(木)", "note": "4000打数以上"},
     "ltp_w": {"cols": ["順位", "選手", "勝利", "実働期間", "登板"], "rows": [["1", "金田 正一", "400", "(1950-1969)", "944"]], "asof": "2026年10月1日(木)", "note": ""},
     "acb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間"], "rows": [["1", "中村 剛也", "482", "(2003-2026)"]], "asof": "2026年10月1日(木)", "note": ""},
@@ -1197,6 +1197,23 @@ async def offseason_check(browser):
             bad(f"[球場別成績の集計] 読んだ試合をもう一度読んでいる：{n_calls}")
     finally:
         ud.fetch, ud.BOX_OUT, ud.VEN_OUT = keep_f, keep_bo, keep_vo
+    # プロ野球在籍者名簿：在籍の書き方（「77,78クラウン」「20開幕～途」「（コ）（監）は数えない」）と、名前・別名・実働期間での照らし合わせ
+    for h, want in [("69～72西鉄・73～76太平洋・77,78クラウン・79～88西武,95～01西武（監）", [("西鉄", 4), ("太平洋", 4), ("クラウン", 2), ("西武", 10)]),
+                    ("98～13中日,14,15巨人,16～18巨人（コ）", [("中日", 16), ("巨人", 2)]), ("20開幕～途ヤクルト", [("ヤクルト", 1)]), ("36秋～39東京セネタース・40翼", [("東京セネタース", 4), ("翼", 1)])]:
+        got_h = [(t, len(y)) for t, y in ud.parse_reg_history(h)]
+        if got_h != want:
+            bad(f"[在籍者名簿の読み取り] 「{h}」→ {got_h}（{want} のはず）")
+    rp_, ra_ = ud.parse_register_page('<table><tr><td>Ｒ．オスナ （ROBERTO OSUNA）</td><td>4</td><td>22途～閉幕ロッテ,23～25ソフトバンク</td></tr><tr><td>イチロー （→ 鈴木 一朗）</td></tr>'
+                                      '<tr><td>鈴木 一朗</td><td>9</td><td>92～00オリックス</td></tr><tr><td>落合 博満</td><td>20</td><td>79～86ロッテ,87～93中日,94～96巨人,97,98日本ハム</td></tr>'
+                                      '<tr><td>田中 一郎</td><td>3</td><td>55～57国鉄</td></tr><tr><td>田中 一郎</td><td>5</td><td>01～05阪神</td></tr></table>'
+                                      '<table><tr><td>Ｆ．アグリー （FRANCIS AGCAOILI）</td><td>8</td><td>62～64大洋,65,66西鉄,67,68大洋,69阪急［改名］～64,67～68アグウィリー,65,69アグリー,66アギー</td></tr></table>')
+    regt = {"people": rp_, "alias": ra_}
+    for n, per, want in [("イチロー", "(1992-2000)", ["オリックス"]), ("オスナ", "(2022-2025)", ["ソフトバンク", "ロッテ"]), ("落合 博満", "(1979-1998)", ["ロッテ", "中日", "巨人", "日本ハム"]),
+                         ("田中 一郎", "(2001-2005)", ["阪神"]), ("田中 一郎", "(1955-1957)", ["国鉄"]), ("知らない 人", "(1990-1999)", None),
+                         ("アグリー", "(1962-1969)", ["大洋", "西鉄", "阪急"])]:
+        got_t = ud.record_teams(n, per, regt)
+        if got_t != want:
+            bad(f"[在籍者名簿の照らし合わせ] {n} {per} → {got_t}（{want} のはず）")
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
@@ -2501,6 +2518,10 @@ async def rec_check(browser):
             if ([...document.querySelectorAll('#recTbl td.rt')].some(td => !td.textContent.trim())) ng.push(`${k}${sd}_${c.k}：所属が空の行がある`);
           }
           S.recKind = 'lt'; S.recSide = 'b'; S.recKey = 'hr'; renderRec();
+          // 引退した選手の所属：在籍者名簿でいちばん長くいた球団（名簿の結果 team の1つ目）
+          { const tr = n => [...document.querySelectorAll('#recTbl tbody tr')].find(x => x.textContent.includes(n));
+            if ((tr('野村 克也')?.querySelector('td.rt')?.textContent || '') !== '南海') ng.push(`野村の所属が名簿のいちばん長くいた球団（南海）になっていない（${tr('野村 克也')?.querySelector('td.rt')?.textContent}）`);
+            if ((tr('王 貞治')?.querySelector('td.rt')?.textContent || '') !== '巨人') ng.push('王の所属が巨人になっていない'); }
           if (!/巨人/.test([...document.querySelectorAll('#recTbl tbody tr')].find(tr => /王 貞治/.test(tr.textContent))?.querySelector('td.rt')?.textContent || '')) { /* 試しのデータに王のシーズン記録がないときは「—」でよい */ }
           // 読み込めないとき
           const keep = REC; REC = null; recAt = Date.now(); recBusy = false; localStorage.removeItem('rec-v1'); CONFIG.recUrl = 'https://live.example/none.json'; renderRec();

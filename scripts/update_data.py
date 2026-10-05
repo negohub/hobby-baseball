@@ -2053,7 +2053,7 @@ def update_register(force=False):
         prev["diag"] = diag
         return prev
     out = {"at_ts": time.time(), "people": people, "alias": alias, "renames": renames, "diag": diag, "pv": REG_PARSER,
-           "pos": (prev or {}).get("pos") or {}}   # 選手の守備位置（選手のページから）は取り直さずに引き継ぐ
+           "pos": (prev or {}).get("pos") or {}, "role": (prev or {}).get("role") or {}}   # 守備位置・先発／中継ぎは取り直さずに引き継ぐ
     with open(REG_OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[在籍者名簿] {got}ページ・{len(people)}人")
@@ -2127,6 +2127,92 @@ def record_teams(name, period, reg):
     return r[0] if r else None
 
 
+def parse_player_role(html):
+    """NPBの選手のページの投手成績の「通算」の行：1登板あたりの投球回が3回以上なら先発、それより少なければ中継ぎ"""
+    soup = BeautifulSoup(html, "html.parser")
+    for tb in soup.find_all("table"):
+        trs = tb.find_all("tr")
+        if not trs:
+            continue
+        head = [norm(c.get_text("", strip=True)).replace(" ", "") for c in trs[0].find_all(["th", "td"])]
+        if "登板" not in head or "投球回" not in head:
+            continue
+        for tr in trs[1:]:
+            cells = [norm(c.get_text("", strip=True)).replace(" ", "") for c in tr.find_all(["th", "td"])]
+            if not any(c == "通算" for c in cells[:3]):
+                continue
+            off = len(cells) - len(head)   # 投球回が「整数｜端数」の2マスに分かれていても、前の列の位置は同じ
+            try:
+                g = int(cells[head.index("登板")])
+                ip = int(re.sub(r"\D", "", cells[head.index("投球回")]) or 0)
+            except (ValueError, IndexError):
+                return ""
+            if g <= 0:
+                return ""
+            return "先発" if ip / g >= 3.0 else "中継ぎ"
+    return ""
+
+
+WIKI_API = "https://ja.wikipedia.org/w/api.php"
+WIKI_UA = {"User-Agent": "hobby-baseball/1.0 (https://negohub.github.io/hobby-baseball/; personal use)"}
+WIKI_POS = re.compile(r"(投手|捕手|一塁手|二塁手|三塁手|遊撃手|内野手|外野手)")
+# 名簿の球団名（当時の短い名前）→ 記事に書かれる球団の名前（本人かどうかを確かめるため）
+WIKI_TEAM = {"巨人": ["ジャイアンツ", "読売"], "阪神": ["タイガース"], "中日": ["ドラゴンズ"], "広島": ["カープ"], "ヤクルト": ["スワローズ"],
+             "国鉄": ["スワローズ"], "サンケイ": ["スワローズ", "アトムズ"], "大洋": ["ホエールズ"], "横浜": ["ベイスターズ"], "DeNA": ["ベイスターズ"],
+             "南海": ["ホークス"], "ダイエー": ["ホークス"], "ソフトバンク": ["ホークス"], "西鉄": ["ライオンズ"], "太平洋": ["ライオンズ"],
+             "クラウン": ["ライオンズ"], "西武": ["ライオンズ"], "阪急": ["ブレーブス"], "オリックス": ["ブルーウェーブ", "バファローズ"],
+             "近鉄": ["バファローズ", "バッファローズ", "パールス"], "東映": ["フライヤーズ"], "日拓": ["フライヤーズ"], "日本ハム": ["ファイターズ"],
+             "毎日": ["オリオンズ"], "大毎": ["オリオンズ"], "東京": ["オリオンズ"], "ロッテ": ["オリオンズ", "マリーンズ"], "楽天": ["イーグルス"],
+             "松竹": ["ロビンス"], "大映": ["スターズ"], "高橋": ["ユニオンズ"]}
+
+
+def wiki_get(params):
+    try:
+        r = requests.get(WIKI_API, params={**params, "format": "json", "formatversion": "2"}, headers=WIKI_UA, timeout=20)
+        return r.json() if r.status_code == 200 else {}
+    except (requests.RequestException, ValueError):
+        return {}
+
+
+def wiki_pos_of(text, teams):
+    """ウィキペディアの記事（野球選手の情報欄）の「ポジション」の最初の守備位置。記事の中にその選手の球団名がなければ別人とみなす"""
+    if not text or "曖昧さ回避" in text[:3000]:
+        return ""
+    if teams and not any(any(a in text for a in [t] + WIKI_TEAM.get(t, [])) for t in teams[:3] if t):
+        return ""
+    m = re.search(r"\|\s*ポジション\s*=\s*([^\n]+)", text)
+    if not m:
+        return ""
+    p = WIKI_POS.search(m.group(1))
+    if not p:
+        return ""
+    return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
+
+
+def wiki_position(name, teams):
+    """引退した選手の守備位置（NPBの選手のページに載っていない）：ウィキペディアの記事から。名前（・(野球)）→ 見つからなければ検索"""
+    nm = re.sub(r"\s+", "", norm(name))
+    def contents(titles):
+        d = wiki_get({"action": "query", "prop": "revisions", "rvprop": "content", "rvslots": "main", "redirects": 1, "titles": "|".join(titles)})
+        out = []
+        for pg in (d.get("query") or {}).get("pages") or []:
+            rv = (pg.get("revisions") or [{}])[0]
+            out.append(((rv.get("slots") or {}).get("main") or {}).get("content") or rv.get("content") or "")
+        return out
+    for txt in contents([nm, f"{nm} (野球)"]):
+        pos = wiki_pos_of(txt, teams)
+        if pos:
+            return pos
+    d = wiki_get({"action": "query", "list": "search", "srsearch": f"{nm} {teams[0] if teams else ''} プロ野球選手", "srlimit": 3})
+    titles = [x.get("title") for x in (d.get("query") or {}).get("search") or [] if x.get("title")]
+    if titles:
+        for txt in contents(titles):
+            pos = wiki_pos_of(txt, teams)
+            if pos:
+                return pos
+    return ""
+
+
 def parse_player_pos(html):
     """NPBの選手のページ：「ポジション 内野手」→ 内野手（投手・捕手・内野手・外野手）"""
     text = norm(BeautifulSoup(html, "html.parser").get_text(" "))
@@ -2172,6 +2258,7 @@ def update_records(force=False):
         reg = None
     teamed, posc, pos_start, reg_dirty = 0, 0, time.time(), False
     poscache = dict((reg or {}).get("pos") or {})
+    rolecache = dict((reg or {}).get("role") or {})
     for k, L in lists.items():
         ni = next((i for i, c in enumerate(L["cols"]) if re.search(r"選手|投手|打者", c)), -1)
         pi = next((i for i, c in enumerate(L["cols"]) if re.search(r"実働|期間|年度", c)), -1)
@@ -2185,22 +2272,41 @@ def update_records(force=False):
                 L["team"] = new_team
                 got = got or 1   # 所属が変わったときだけ書き出す（毎回書き出すと、毎回コミットされてしまう）
         if k[2] != "b":
-            continue   # 投手の記録は全員投手（色はピンク）なので、守備位置を調べなくてよい
-        # 打撃の記録：選手のページから守備位置（投手・捕手・内野手・外野手）。読んだ選手は覚えておく（1回あたり POS_BUDGET 秒まで）
+            # 投手の記録：選手のページの通算（登板・投球回）から先発・中継ぎ（読んだ投手は覚えておく）
+            new_role = []
+            for p_ in persons:
+                pid = p_[1] if p_ else ""
+                if pid and pid not in rolecache and time.time() - pos_start < POS_BUDGET:
+                    html = rec_fetch(f"https://npb.jp/bis/players/{pid}.html")
+                    rolecache[pid] = parse_player_role(html) if html else ""
+                    reg_dirty = True
+                new_role.append(rolecache.get(pid, "") if pid else "")
+            if new_role != L.get("role"):
+                L["role"] = new_role
+                got = got or 1
+            continue
+        # 打撃の記録：選手のページの守備位置（現役の選手は載っている）。引退した選手は載っていないので、ウィキペディアの記事から。
+        # 読んだ選手は覚えておく（"-"＝調べたが分からなかった）。1回あたり POS_BUDGET 秒まで
         new_pos = []
         for p_ in persons:
-            pid = p_[1] if p_ else ""
+            pid, tms = (p_[1], p_[0]) if p_ else ("", [])
             if pid and pid not in poscache and time.time() - pos_start < POS_BUDGET:
                 html = rec_fetch(f"https://npb.jp/bis/players/{pid}.html")
                 poscache[pid] = parse_player_pos(html) if html else ""
                 reg_dirty = True
-            new_pos.append(poscache.get(pid, "") if pid else "")
+            if pid and poscache.get(pid) == "" and time.time() - pos_start < POS_BUDGET:
+                nm0 = L["rows"][len(new_pos)][ni]
+                poscache[pid] = wiki_position(nm0, tms) or "-"
+                reg_dirty = True
+            v_ = poscache.get(pid, "") if pid else ""
+            new_pos.append(v_ if v_ not in ("-",) else "")
         posc += sum(1 for x in new_pos if x)
         if new_pos != L.get("pos"):
             L["pos"] = new_pos
             got = got or 1
     if reg_dirty and reg:
         reg["pos"] = poscache
+        reg["role"] = rolecache
         try:
             with open(REG_OUT, "w", encoding="utf-8") as f:
                 json.dump({k2: v2 for k2, v2 in reg.items() if k2 != "_idx"}, f, ensure_ascii=False, separators=(",", ":"))

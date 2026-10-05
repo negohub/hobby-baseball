@@ -1924,14 +1924,21 @@ def parse_record_page(html):
 
 def rec_fetch(url):
     """歴代記録の1ページ：ないページ（404）で何度も待たないよう、試すのは2回まで・待ちは短く"""
-    for i in range(2):
+    denied = False
+    for i in range(3):
         try:
-            r = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0 (hobby-baseball)"})
+            # 断られた（403など）ときは、ふつうのブラウザと同じ名乗りでもう一度（在籍者名簿のページなど）
+            r = requests.get(url, timeout=20, headers=BROWSER_UA if denied else {"User-Agent": "Mozilla/5.0 (hobby-baseball)"})
             if r.status_code == 404:
                 return None
+            if r.status_code in (401, 403, 406, 429):
+                denied = True
             if r.status_code == 200:
-                r.encoding = r.apparent_encoding if not r.encoding or r.encoding.lower() == "iso-8859-1" else r.encoding
-                return r.text
+                try:
+                    return r.content.decode("utf-8")
+                except UnicodeDecodeError:
+                    r.encoding = r.apparent_encoding or "utf-8"
+                    return r.text
         except requests.RequestException:
             pass
         time.sleep(1)
@@ -1940,10 +1947,11 @@ def rec_fetch(url):
 
 # ---------- プロ野球在籍者名簿（NPB）：通算記録の選手の所属球団を全員分入れるため ----------
 # 1行＝「名前｜在籍年数｜05～13西武,14～19ロッテ,…」。「イチロー （→ 鈴木 一朗）」のような別名の行もある。（コ）（監）は選手ではないので数えない
-REG_KANA = ["a", "i", "u", "e", "o", "ka", "ki", "ku", "ke", "ko", "sa", "shi", "su", "se", "so", "ta", "chi", "tsu", "te", "to",
-            "na", "ni", "nu", "ne", "no", "ha", "hi", "fu", "he", "ho", "ma", "mi", "mu", "me", "mo", "ya", "yu", "yo",
+# ページの名前は訓令式（index_si・index_ti …。10/5 に確かめた）。違ったときのためにヘボン式も試す
+REG_KANA = ["a", "i", "u", "e", "o", "ka", "ki", "ku", "ke", "ko", "sa", "si", "su", "se", "so", "ta", "ti", "tu", "te", "to",
+            "na", "ni", "nu", "ne", "no", "ha", "hi", "hu", "he", "ho", "ma", "mi", "mu", "me", "mo", "ya", "yu", "yo",
             "ra", "ri", "ru", "re", "ro", "wa"]
-REG_ALT = {"shi": "si", "chi": "ti", "tsu": "tu", "fu": "hu"}
+REG_ALT = {"si": "shi", "ti": "chi", "tu": "tsu", "hu": "fu"}
 REG_OUT = os.path.join(os.path.dirname(OUT), "register.json")
 REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
 
@@ -2006,22 +2014,32 @@ def update_register(force=False):
             prev = {}
     if not force and prev.get("at_ts") and time.time() - prev["at_ts"] < REG_EVERY and prev.get("people"):
         return prev
-    people, alias, got = {}, {}, 0
+    people, alias, got, empty, failed = {}, {}, 0, [], []
     for k in REG_KANA:
-        html = rec_fetch(f"https://npb.jp/history/register/index_{k}.html")
-        if not html and k in REG_ALT:
-            html = rec_fetch(f"https://npb.jp/history/register/index_{REG_ALT[k]}.html")
-        if not html:
+        p = a = None
+        for kk in [k] + ([REG_ALT[k]] if k in REG_ALT else []):
+            html = rec_fetch(f"https://npb.jp/history/register/index_{kk}.html")
+            if html:
+                p, a = parse_register_page(html)
+                if p:
+                    break
+        if p is None:
+            failed.append(k)
             continue
-        p, a = parse_register_page(html)
+        if not p:
+            empty.append(k)
+            continue
         for n, lst in p.items():
             people.setdefault(n, []).extend(lst)
         alias.update(a)
         got += 1
-    if got < len(REG_KANA) * 0.8:   # 半端にしか取れなかったときは前の名簿を使う
-        print(f"[在籍者名簿] {got}ページしか取れなかったので前の分を使います")
+    diag = {"got": got, "people": len(people), "failed": failed, "empty": empty}
+    print(f"[在籍者名簿] {diag}")
+    if got < len(REG_KANA) * 0.7 or len(people) < 3000:   # 半端にしか取れなかったときは前の名簿を使う
+        prev = dict(prev or {})
+        prev["diag"] = diag
         return prev
-    out = {"at_ts": time.time(), "people": people, "alias": alias}
+    out = {"at_ts": time.time(), "people": people, "alias": alias, "diag": diag}
     with open(REG_OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[在籍者名簿] {got}ページ・{len(people)}人")
@@ -2108,7 +2126,7 @@ def update_records(force=False):
             continue
         ni = next((i for i, c in enumerate(L["cols"]) if re.search(r"選手|投手|打者", c)), -1)
         pi = next((i for i, c in enumerate(L["cols"]) if re.search(r"実働|期間", c)), -1)
-        if ni < 0 or not reg:
+        if ni < 0 or not reg or not reg.get("people"):
             continue
         new_team = [record_teams(r[ni], r[pi] if pi >= 0 else "", reg) or [] for r in L["rows"]]
         teamed += sum(1 for x in new_team if x)
@@ -2120,8 +2138,9 @@ def update_records(force=False):
     out = {"src": "https://npb.jp/bis/history/", "at": datetime.now(JST).isoformat(timespec="seconds"), "at_ts": now,
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],
-           "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER}
-    if got or fail or not os.path.exists(RECORDS_OUT):
+           "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER,
+           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed}
+    if got or fail or not os.path.exists(RECORDS_OUT) or prev.get("reg") != out.get("reg"):
         with open(RECORDS_OUT, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[歴代記録] 取得 {got}ページ・取れず {fail}ページ（全{len(lists)}件）")

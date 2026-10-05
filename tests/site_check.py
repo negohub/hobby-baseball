@@ -2891,6 +2891,19 @@ async def ven_check(browser):
               document.querySelector('#venKey button[data-k="ab"]').click();
               const cut = [...document.querySelectorAll('#venTbl .ptile b')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > b.closest('.ptile').getBoundingClientRect().right + 1).map(b => b.textContent);
               if (cut.length) ng.push(`名前が札からはみ出す（${cut}）`);
+              // 名前の札は試合の打順の表の札とまったく同じ（幅・字の大きさ・2文字の字の間・真ん中そろえ）
+              if (isPawa()) {
+                const t0 = [...document.querySelectorAll('#venTbl .sptile')].find(t => t.textContent.trim() === callName('T', '近本 光司'));
+                const d = document.createElement('div'); d.innerHTML = '<table class="lutab"><tr><td class="ln"><div class="lnm"><span>' + pwName('T', '近本 光司') + '</span></div></td></tr></table>'; document.getElementById('v-ven').append(d);
+                const t1 = d.querySelector('.sptile');
+                const sig = t => { const b = t.querySelector('b'), cs = getComputedStyle(b), r = t.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(b); const q = rg.getBoundingClientRect();
+                  return { w: Math.round(r.width), fs: cs.fontSize, ls: cs.letterSpacing, off: Math.abs((q.left + q.right) / 2 - (r.left + r.right) / 2 - (parseFloat(cs.letterSpacing) || 0) / 2) }; };
+                if (!t0) ng.push('近本の札が見つからない');
+                else { const a = sig(t0), b = sig(t1);
+                  if (a.w !== b.w || a.fs !== b.fs || a.ls !== b.ls) ng.push(`名前の札が打順の表と違う（${JSON.stringify(a)} / ${JSON.stringify(b)}）`);
+                  if (a.off > 1.5) ng.push(`名前が札の真ん中にない（${a.off.toFixed(1)}px ずれ）`); }
+                d.remove();
+              }
               document.querySelector('#venKey button[data-k="avg"]').click();
               document.querySelector('#venSide button[data-k="p"]').click();
               if (hs() !== '選手|登板|投球回|勝|敗|S|H|防御率') ng.push(`投手の表の形が違う（${hs()}）`);

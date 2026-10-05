@@ -1111,6 +1111,24 @@ async def offseason_check(browser):
             bad(f"[首脳陣の退団（ニュース）] 拾い方が違う：{names}")
     finally:
         ud.fetch, ud.STAFF_NEWS_FEEDS = keep_fetch, keep_feeds
+    # 選手の戦力外（ニュースの新着から）：記事の球団の選手で、戦力外などと同じ文にいる選手だけ。育成契約の打診は offer。
+    # ほかの球団の選手（「昨年○○を戦力外」）・観測記事（「〜か」）は入れない
+    feed2 = ('<rss><channel><item><title>巨人が岡田悠希ら支配下3選手に戦力外通告 萩尾匡也は自由契約 球団発表</title><link>https://example.com/g</link></item>'
+             '<item><title>ヤクルト・テスト一郎、戦力外か</title><link>https://example.com/s</link></item></channel></rss>')
+    art2 = {"https://example.com/g": '<article><p>2026.10.05</p><p>巨人は5日、岡田悠希外野手、山田龍聖投手、郡拓也捕手に来季の契約を結ばないと通告したと発表した。萩尾匡也外野手は自由契約とし、育成契約を打診する見込み。昨年ヤクルトを戦力外となった山田太郎投手は今季から巨人に加入した。</p></article>',
+            "https://example.com/s": '<article><p>2026.10.05</p><p>ヤクルトのテスト一郎が戦力外となる見通しとなった。</p></article>'}
+    keep_fetch2, keep_feeds2 = ud.fetch, ud.PLAYER_NEWS_FEEDS
+    try:
+        ud.PLAYER_NEWS_FEEDS = ["https://example.com/feed"]
+        ud.fetch = lambda u: feed2 if u.endswith("/feed") else art2.get(u)
+        ro = {"G": [{"n": "岡田 悠希", "no": "50"}, {"n": "山田 龍聖", "no": "47"}, {"n": "郡 拓也", "no": "58"}, {"n": "萩尾 匡也", "no": "35"}, {"n": "坂本 勇人", "no": "6"}],
+              "S": [{"n": "山田 太郎", "no": "99"}, {"n": "テスト 一郎", "no": "98"}]}
+        got2 = sorted((x["t"], x["n"], x["kind"]) for x in ud.player_news(ro, 2026, {}, "2026-10-05"))
+        want2 = [("G", "山田 龍聖", "cut"), ("G", "岡田 悠希", "cut"), ("G", "萩尾 匡也", "offer"), ("G", "郡 拓也", "cut")]
+        if got2 != sorted(want2):
+            bad(f"[戦力外（ニュース）] 拾い方が違う：{got2}")
+    finally:
+        ud.fetch, ud.PLAYER_NEWS_FEEDS = keep_fetch2, keep_feeds2
     # ベースボールチャンネルの一覧の名前の欄の札（「NEW」「育成」）は名前ではない
     for raw, want in [("松原快 育成", "松原快"), ("髙野光海 NEW 育成", "髙野光海"), ("S・コンスエグラ 育成", "S・コンスエグラ"), ("新井 貴浩", "新井 貴浩"), ("奥村光一 ※", "奥村光一")]:
         if ud.clean_off_name(raw) != want:
@@ -1122,6 +1140,9 @@ async def offseason_check(browser):
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'
                               '<tr><td colspan="5">( * 2026シーズンの現役選手 )</td></tr></table>')
+    rpp = ud.parse_record_page('<p>■ 2026年7月21日(火) 現在</p><table><tr><th>順位</th><th></th><th>投手</th><th>勝利</th><th>実働期間</th></tr><tr><td>1</td><td></td><td>金田 正一</td><td>400</td><td>(1950-1969)</td></tr></table>')
+    if not rpp or rpp["cols"][1] != "投手" or rpp["rows"][0][1] != "金田 正一":
+        bad(f"[歴代記録の読み取り] 投手のページ（見出し「投手」）を読めない：{rpp}")
     if not rp or rp["cols"] != ["順位", "選手", "本塁打", "実働期間"] or len(rp["rows"]) != 2 or rp.get("act") != [0, 1] or "2026年10月1日" not in rp["asof"]:
         bad(f"[歴代記録の読み取り] NPBの歴代最高記録のページを正しく読めない：{rp}")
     # 育成から支配下登録（NPB公式の公示「新規支配下選手登録」）：育成から移行した選手だけ。新外国人・去年の分は取らない
@@ -1731,10 +1752,12 @@ async def team_rank_menu_check(browser):
             if await pg.evaluate("!!document.getElementById('catQuick')"):
                 bad(f"{label} 個人ランキングの下のボタンの列が残っている")
             await pg.evaluate(SET)
-            r = await pg.evaluate("""() => {
+            r = await pg.evaluate("""async () => {
               const ng = [];
               for (const kind of ['bat', 'pit']) {
                 S.ptKind = kind; renderTeamIn();
+                // 投手の成績は初めて開いたときに読み込むので、表が出るまで待つ（重いときでも3秒まで）
+                for (let i = 0; i < 30 && !document.getElementById('ptTbl'); i++) { await new Promise(r => setTimeout(r, 100)); renderTeamIn(); }
                 const sel = document.getElementById('ptCat'), opts = [...sel.options].map(o => o.value).filter(Boolean);
                 const want = CATS[kind].map(c => c[1]);
                 if (opts.join() !== want.join()) ng.push(`${kind}の項目が個人ランキングと違う（${opts.length}項目）`);
@@ -1899,6 +1922,26 @@ async def brand_check(browser):
     for f in ["ogp.png", "apple-touch-icon.png", "favicon.png", "splash.jpg"]:
         if not (ROOT / f).exists():
             bad(f"[サイト名・アイコン] {f} がない")
+    # アプリのアイコン：決まった大きさ・透明な所がない（iPhoneは透明な所を黒く塗る）・manifest と index.html の目印（?v=）が中身と合っている
+    import hashlib
+    from PIL import Image
+    html_txt = (ROOT / "index.html").read_text(encoding="utf-8")
+    mf = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
+    for f, size in [("apple-touch-icon.png", 180), ("icon-192.png", 192), ("icon-512.png", 512), ("favicon.png", 64)]:
+        p_ = ROOT / f
+        if not p_.exists():
+            bad(f"[アプリのアイコン] {f} がない"); continue
+        im = Image.open(p_)
+        if im.size != (size, size):
+            bad(f"[アプリのアイコン] {f} の大きさが {im.size}（{size}×{size} のはず）")
+        if im.mode in ("RGBA", "LA", "P") and im.convert("RGBA").getextrema()[3][0] < 255:
+            bad(f"[アプリのアイコン] {f} に透明な所がある")
+        v = hashlib.md5(p_.read_bytes()).hexdigest()[:8]
+        refs = [ic["src"] for ic in mf.get("icons", []) if ic["src"].split("?")[0] == f]
+        if any(r_ != f"{f}?v={v}" for r_ in refs):
+            bad(f"[アプリのアイコン] manifest.json の {f} の目印が中身と合っていない（{refs}）")
+        if f in ("apple-touch-icon.png", "favicon.png") and f"{f}?v=" in html_txt and f"{f}?v={v}" not in html_txt:
+            bad(f"[アプリのアイコン] index.html の {f} の目印が中身と合っていない")
     pg, errs = await open_page(browser, 390, "")
     r = await pg.evaluate("""() => {
       const ng = [];
@@ -2388,6 +2431,16 @@ async def rec_check(browser):
           if ([...document.querySelectorAll('#recCat option')].map(o => o.value).join() !== 'so') ng.push('記録のない部門が選べてしまう');
           document.querySelector('#recKind button[data-k="ac"]').click(); document.querySelector('#recSide button[data-k="b"]').click();
           if (!/中村 剛也/.test(txt())) ng.push('現役の通算に切り替わらない');
+          // どの部門も同じ形：順位｜選手｜所属｜記録｜年度（シーズン）・実働期間（通算・現役）。所属は空にしない（分からないときは —）
+          for (const k of ['lt', 'ac', 'ss']) for (const sd of ['b', 'p']) for (const c of (sd === 'b' ? REC.bat : REC.pit)) {
+            if (!REC.lists[k + sd + '_' + c.k]) continue; S.recKind = k; S.recSide = sd; S.recKey = c.k; renderRec();
+            const hs = [...document.querySelectorAll('#recTbl thead th')].map(x => x.textContent).join('|');
+            if (hs !== `順位|選手|所属|${c.n}|${k === 'ss' ? '年度' : '実働期間'}`) ng.push(`${k}${sd}_${c.k}：表の形がそろっていない（${hs}）`);
+            if ([...document.querySelectorAll('#recTbl tbody tr')].some(tr => tr.children.length !== 5)) ng.push(`${k}${sd}_${c.k}：列の数が5つでない行がある`);
+            if ([...document.querySelectorAll('#recTbl td.rt')].some(td => !td.textContent.trim())) ng.push(`${k}${sd}_${c.k}：所属が空の行がある`);
+          }
+          S.recKind = 'lt'; S.recSide = 'b'; S.recKey = 'hr'; renderRec();
+          if (!/巨人/.test([...document.querySelectorAll('#recTbl tbody tr')].find(tr => /王 貞治/.test(tr.textContent))?.querySelector('td.rt')?.textContent || '')) { /* 試しのデータに王のシーズン記録がないときは「—」でよい */ }
           // 読み込めないとき
           const keep = REC; REC = null; recAt = Date.now(); recBusy = false; localStorage.removeItem('rec-v1'); CONFIG.recUrl = 'https://live.example/none.json'; renderRec();
           await new Promise(r => setTimeout(r, 600));

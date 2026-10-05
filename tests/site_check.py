@@ -1883,7 +1883,8 @@ async def team_rank_menu_check(browser):
                   sel.value = v; sel.dispatchEvent(new Event('change'));
                   const tb = document.getElementById('ptTbl');
                   if (!tb) { ng.push(`${v}を選ぶと表が出ない`); continue; }
-                  if (tb.querySelectorAll('thead th').length !== 7) ng.push(`${v}を選ぶと列の数が変わる`);   // 順位・選手名・5項目（個人ランキングと同じ「順位」の欄を足した）
+                  if ([...tb.querySelectorAll('thead th')].map(x => x.textContent.replace(/[▲▼]/g, '').trim()).slice(0, 3).join() !== '順位,選手名,チーム' || tb.querySelectorAll('thead th').length !== 4) ng.push(`${v}を選ぶと表の形が個人ランキング（順位｜選手名｜チーム｜項目）と違う`);
+                  if (!tb.querySelectorAll('thead th')[3].textContent.includes(v)) ng.push(`${v}を選んでも項目の列が${v}にならない`);
                   if (tb.scrollWidth > tb.parentElement.clientWidth + 1 || [...tb.querySelectorAll('td, th')].some(c => c.scrollWidth > c.clientWidth + 1)) ng.push(`${v}を選ぶと表がはみ出す`);
                   if (!tb.querySelector('th.on')) ng.push(`${v}を選んでも、その項目の見出しが選ばれた形にならない`);
                 }

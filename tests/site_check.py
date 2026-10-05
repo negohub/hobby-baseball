@@ -1203,14 +1203,17 @@ async def offseason_check(browser):
         got_h = [(t, len(y)) for t, y in ud.parse_reg_history(h)]
         if got_h != want:
             bad(f"[在籍者名簿の読み取り] 「{h}」→ {got_h}（{want} のはず）")
-    rp_, ra_ = ud.parse_register_page('<table><tr><td>Ｒ．オスナ （ROBERTO OSUNA）</td><td>4</td><td>22途～閉幕ロッテ,23～25ソフトバンク</td></tr><tr><td>イチロー （→ 鈴木 一朗）</td></tr>'
+    rp_, ra_, rr_ = ud.parse_register_page('<table><tr><td>Ｒ．オスナ （ROBERTO OSUNA）</td><td>4</td><td>22途～閉幕ロッテ,23～25ソフトバンク</td></tr><tr><td>イチロー （→ 鈴木 一朗）</td></tr>'
                                       '<tr><td>鈴木 一朗</td><td>9</td><td>92～00オリックス</td></tr><tr><td>落合 博満</td><td>20</td><td>79～86ロッテ,87～93中日,94～96巨人,97,98日本ハム</td></tr>'
                                       '<tr><td>田中 一郎</td><td>3</td><td>55～57国鉄</td></tr><tr><td>田中 一郎</td><td>5</td><td>01～05阪神</td></tr></table>'
-                                      '<table><tr><td>Ｆ．アグリー （FRANCIS AGCAOILI）</td><td>8</td><td>62～64大洋,65,66西鉄,67,68大洋,69阪急［改名］～64,67～68アグウィリー,65,69アグリー,66アギー</td></tr></table>')
-    regt = {"people": rp_, "alias": ra_}
+                                      '<table><tr><td>Ｆ．アグリー （FRANCIS AGCAOILI）</td><td>8</td><td>62～64大洋,65,66西鉄,67,68大洋,69阪急［改名］～64,67～68アグウィリー,65,69アグリー,66アギー</td></tr></table>'
+                                      '<table><tr><td>金子 弌大</td><td>17</td><td>06～18オリックス,19～22日本ハム ［改名］～18金子千尋,19～金子弌大</td></tr></table>'
+                                      '<table><tr><td>ジオ・アルバラード</td><td>3</td><td>10～12広島</td></tr></table>')
+    regt = {"people": rp_, "alias": ra_, "renames": rr_}
     for n, per, want in [("イチロー", "(1992-2000)", ["オリックス"]), ("オスナ", "(2022-2025)", ["ソフトバンク", "ロッテ"]), ("落合 博満", "(1979-1998)", ["ロッテ", "中日", "巨人", "日本ハム"]),
                          ("田中 一郎", "(2001-2005)", ["阪神"]), ("田中 一郎", "(1955-1957)", ["国鉄"]), ("知らない 人", "(1990-1999)", None),
-                         ("アグリー", "(1962-1969)", ["大洋", "西鉄", "阪急"])]:
+                         ("アグリー", "(1962-1969)", ["大洋", "西鉄", "阪急"]),
+                         ("金子 千尋", "(2006-2022)", ["オリックス", "日本ハム"]), ("ジオ", "(2010-2012)", ["広島"])]:   # 改名前の名前・登録名（名前の前半）
         got_t = ud.record_teams(n, per, regt)
         if got_t != want:
             bad(f"[在籍者名簿の照らし合わせ] {n} {per} → {got_t}（{want} のはず）")

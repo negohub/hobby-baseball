@@ -180,7 +180,7 @@ CHECK_JS = r"""
 }
 """
 
-TABS = ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]   # off：戦力外・引退（オフだけ出るタブ）
+TABS = ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]   # off：戦力外・引退（オフだけ出るタブ）
 
 
 async def open_page(browser, width, theme, me="S", touch=False):
@@ -539,7 +539,7 @@ async def wording_check(browser):
             if lg == "P":
                 await pg.evaluate("switchLeague('P')")
                 await pg.wait_for_timeout(200)
-            for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+            for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
                 txt = await pg.evaluate("""(tab) => { setTab(tab); const v = document.getElementById('v-' + tab); v.querySelectorAll('details').forEach(d => d.open = true); return v.innerText; }""", tab)
                 for line in txt.split("\n"):
                     if lg == "P" and OK_P in line:
@@ -614,7 +614,7 @@ async def tap_target_check(browser):
                 if lg == "P":
                     await pg.evaluate("switchLeague('P')")
                     await pg.wait_for_timeout(200)
-                for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+                for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
                     r = await pg.evaluate("""(tab) => {
                       setTab(tab);
                       const v = document.getElementById('v-' + tab), ng = new Set();
@@ -1816,7 +1816,7 @@ async def consistency_check(browser):
             await pg.wait_for_timeout(200)
         texts = await pg.evaluate("""() => {
           const out = [];
-          for (const t of ['magic', 'game', 'cal', 'std', 'stats', 'rec', 'ven', 'song', 'off']) {
+          for (const t of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'rec', 'ven', 'song', 'off']) {
             setTab(t);
             document.querySelectorAll('#v-' + t + ' *').forEach(e => { if (!e.children.length || /^(SMALL|P|B|SPAN|EM)$/.test(e.tagName)) { const x = e.innerText ? e.innerText.trim() : ''; if (x && x.length < 200) out.push(t + '｜' + x); } });
           }
@@ -2192,7 +2192,7 @@ async def uniform_check(browser):
         label = f"[見た目の統一 パワプロ風 幅{width}]"
         pg, errs = await open_page(browser, width, "pawa")
         ng = []
-        for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+        for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
             await pg.evaluate(f"setTab('{tab}')")
             await pg.wait_for_timeout(700)
             if tab == "game":
@@ -2569,19 +2569,6 @@ async def rec_check(browser):
           if ([...document.querySelectorAll('#recCat option')].map(o => o.value).join() !== 'so') ng.push('記録のない部門が選べてしまう');
           document.querySelector('#recKind button[data-k="ac"]').click(); document.querySelector('#recSide button[data-k="b"]').click();
           if (!/中村 剛也/.test(txt())) ng.push('現役の通算に切り替わらない');
-          // 歴代の順位表：年度を選ぶと、その年の今見ているリーグの最終順位（順位タブの順位表と同じ見出し）。1位は「優勝」。打撃｜投手の切り替えは出さない
-          document.querySelector('#recKind button[data-k="std"]').click();
-          { const ys = [...document.getElementById('recCat').options].map(o => o.value).join();
-            if (ys !== '2025,1970') ng.push(`順位表の年度の並びが違う（${ys}）`);
-            const hs2 = [...document.querySelectorAll('#recTbl thead th')].map(x => x.textContent).join('|');
-            if (hs2 !== '順位|チーム名|試合|勝利|敗戦|引分|勝率|勝差') ng.push(`順位表の見出しが順位タブと違う（${hs2}）`);
-            if (!/阪神タイガース/.test(document.getElementById('recTbl').textContent) || !/優勝/.test(document.getElementById('recTbl').textContent)) ng.push('2025年の順位表（1位は優勝）が出ない');
-            if (getComputedStyle(document.getElementById('recSide')).display !== 'none') ng.push('順位表のときに打撃｜投手の切り替えが出ている');
-            const sl = document.getElementById('recCat'); sl.value = '1970'; sl.dispatchEvent(new Event('change'));
-            if (!/読売ジャイアンツ/.test(document.getElementById('recTbl').textContent)) ng.push('1970年に切り替わらない');
-            const tb2 = document.getElementById('recTbl'); if (tb2.scrollWidth > tb2.parentElement.clientWidth + 1) ng.push('順位表がはみ出す');
-            document.querySelector('#recKind button[data-k="lt"]').click();
-            if (getComputedStyle(document.getElementById('recSide')).display === 'none') ng.push('順位表から戻っても打撃｜投手の切り替えが出ない'); }
           // どの部門も同じ形：順位｜選手｜所属｜記録｜年度（シーズン）・実働期間（通算・現役）。所属は空にしない（分からないときは —）
           for (const k of ['lt', 'ac', 'ss']) for (const sd of ['b', 'p']) for (const c of (sd === 'b' ? REC.bat : REC.pit)) {
             if (!REC.lists[k + sd + '_' + c.k]) continue; S.recKind = k; S.recSide = sd; S.recKey = c.k; renderRec();
@@ -2632,13 +2619,13 @@ async def tab_group_check(browser):
           if (document.querySelector('.tabbar button[aria-selected="true"]').dataset.grp !== 'game') ng.push('日程のときに「試合」のタブが選ばれていない');
           click('data'); if (S.tab !== 'stats' || sub() !== '今季*,球場別,歴代') ng.push(`データ：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="rec"]').click(); if (S.tab !== 'rec') ng.push('歴代に切り替わらない');
-          click('std'); if (S.tab !== 'std' || !document.getElementById('subNav').hidden) ng.push('順位で上の切り替えが出ている');
+          click('std'); if (S.tab !== 'std' || sub() !== '今季*,歴代') ng.push(`順位：${S.tab} ${sub()}`);
           click('game'); if (S.tab !== 'cal') ng.push(`試合を押すと最後に開いていた日程に戻らない（${S.tab}）`);
           click('data'); if (S.tab !== 'rec') ng.push(`データを押すと最後に開いていた歴代に戻らない（${S.tab}）`);
           window.scrollTo(0, 400); click('data'); await new Promise(r => setTimeout(r, 700));
           if (S.tab !== 'rec' || scrollY > 5) ng.push(`今のタブをもう一度押してもいちばん上に戻らない（${S.tab} ${scrollY}）`);
           if (JSON.parse(localStorage.getItem('sub-v1') || '{}').game !== 'cal') ng.push('最後に開いていたページを端末に覚えていない');
-          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stats,ven,rec,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
+          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stdh,stats,ven,rec,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
           // 季節で下のタブの数が変わらない
           const cols = () => getComputedStyle(document.querySelector('.tabbar nav')).gridTemplateColumns.split(' ').length;
           if (cols() !== 5) ng.push(`下のタブが5列でない（${cols()}）`);
@@ -3109,6 +3096,40 @@ async def rank_format_check(browser):
         await pg.close()
 
 
+async def stdh_check(browser):
+    """順位タブの「歴代」：年度（新しい順）を選ぶと、その年の今見ているリーグの最終順位。見出しは今季の順位表と同じ、1位は「優勝」。
+    左の色の帯は当時の球団の色（南海＝緑、近鉄＝赤 など）、色の分からない今はない球団は灰色。はみ出さない"""
+    for th in ["pawa", ""]:
+        for w in [320, 390]:
+            pg, errs = await open_page(browser, w, th)
+            r = await pg.evaluate("""async () => { const ng = [];
+              await loadRec(true); document.querySelector('.tabbar button[data-grp="std"]').click();
+              document.querySelector('#subNav button[data-p="stdh"]').click();
+              if (S.tab !== 'stdh') return ['順位タブの「歴代」に切り替わらない'];
+              const ys = [...document.getElementById('stdhYear').options].map(o => o.value).join();
+              if (ys !== '2025,1970') ng.push(`年度の並びが違う（${ys}）`);
+              const hs = [...document.querySelectorAll('#stdhTbl thead th')].map(x => x.textContent).join('|');
+              const hs0 = (setTab('std'), [...document.querySelectorAll('#std thead th')].map(x => x.textContent).slice(0, 8).join('|')); setTab('stdh');
+              if (hs !== hs0) ng.push(`見出しが今季の順位表と違う（${hs} / ${hs0}）`);
+              const txt = () => document.getElementById('stdhTbl').textContent;
+              if (!/阪神タイガース/.test(txt()) || !/優勝/.test(txt())) ng.push('2025年の順位表（1位は優勝）が出ない');
+              const sl = document.getElementById('stdhYear'); sl.value = '1970'; sl.dispatchEvent(new Event('change'));
+              if (!/読売ジャイアンツ/.test(txt())) ng.push('1970年に切り替わらない');
+              const tb = document.getElementById('stdhTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('はみ出す');
+              // 当時の色：パ・リーグ1970年の近鉄は赤（今のどの球団の色でもない）
+              switchLeague('P'); setTab('stdh'); const sl2 = document.getElementById('stdhYear'); sl2.value = '1970'; sl2.dispatchEvent(new Event('change'));
+              const kin = [...document.querySelectorAll('#stdhTbl tbody tr')].find(tr => /近鉄/.test(tr.textContent));
+              if (!kin || getComputedStyle(kin).getPropertyValue('--tc').trim().toUpperCase() !== '#D7001F') ng.push(`近鉄の色が当時の赤でない（${kin && getComputedStyle(kin).getPropertyValue('--tc')}）`);
+              if (histStyle('南海ホークス').indexOf('#00813F') < 0 || histStyle('松竹ロビンス').indexOf('#8A94A6') < 0 || histStyle('阪神タイガース') !== tv('T')) ng.push('当時の色の決め方が違う');
+              switchLeague('C');
+              return ng; }""")
+            for m in r:
+                bad(f"[歴代順位表 {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] {m}")
+            for e in errs:
+                bad(f"[歴代順位表]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -3277,7 +3298,7 @@ async def night_check(browser):
     if await pg.evaluate("document.documentElement.classList.contains('pawa-dark')"): ng.append("「昼」を選んでも夜のまま")
     await pg.evaluate("store('mode','dark'); applyPawaMode(); renderAll()")
     if not await pg.evaluate("document.documentElement.classList.contains('pawa-dark')"): ng.append("「夜」を選んでも夜にならない")
-    for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+    for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
         await pg.evaluate(f"setTab('{tab}')"); await pg.wait_for_timeout(600)
         h = await pg.evaluate("document.documentElement.scrollHeight")
         for y in range(0, min(h, 6000), 700):
@@ -3326,7 +3347,7 @@ async def light_check(browser):
     await pg.evaluate("store('mode','dark'); applyPawaMode()")
     if await pg.evaluate("document.documentElement.classList.contains('sty-light')"): ng.append("「ダーク」を選んでもライトのまま")
     await pg.evaluate("store('mode','light'); applyPawaMode(); renderAll()")
-    for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+    for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
         await pg.evaluate(f"setTab('{tab}')"); await pg.wait_for_timeout(600)
         if tab == "game":
             await pg.evaluate("""() => { const t = CL[0], o = CL[1]; const g = DATA.games.find(x => x.h === t && x.a === o) || DATA.games.find(x => x.h === t);
@@ -3374,7 +3395,7 @@ async def contrast_all_check(browser):
         for lg in ["C", "P"]:
             if lg == "P":
                 await pg.evaluate("switchLeague('P')"); await pg.wait_for_timeout(300)
-            for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+            for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
                 await pg.evaluate(f"setTab('{tab}')"); await pg.wait_for_timeout(450)
                 if tab == "game" and lg == "C":
                     await pg.evaluate("""() => { const t = CL[0], o = CL[1]; const g = DATA.games.find(x => x.h === t && x.a === o) || DATA.games.find(x => x.h === t);
@@ -3390,7 +3411,7 @@ async def contrast_all_check(browser):
             await pg.evaluate("closeSheet()"); await pg.wait_for_timeout(300)
         # 隠れている所：折りたたみ（見方など）を全部開いた各タブ、日程の詳しい欄（勝ち・負け・引き分け）、長押しの中身、選手の画面、オフの全部の種類
         await pg.evaluate("switchLeague('C')"); await pg.wait_for_timeout(300)
-        for tab in ["magic", "game", "cal", "std", "stats", "rec", "ven", "song", "off"]:
+        for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
             await pg.evaluate(f"setTab('{tab}'); document.querySelectorAll('#v-{tab} details').forEach(d => (d.open = true))"); await pg.wait_for_timeout(350)
             h = await pg.evaluate("document.documentElement.scrollHeight")
             for y in range(0, min(h, 12000), 760):
@@ -3629,6 +3650,7 @@ async def main():
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)
+        await stdh_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

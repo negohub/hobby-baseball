@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005064334">
+<meta name="build" content="20261005080549">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2080,6 +2080,8 @@ html.theme-pawa{background:#CDEBFF}
 @media (max-width:374px){.rectab th,.rectab td{font-size:11px !important;padding:6px 2px !important}.rectab thead th{font-size:9.5px !important}.rectab td.rv{font-size:12px !important}}
 .rectab td.rk{font-weight:700}
 .rectab .recmsg{text-align:center;padding:24px 8px;font-weight:600;white-space:normal}
+.rectab td.rt{white-space:normal;line-height:1.2;font-size:11.5px !important}
+.rectab td.rt .rtm{display:block;font-size:9.5px;color:var(--muted)}
 .recact{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;vertical-align:1px;background:#17703D;color:#fff;letter-spacing:0}
 .recnote{margin:4px 2px 8px;font-size:11.5px;color:var(--muted)}
 html:not(#y) .htab .hfix:not(#z){display:table;margin:3px auto 0;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;background:#C62828 !important;color:#fff !important;vertical-align:1px;-webkit-text-fill-color:#fff;text-shadow:none !important}   /* 「確定」の札：行の球団色の文字に負けない */
@@ -3830,7 +3832,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <label class="catsel"><select id="recCat" aria-label="部門"></select></label></div>
     <p class="recnote" id="recNote"></p>
     <div class="ywrap"><table class="ytab rectab" id="recTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はシーズンの記録にいちばん多く出てくる球団です（「ほか」はほかの球団にもいた選手。分からない選手は「—」）。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
   </section>
   <p class="note" id="note"></p>
 </main>
@@ -7911,6 +7913,25 @@ async function loadRec(force) {
   } catch {} finally { recBusy = false; if (S.tab === "rec" && !REC) renderRec(); }
 }
 const recCell = v => esc(String(v == null ? "" : v).replace(/^\((.*)\)$/, "$1").replace(/^([^\s]{1})\s([^\s]{1})$/, "$1$2"));   // 実働期間は全員「1959-1980」の形（4けた-4けた）でそろえる
+// 引退した選手の所属：シーズン記録（打撃・投手の全部門）に出てくる「名前 → 所属（年度）」を集め、いちばん多く出てくる球団を主な所属に
+let REC_TEAMS = null, REC_TEAMS_AT = null;
+function recTeams() {
+  if (REC_TEAMS && REC_TEAMS_AT === (REC && REC.at)) return REC_TEAMS;
+  const cnt = new Map();
+  for (const [k, L] of Object.entries((REC && REC.lists) || {})) {
+    if (!/^ss/.test(k)) continue;
+    const ni = L.cols.findIndex(c => /選手|投手|打者/.test(c)), ti = L.cols.findIndex(c => /所属/.test(c));
+    if (ni < 0 || ti < 0) continue;
+    for (const r of L.rows) {
+      const n = nk(r[ni]), t = String(r[ti] || "").replace(/^\((.*)\)$/, "$1").replace(/\s+/g, "");
+      if (!n || !t) continue;
+      const m = cnt.get(n) || new Map(); m.set(t, (m.get(t) || 0) + 1); cnt.set(n, m);
+    }
+  }
+  REC_TEAMS = new Map([...cnt].map(([n, m]) => { const arr = [...m].sort((a, b) => b[1] - a[1]); return [n, { main: arr[0][0], more: arr.length > 1 }]; }));
+  REC_TEAMS_AT = REC && REC.at;
+  return REC_TEAMS;
+}
 function renderRec() {
   recRestore();
   const kind = S.recKind || "lt", side = S.recSide || "b";
@@ -7932,8 +7953,8 @@ function renderRec() {
   const label = (have.find(c => c.k === key) || {}).n || "";
   // いちばん太くする列：部門と同じ名前の列（なければ選手の右の列）
   let vi = L.cols.findIndex(c => c === label || c.replace(/\s/g, "") === label);
-  if (vi < 0) vi = Math.min(L.cols.length - 1, L.cols.findIndex(c => /選手/.test(c)) + 1);
-  const ni = L.cols.findIndex(c => /選手/.test(c)), pi = L.cols.findIndex(c => /実働|期間/.test(c)), ti = L.cols.findIndex(c => /所属/.test(c));
+  const ni = L.cols.findIndex(c => /選手|投手|打者/.test(c)), pi = L.cols.findIndex(c => /実働|期間/.test(c)), ti = L.cols.findIndex(c => /所属/.test(c));
+  if (vi < 0) vi = Math.min(L.cols.length - 1, Math.max(ni, ti) + 1);
   // 実働期間：全員「1959-1980」の形。狭い画面では全員そろって「1959-」「1980」の2行に
   const period = v => { const m = String(v || "").replace(/^\((.*)\)$/, "$1").match(/^(\d{4})-(\d{4})$/); return m ? `<span class="yr">${m[1]}-</span><span class="yr">${m[2]}</span>` : recCell(v); };
   // 名簿（12球団）：名前 → 球団・守備位置。同じ名前が2人いるときは使わない（取り違えないように）
@@ -7956,10 +7977,18 @@ function renderRec() {
     const bare = String(name).replace(/\s+/g, "");
     return `<span class="ptile sptile rectile ${cls}${nmCls(bare)}" style="--n:${[...String(name)].length};${sty}"><b>${esc(name)}</b></span>`;
   };
-  const head = L.cols.map((c, i) => `<th class="${i === vi ? "rv" : i === ni ? "rn" : ""}">${esc(c.replace(/^\((.*)\)$/, "$1"))}</th>`).join("");
+  // どの部門も同じ形：順位｜選手｜所属｜記録｜年度（シーズン）または実働期間（通算・現役）。そのほかの列（試合・打数など）は出さない
+  const teamOf = (r, ri) => {
+    if (ti >= 0) return recCell(r[ti]);                                  // シーズン：その年の所属
+    const h = nowHit(r, ri); if (h) return esc(fn(h.t));                 // 今の選手：今の所属
+    const m = recTeams().get(nk(r[ni]));                                  // 引退した選手：シーズン記録に出てくる所属（いちばん多い球団）
+    return m ? esc(m.main) + (m.more ? `<small class="rtm">ほか</small>` : "") : `<span class="muted">—</span>`;
+  };
+  const head = `<th class="rk">順位</th><th class="rn">選手</th><th class="rt">所属</th><th class="rv">${esc(label)}</th><th class="rp">${kind === "ss" ? "年度" : "実働期間"}</th>`;
   const body = L.rows.map((r, ri) => {
     const act = (L.act && L.act[ri]) || (kind !== "ss" && ni >= 0 && nowNames.has(nk(r[ni])));
-    return `<tr>${r.map((v, i) => i === ni ? `<td class="rn">${isPawa() ? `<div class="recnmw">${recTile(v, nowHit(r, ri))}</div>` : `<span class="recnm">${esc(v)}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td>` : `<td class="${i === vi ? "rv" : i === 0 ? "rk" : i === pi ? "rp" : i === ti ? "rt" : ""}">${i === pi ? period(v) : recCell(v)}</td>`).join("")}</tr>`;
+    const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
+    return `<tr><td class="rk">${recCell(r[0])}</td><td class="rn">${isPawa() ? `<div class="recnmw">${recTile(r[ni], nowHit(r, ri))}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="rt">${teamOf(r, ri)}</td><td class="rv">${recCell(r[vi])}</td><td class="rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";

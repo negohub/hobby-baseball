@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005133324">
+<meta name="build" content="20261005134757">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -3869,7 +3869,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="seg venkey" id="venKey" role="tablist" aria-label="並べる項目"></div>
     <p class="recnote" id="venNote"></p>
     <div class="ywrap"><table class="ytab ventab" id="venTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。「すべて」を選ぶと、今見ているリーグの球団の選手が一緒に並びます。</li><li>項目のタブで並べ方を選べます。打率・OPSはその球場での試合数×3.1以上の打席、防御率はその球場での試合数以上の投球回の選手だけを順位にします（規定打席・規定投球回と同じ考え方）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。球団は去年の順位の順、球場は各球団の本拠地を去年の順位の順に並べ、本拠地以外の球場（倉敷・前橋・ほっと神戸など）は「地方球場」にまとめています。「すべて」を選ぶと、今見ているリーグの球団の選手が一緒に並びます。</li><li>項目のタブで並べ方を選べます。打率・OPSはその球場での試合数×3.1以上の打席、防御率はその球場での試合数以上の投球回の選手だけを順位にします（規定打席・規定投球回と同じ考え方）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
   </section>
   <p class="note" id="note"></p>
 </main>
@@ -8071,14 +8071,43 @@ const VEN_KEYS = {
   b: [["avg", "打率"], ["ops", "OPS"], ["hr", "本塁打"], ["rbi", "打点"], ["h", "安打"], ["ab", "打数"]],
   p: [["era", "防御率"], ["w", "勝"], ["sv", "S"], ["hd", "H"], ["ip", "投球回"], ["g", "登板"]],
 };
+// 球場のまとめ方：各球団の本拠地（今季その球団がホームでいちばん多く使った球場）はそのまま、それ以外（倉敷・前橋・ほっと神戸など）は「地方球場」に1つにまとめる
+const VEN_LOCAL = "地方球場";
+let VEN_MAIN = null, VEN_MAIN_KEY = null;
+function venMainParks() {
+  const yr = String((VEN && VEN.season) || jst().y);
+  if (VEN_MAIN && VEN_MAIN_KEY === DATA.games) return VEN_MAIN;
+  const cnt = {};
+  for (const g of DATA.games) { if (g.d.slice(0, 4) !== yr || !g.v) continue; const c = (cnt[g.h] = cnt[g.h] || {}); c[g.v] = (c[g.v] || 0) + 1; }
+  VEN_MAIN = Object.fromEntries(Object.entries(cnt).map(([t, c]) => [t, Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]]));
+  VEN_MAIN_KEY = DATA.games;
+  return VEN_MAIN;
+}
+const venGroup = v => (Object.values(venMainParks()).includes(v) ? v : VEN_LOCAL);
+// ある球団の、まとめた球場（本拠地1つ、または地方球場の全部）での成績を足し合わせる
+function venMerge(x, grp) {
+  const vs = Object.entries(((VEN && VEN.teams) || {})[x] || {}).filter(([v]) => venGroup(v) === grp);
+  if (!vs.length) return null;
+  const add = (m, r) => { const c = m.get(r[0]) || [r[0], ...r.slice(1).map(() => 0)]; for (let i = 1; i < r.length; i++) c[i] += r[i]; m.set(r[0], c); };
+  const bat = new Map(), pit = new Map(); let games = 0;
+  for (const [, d] of vs) { games += d.games; d.bat.forEach(r => add(bat, r)); d.pit.forEach(r => add(pit, r)); }
+  return { games, bat: [...bat.values()], pit: [...pit.values()] };
+}
+// 球場の並び：今見ているリーグの球団の本拠地を去年の順位の順に、次にもう一方のリーグの本拠地を去年の順位の順に、最後に地方球場
+function venOrder() {
+  const main = venMainParks(), mine = calOrder(), other = (isPL() ? DATA.prev_order : DATA.prev_order_p) || {};
+  const otherOrder = other.order && other.order.length === 6 ? other.order : Object.keys(main).filter(t => !mine.includes(t));
+  return [...mine, ...otherOrder].map(t => main[t]).filter(Boolean).concat([VEN_LOCAL]);
+}
 function renderVen() {
   venRestore();
   const side = S.venSide || "b";
   document.querySelectorAll("#venSide button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === side)));
   const tbl = $("venTbl"), selT = $("venTeam"), selV = $("venPlace");
-  // 球団：「すべて」（今見ているリーグの6球団）か、その中の1球団（はじめは自分の担当の球団）
+  // 球団：「すべて」（今見ているリーグの6球団）か、その中の1球団（はじめは自分の担当の球団）。並びは去年の順位の順
   const t = S.venTeam === "all" || CL.includes(S.venTeam) ? S.venTeam : (ME() && CL.includes(ME()) ? ME() : CL[0]);
-  selT.innerHTML = `<option value="all"${t === "all" ? " selected" : ""}>すべて（${isPL() ? "パ" : "セ"}・リーグ）</option>` + CL.map(x => `<option value="${x}"${x === t ? " selected" : ""}>${esc(fn(x))}</option>`).join("");
+  const tOrd = calOrder().filter(x => CL.includes(x)).concat(CL.filter(x => !calOrder().includes(x)));
+  selT.innerHTML = `<option value="all"${t === "all" ? " selected" : ""}>すべて（${isPL() ? "パ" : "セ"}・リーグ）</option>` + tOrd.map(x => `<option value="${x}"${x === t ? " selected" : ""}>${esc(fn(x))}</option>`).join("");
   const keys = VEN_KEYS[side], key = keys.some(([k]) => k === S.venKey) ? S.venKey : keys[0][0];
   $("venKey").innerHTML = keys.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${k === key}">${l}</button>`).join("");
   if (!VEN) {
@@ -8088,19 +8117,19 @@ function renderVen() {
     return;
   }
   const teams = t === "all" ? CL.slice() : [t];
-  // 球場ごとの試合数：1球団ならその球団の試合数。すべてなら、その球場であったこのリーグの球団の試合（終わった公式戦）を1試合ずつ数える
+  // 球場ごとの試合数：1球団ならその球団の試合数。すべてなら、その球場（地方球場はまとめて）であったこのリーグの球団の試合（終わった公式戦）を1試合ずつ数える
   const vg = {};
-  for (const x of teams) for (const [v, d] of Object.entries((VEN.teams || {})[x] || {})) vg[v] = (vg[v] || 0) + d.games;
+  for (const x of teams) for (const [v, d] of Object.entries((VEN.teams || {})[x] || {})) { const gk = venGroup(v); vg[gk] = (vg[gk] || 0) + d.games; }
   if (t === "all") {
     const yr = String(VEN.season || jst().y);
-    for (const v in vg) vg[v] = DATA.games.filter(g => g.st === "final" && g.v === v && g.d.slice(0, 4) === yr && (CL.includes(g.h) || CL.includes(g.a))).length || vg[v];
+    for (const gk in vg) vg[gk] = DATA.games.filter(g => g.st === "final" && g.v && venGroup(g.v) === gk && g.d.slice(0, 4) === yr && (CL.includes(g.h) || CL.includes(g.a))).length || vg[gk];
   }
-  const vs = Object.entries(vg).sort((a, b) => b[1] - a[1]);
+  const ord = venOrder(), vs = Object.entries(vg).sort((a, b) => (ord.indexOf(a[0]) + 1 || 99) - (ord.indexOf(b[0]) + 1 || 99));
   const v = vs.some(([k]) => k === S.venPlace) ? S.venPlace : (vs[0] || [])[0];
   selV.innerHTML = vs.map(([k, g]) => `<option value="${esc(k)}"${k === v ? " selected" : ""}>${esc(k)}（${g}試合）</option>`).join("");
   const at = String(VEN.at || "").match(/^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   $("venAsof").textContent = at ? `${+at[1]}/${+at[2]} ${at[3]}:${at[4]} 更新` : "";
-  const parts = teams.map(x => [x, ((VEN.teams || {})[x] || {})[v]]).filter(([, d]) => d);
+  const parts = teams.map(x => [x, venMerge(x, v)]).filter(([, d]) => d);
   if (!v || !parts.length) { tbl.innerHTML = `<tbody><tr><td class="recmsg">この球団の試合はまだありません</td></tr></tbody>`; $("venNote").textContent = ""; return; }
   const isRate = ["avg", "ops", "era"].includes(key);
   const note = [];

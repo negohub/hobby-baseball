@@ -44,6 +44,8 @@ jobs:
           # data/venues.json（球場別成績）と data/boxcache.json（読んだ試合の出場成績。毎回読み直さないため）
           if [ -f data/venues.json ]; then git add data/venues.json; fi
           if [ -f data/boxcache.json ]; then git add data/boxcache.json; fi
+          # data/register.json：NPBのプロ野球在籍者名簿（週1回。歴代記録の所属に使う）
+          if [ -f data/register.json ]; then git add data/register.json; fi
           if [ -d data/archive ]; then git add data/archive; fi
           if git diff --cached --quiet; then echo "変化なし"; exit 0; fi
           git commit -m "update data"

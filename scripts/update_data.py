@@ -2091,6 +2091,20 @@ def record_person(name, period, reg):
     m = re.search(r"(\d{4})\D+(\d{4})", period or "") or re.search(r"(\d{4})()", period or "")
     lo = int(m.group(1)) if m else 0
     hi = int(m.group(2)) if m and m.group(2) else (lo if m else 9999)
+    if not cands and m and m.group(2) and " " in norm(name).strip():
+        # 名前が見つからないとき（名簿は本名、記録は登録名：金子 千尋＝金子 弌大、大塚 晶則＝大塚 晶文 など）：
+        # 同じ名字で、在籍した年の最初と最後が実働期間とぴったり（±1年）合う人が1人だけなら、その人
+        sur = norm(name).strip().split()[0]
+        hits = []
+        for n2, lst in reg["people"].items():
+            if norm(n2).strip().split()[0] != sur:
+                continue
+            for e in lst:
+                yrs = [y for _, ys in (e["h"] if isinstance(e, dict) else e) for y in ys]
+                if yrs and abs(min(yrs) - lo) <= 1 and abs(max(yrs) - hi) <= 1:
+                    hits.append(e)
+        if len(hits) == 1:
+            cands = hits
     best = None
     for e in cands:
         hist = e["h"] if isinstance(e, dict) else e

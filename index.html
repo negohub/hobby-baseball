@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005110515">
+<meta name="build" content="20261005133324">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2081,17 +2081,16 @@ html.theme-pawa{background:#CDEBFF}
 .ventab .ventm{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-style:normal;font-size:9.5px;font-weight:900;background:var(--tc);color:var(--ti) !important;margin:0 4px 0 0;vertical-align:middle;flex:none}
 .ventab td.vn{white-space:nowrap}
 .ventab .venc{display:flex;align-items:center;min-width:0}
-.ventab .venc .recnmw{flex:1;min-width:0}
+html:not(.theme-pawa) .ventab .vnm{display:inline-block;max-width:6.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-weight:700}
+
 .ventab th,.ventab td{font-size:12.5px !important;padding:7px 3px !important;text-align:right}
 .ventab thead th{font-size:10.5px !important;padding:6px 2px !important}
 .ventab th.vn,.ventab td.vn{text-align:left}
 .ventab td.rv{font-weight:800}
-html.theme-pawa .ventab td.vn{min-width:84px}
-html.theme-pawa .ventab .recnmw{container-type:inline-size;width:100%}
-html.theme-pawa .ventab .recnmw .ptile{width:100%;box-sizing:border-box;height:26px;padding:0 4px;overflow:hidden}
-/* 名前の字は札の幅に合わせて小さくする（長い名前「キャベッジ」なども札からはみ出さない・埋もれない） */
-html.theme-pawa .ventab .recnmw .ptile b:not(#z){font-size:min(13px, calc((100cqw - 14px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
-@media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 2px !important}.ventab thead th{font-size:9.5px !important}html.theme-pawa .ventab td.vn{min-width:66px}}
+/* 名前の札は試合の打順の表（.lnm）とまったく同じ：幅84px（狭いiPhoneは72px）・真ん中そろえ・2文字は字の間をあける・長い名前は字を小さく */
+html.theme-pawa .ventab .sptile{--w:84px;--fs:13px;width:var(--w);height:26px;padding:0 4px;justify-content:center;box-sizing:border-box;overflow:hidden;flex:none}
+html.theme-pawa .ventab .sptile b{font-size:min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))}
+@media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 1px !important}.ventab thead th{font-size:9px !important;letter-spacing:-.03em}html.theme-pawa .ventab .sptile{--w:72px;--fs:12px}.ventab .ventm{width:16px;height:16px;font-size:8.5px;margin-right:2px}}
 /* 歴代記録 */
 .rectab th,.rectab td{font-size:12.5px !important;padding:7px 3px !important}
 .rectab thead th{font-size:10.5px !important;padding:6px 2px !important}
@@ -8109,7 +8108,7 @@ function renderVen() {
   if (isRate) note.push(side === "b" ? "打率・OPSは、打席がその球場での試合数×3.1以上の選手の順位です" : "防御率は、投球回がその球場での試合数以上の投手の順位です");
   $("venNote").textContent = note.join("　");
   const all = t === "all";
-  const nameCell = (x, n, p) => `<td class="vn"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? `<div class="recnmw">${pwName(x, n, p)}</div>` : `<span class="recnm">${esc(n)}</span>`}</div></td>`;
+  const nameCell = (x, n, p) => `<td class="vn"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? pwName(x, n, p) : `<span class="vnm">${pwName(x, n, p)}</span>`}</div></td>`;   // ほかのタブと同じ呼び名（スタイリッシュも）
   const hi = k => (k === key ? " rv" : "");
   if (side === "b") {
     // 試合, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打

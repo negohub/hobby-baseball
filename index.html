@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005173430">
+<meta name="build" content="20261005181120">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2070,6 +2070,13 @@ html.theme-pawa{background:#CDEBFF}
 .tabbar button .tl,.tabbar button svg{transition:none !important;will-change:transform,opacity;backface-visibility:hidden}
 /* 選択中のタブのレンズ：少し弾むばねの動きですべる */
 .tabbar .lens{transition:transform .55s cubic-bezier(.3,1.35,.45,1),width .55s cubic-bezier(.3,1.35,.45,1)}
+/* 歴代の順位表：打撃｜投手の切り替えは使わない（年度の選択だけ）。表は順位タブの順位表と同じ形 */
+#recBar.stdmode #recSide{display:none}
+/* 通算｜現役｜シーズン｜順位表：4つを画面の幅にきっちり並べる（狭いiPhoneでもはみ出さない） */
+#recKind{display:grid !important;grid-template-columns:repeat(4,1fr);width:100% !important;box-sizing:border-box}
+#recKind button{min-width:0;white-space:nowrap;padding-left:2px !important;padding-right:2px !important;justify-content:center;text-align:center}
+#recBar.stdmode .catsel{width:100%}
+.hstd td.tnm .hsnm{font-size:12.5px;line-height:1.25;white-space:normal}
 /* 球場別成績 */
 .venbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
 .venbar .catsel{width:100%}
@@ -3834,12 +3841,12 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   </section>
   <section class="view" id="v-rec" aria-label="歴代記録" hidden>
     <h2>歴代記録<small id="recAsof"></small></h2>
-    <div class="seg" id="recKind"><button type="button" data-k="lt" aria-pressed="true">通算</button><button type="button" data-k="ac" aria-pressed="false">現役</button><button type="button" data-k="ss" aria-pressed="false">シーズン</button></div>
-    <div class="rkbar"><div class="seg" id="recSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
+    <div class="seg" id="recKind"><button type="button" data-k="lt" aria-pressed="true">通算</button><button type="button" data-k="ac" aria-pressed="false">現役</button><button type="button" data-k="ss" aria-pressed="false">シーズン</button><button type="button" data-k="std" aria-pressed="false">順位表</button></div>
+    <div class="rkbar" id="recBar"><div class="seg" id="recSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
       <label class="catsel"><select id="recCat" aria-label="部門"></select></label></div>
     <p class="recnote" id="recNote"></p>
     <div class="ywrap"><table class="ytab rtab rectab" id="recTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（先発＝赤・中継ぎ＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した打者はウィキペディアの記事の守備位置、引退した投手はNPBの通算成績（1登板あたり3回以上なら先発）で決めています。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
+    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。順位表：1950年（2リーグ制）からの各年の最終順位（球団名は当時の名前）。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（先発＝赤・中継ぎ＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した打者はウィキペディアの記事の守備位置、引退した投手はNPBの通算成績（1登板あたり3回以上なら先発）で決めています。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
   </section>
   <section class="view" id="v-ven" aria-label="球場別成績" hidden>
     <h2>球場別成績<small id="venAsof"></small></h2>
@@ -7965,9 +7972,40 @@ function recTeams() {
   REC_TEAMS_AT = REC && REC.at;
   return REC_TEAMS;
 }
+// 歴代の順位表：球団名（当時の名前）→ 今の球団（色の帯だけに使う）
+const HIST_TEAM = [[/ジャイアンツ|巨人/, "G"], [/タイガース|阪神/, "T"], [/ドラゴンズ|中日/, "D"], [/カープ|広島/, "C"], [/スワローズ|アトムズ|国鉄|サンケイ/, "S"],
+  [/ホエールズ|ベイスターズ|大洋|横浜/, "DB"], [/ホークス|南海|ダイエー/, "H"], [/ファイターズ|フライヤーズ|東映|日拓/, "F"], [/ブレーブス|ブルーウェーブ|阪急|オリックス/, "B"],
+  [/イーグルス|楽天/, "E"], [/ライオンズ|西鉄|太平洋|クラウン/, "L"], [/オリオンズ|マリーンズ|毎日|大毎|ロッテ/, "M"]];
+const histCode = n => (/近鉄/.test(n) ? null : ((HIST_TEAM.find(([re]) => re.test(n)) || [])[1] || null));
+function renderRecStd() {
+  const std = (REC && REC.std) || {}, lg = isPL() ? "P" : "C";
+  const years = Object.keys(std).filter(y => (std[y] || {})[lg]).sort((a, b) => b - a);
+  const sel = $("recCat"), tbl = $("recTbl");
+  const y = years.includes(S.recYear) ? S.recYear : years[0];
+  sel.setAttribute("aria-label", "年度");
+  sel.innerHTML = years.map(x => `<option value="${x}"${x === y ? " selected" : ""}>${x}年</option>`).join("");
+  $("recNote").textContent = "";
+  $("recAsof").textContent = "";
+  if (!y) { tbl.innerHTML = `<tbody><tr><td class="recmsg">歴代の順位表はまだありません（次の自動更新で読み込みます）</td></tr></tbody>`; return; }
+  const rows = std[y][lg];
+  const v = h => h.split("").join("<br>");
+  const head = ["順位", "チーム名", "試合", "勝利", "敗戦", "引分", "勝率", "勝差"];
+  tbl.className = "ytab hstd";
+  tbl.innerHTML = `<thead><tr>${head.map((h, i) => `<th class="${i === 1 ? "tnm" : ""}">${i === 1 ? h : v(h)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((r, i) => { const c = histCode(r[0]);
+      return `<tr${c ? ` style="${tv(c)}"` : ""}><td class="num">${i + 1}</td><td class="tnm"><span class="hsnm">${esc(r[0])}</span></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${esc(r[5])}</td><td class="num">${i === 0 ? "優勝" : esc(r[6] || "-")}</td></tr>`; }).join("") + `</tbody>`;
+}
 function renderRec() {
   recRestore();
   const kind = S.recKind || "lt", side = S.recSide || "b";
+  $("recBar").classList.toggle("stdmode", kind === "std");
+  $("recCat").setAttribute("aria-label", "部門");
+  $("recTbl").className = "ytab rtab rectab";
+  if (kind === "std" && REC) {
+    document.querySelectorAll("#recKind button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === kind)));
+    renderRecStd();
+    return;
+  }
   document.querySelectorAll("#recKind button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === kind)));
   document.querySelectorAll("#recSide button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === side)));
   const tbl = $("recTbl"), sel = $("recCat");
@@ -8042,7 +8080,7 @@ function renderRec() {
 }
 document.getElementById("recKind").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.recKind = b.dataset.k; renderRec(); });
 document.getElementById("recSide").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.recSide = b.dataset.k; S.recKey = null; renderRec(); });
-document.getElementById("recCat").addEventListener("change", e => { S.recKey = e.target.value; renderRec(); });
+document.getElementById("recCat").addEventListener("change", e => { if ((S.recKind || "lt") === "std") S.recYear = e.target.value; else S.recKey = e.target.value; renderRec(); });
 
 // ---------- 球場別成績（data/venues.json：球場別のタブを開いたときに読む。端末にも覚えておく） ----------
 let VEN = null, venBusy = false, venAt = 0;

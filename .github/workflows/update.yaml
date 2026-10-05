@@ -41,6 +41,9 @@ jobs:
           if [ -f data/tstats.json ]; then git add data/tstats.json; fi
           # data/records.json：NPBの歴代記録（1日1回だけ取り直す。記録タブを開いたときに読む）
           if [ -f data/records.json ]; then git add data/records.json; fi
+          # data/venues.json（球場別成績）と data/boxcache.json（読んだ試合の出場成績。毎回読み直さないため）
+          if [ -f data/venues.json ]; then git add data/venues.json; fi
+          if [ -f data/boxcache.json ]; then git add data/boxcache.json; fi
           if [ -d data/archive ]; then git add data/archive; fi
           if git diff --cached --quiet; then echo "変化なし"; exit 0; fi
           git commit -m "update data"

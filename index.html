@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261006110134">
+<meta name="build" content="20261006124600">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -663,6 +663,24 @@ html.theme-pawa.pawa-dark .pnbox .pnm:not(#z){color:#FFD84D !important}
 .tgo li .ic-crown{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
 .se-tab td.tnm small{display:inline;margin-left:8px}
 .se-foot{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+/* 月度別の最下位（シーズンの最終結果） */
+.se-mon{margin-top:14px}
+.se-h{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em}
+.se-mgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.se-grid > .se-box:only-child{grid-column:1 / -1}
+.se-m{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px 10px 10px 14px;border-radius:12px;background:#111;border:1px solid #262626;overflow:hidden}
+.se-m::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--tc)}
+.se-mp{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.03em}
+.se-mt{display:flex;align-items:center;gap:7px;min-width:0}
+.se-mt b{font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.se-bd{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;background:var(--tc);color:var(--ti) !important;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.se-m small{font-size:11px;color:var(--muted)}
+html.theme-pawa .se-h{color:#13264A}
+html.theme-pawa.pawa-dark .se-h{color:#DEE5F2}
+html.theme-pawa .se-m{background:#fff;border:2px solid #1D3E7C;color:#13264A;box-shadow:0 3px 0 rgba(29,62,124,.18)}
+html.theme-pawa .se-mp,html.theme-pawa .se-m small{color:#3B5480}
+html.theme-pawa.pawa-dark .se-m{background:#13213F;border-color:#3D64B0;color:#DEE5F2}
+html.theme-pawa.pawa-dark .se-mp,html.theme-pawa.pawa-dark .se-m small{color:#B8C6E0}
 .se-foot span{font-size:12.5px;padding:4px 8px;border-left:3px solid var(--tc);background:#111}
 .se-foot em{font-style:normal;color:var(--muted);margin-right:6px;font-size:11.5px}
 .se-sum{margin:12px 0 0;font-size:13px;color:#C8C8C8}
@@ -2414,6 +2432,9 @@ html.theme-pawa .wxd em{color:#4A6390;border-color:#C9D8EC;border-radius:6px}
 /* ===== パワプロ風（夜）：自動で作った色の置き換え（pawa_night.py） ===== */
 html.theme-pawa.pawa-dark .pnbox .pnm{color:#DDA6BC !important}
 html.theme-pawa.pawa-dark .tgo li.vic{color:#DDA6BC !important}
+html.theme-pawa.pawa-dark .se-h{color:#DEE5F2}
+html.theme-pawa.pawa-dark .se-m{background:#172338;border:2px solid #3F65AE;color:#DEE5F2}
+html.theme-pawa.pawa-dark .se-mp,html.theme-pawa.pawa-dark .se-m small{color:#ABBCD8}
 html.theme-pawa.pawa-dark .plhd{color:#AEBCD5;border-bottom-color:#224167}
 html.theme-pawa.pawa-dark .plhd b,html.theme-pawa.pawa-dark .plhd em{color:#DEE5F2}
 html.theme-pawa.pawa-dark .pl3 .pcn{color:#B3BED0}
@@ -2862,6 +2883,7 @@ html.sty-light:not(.theme-pawa) .se-box small{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .pnbox .pnm{color:#AA8A0E}
 html.sty-light:not(.theme-pawa) .tgo li.vic{color:#AA8A0E}
 html.sty-light:not(.theme-pawa):not(#y) .op-b.op-b[aria-pressed="true"]:not(#z) i{background:#13264A !important}
+html.sty-light:not(.theme-pawa) .se-m{background:#F4F4F4;border:1px solid #E3E3E3}
 html.sty-light:not(.theme-pawa) .se-foot span{background:#F4F4F4}
 html.sty-light:not(.theme-pawa) .se-sum{color:#383838}
 html.sty-light:not(.theme-pawa) .se-sum b{color:#171717}
@@ -4562,6 +4584,14 @@ function seasonOver() {
   const gs = DATA.games.filter(inLg);
   return gs.some(g => g.st === "final") && gs.every(g => g.st === "final" || g.st === "canc") && !pendingMakeups().length;
 }
+// 月度別の最下位：月度ごとのカード（月度・球団の印・球団名、セ・リーグは担当者と支払い）を、月の順に並べる
+function monthLast(hist, pay) {
+  if (!hist.length) return "";
+  return `<div class="se-mon"><h3 class="se-h">月度別の最下位</h3><div class="se-mgrid">${hist.map(([p, t]) => `<div class="se-m" style="${tv(t)}">
+    <span class="se-mp">${esc(p.label)}</span>
+    <span class="se-mt"><i class="se-bd">${sn(t)}</i><b>${esc(pay ? own(t) : fn(t))}</b></span>
+    ${pay ? `<small>${esc(fn(t))}・${yen(CONFIG.fee)}</small>` : ""}</div>`).join("")}</div></div>`;
+}
 function renderSeasonEnd() {
   const on = seasonOver() && S.period && S.period.id === defaultPeriod(periods()).id;
   $("seasonEnd").hidden = !on;
@@ -4579,24 +4609,23 @@ function renderSeasonEnd() {
   const year = DATA.season || new Date().getFullYear();
   if (isPL() || !people.length) {
     $("seasonEnd").innerHTML = `<div class="se-grid">
-      <div class="se-box" style="${tv(champ.t)}"><span class="se-l">${isPL() ? "パ" : "セ"}・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
+      <div class="se-box" style="${tv(champ.t)}"><span class="se-l">${year} ${isPL() ? "パ" : "セ"}・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
     </div>
-    <div class="se-foot">${hist.map(([p, t]) => `<span style="${tv(t)}"><em>${p.label.replace("月度", "")}</em>${fn(t)}</span>`).join("")}</div>
-    <p class="se-sum">各月度の最下位</p>`;
+    ${monthLast(hist, false)}`;
     return;
   }
   $("seasonEnd").innerHTML = `<div class="se-grid">
       <div class="se-box" style="${tv(people[0].t)}"><span class="se-l">年間MVP</span><b>${ownT(people[0].t)}</b><small>${fn(people[0].t)}・支払い${people[0].n}回・平均${people[0].avg.toFixed(1)}位</small></div>
-      <div class="se-box" style="${tv(champ.t)}"><span class="se-l">セ・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
+      <div class="se-box" style="${tv(champ.t)}"><span class="se-l">${year} セ・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
     </div>
     <div class="ywrap"><table class="ytab se-tab"><thead><tr><th>順位</th><th class="tnm">担当</th><th>支払い</th><th>金額</th></tr></thead><tbody>${people.map((x, i) => `<tr style="${tv(x.t)}" data-tm="${x.t}"><td class="num">${i + 1}</td><td class="tnm">${own(x.t)}<small>${fn(x.t)}</small></td><td class="num">${x.n}回</td><td class="num">${x.n ? yen(x.n * CONFIG.fee) : "-"}</td></tr>`).join("")}</tbody></table></div>
-    <div class="se-foot">${hist.map(([p, t]) => `<span style="${tv(t)}"><em>${p.label.replace("月度", "")}</em>${own(t)}</span>`).join("")}</div>
+    ${monthLast(hist, true)}
     <p class="se-sum">庄村のもとに集まったJ SPORTS代　<b class="num">${yen(total)}</b></p>`;
 }
 function magicTitle() {
   if (S.tab !== "magic" || !S.period) return;
   const cur = defaultPeriod(periods());
-  $("ttl").textContent = seasonOver() && S.period.id === cur.id ? `${DATA.season || ""}シーズン最終結果` : S.period.id === cur.id ? "今月の戦況" : `${S.period.label}の戦況`;
+  $("ttl").textContent = seasonOver() && S.period.id === cur.id ? "最終結果" : S.period.id === cur.id ? "今月の戦況" : `${S.period.label}の戦況`;
 }
 // 「このままだと支払い」の帯の登場の動きは、最初の表示と月度を切り替えたときだけ（自動更新のたびに動くとカクついて見えるため）
 // 動きの途中で描き直したときは、続きから動かす（最初からやり直すと一瞬消えて見える）
@@ -7760,6 +7789,18 @@ document.getElementById("findList").addEventListener("click", e => {
   const b = e.target.closest(".fi"); if (!b) return;
   closeFind(); openPlayer(b.dataset.t, b.dataset.n);
 });
+// ページの見出し：右上のボタン（さがす・設定）にかからないよう、長いときは字を小さくして1行に収める（「3・4月度の戦況」など）
+function fitTitle() {
+  const t = $("ttl"); if (!t) return;
+  t.style.fontSize = "";
+  const btn = $("findBtn").getBoundingClientRect(), base = parseFloat(getComputedStyle(t).fontSize);
+  const rg = document.createRange(); rg.selectNodeContents(t);
+  const w = rg.getBoundingClientRect().width, left = t.getBoundingClientRect().left;
+  const room = btn.left - 8 - left;
+  if (w > room && w > 0) t.style.fontSize = Math.max(20, Math.floor(base * room / w)) + "px";
+}
+new MutationObserver(() => requestAnimationFrame(fitTitle)).observe(document.getElementById("ttl"), { childList: true, characterData: true, subtree: true });
+window.addEventListener("resize", () => requestAnimationFrame(fitTitle));
 // ページの中の目次：押すとその見出しまでなめらかに移動（上に出る小さな見出しの帯に隠れないよう、scroll-margin で少し上に止める）
 document.addEventListener("click", e => {
   const b = e.target.closest(".jump button[data-to]"); if (!b) return;

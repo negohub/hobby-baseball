@@ -2890,6 +2890,14 @@ def main():
     prev_order_p = safe("パ・前年の順位", lambda: fetch_prev_order(season, old, "p"), (old or {}).get("prev_order_p"))
     rosters, roster_date = safe("選手一覧", lambda: fetch_rosters(old), ((old or {}).get("rosters") or {}, (old or {}).get("roster_date")))
     post = safe("ポストシーズン", lambda: fetch_post(season, old), (old or {}).get("post"))
+    # 月別の日程にはCS（クライマックスシリーズ）の試合も載っている。公式戦の試合として数えると、残り試合・マジック・順位が狂う
+    # （10/6：巨人とDeNAに「残り3試合」が付き、阪神の優勝が決まっているのにマジック1のままになった）→ CSが始まる日から後は公式戦から外す
+    post_first = min((p_["d"] for p_ in (post or []) if p_.get("d")), default=None)
+    if post_first:
+        n_before = len(all_games)
+        all_games = [g for g in all_games if g["d"] < post_first]
+        if len(all_games) != n_before:
+            print(f"[試合] CS・日本シリーズの {n_before - len(all_games)}試合を公式戦から外しました（{post_first}〜）")
     # CS・日本シリーズの結果：当日の試合欄（ticker）から、その日のその段階の試合を1つに決められたら結果を入れる
     for g in post or []:
         if g.get("st") == "final":

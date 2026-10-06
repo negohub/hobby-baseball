@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005183324">
+<meta name="build" content="20261005191337">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2106,6 +2106,9 @@ html.theme-pawa .ventab .sptile b{font-size:min(var(--fs), calc((var(--w) - 12px
 .rectab td.tnm{white-space:normal;line-height:1.25}
 .recact{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;vertical-align:1px;background:#17703D;color:#fff;letter-spacing:0}
 .recnote{margin:4px 2px 8px;font-size:11.5px;color:var(--muted)}
+.srcnote{margin:8px 2px 0;font-size:10.5px;color:var(--muted);text-align:right}
+html.theme-pawa .srcnote:not(#z){display:table;margin:8px 0 0 auto;padding:3px 9px;border-radius:8px;background:rgba(255,255,255,.9);color:#13264A !important}
+html.theme-pawa.pawa-dark .srcnote:not(#z){background:rgba(12,24,52,.9);color:#DEE5F2 !important}
 /* パワプロ風：注記は空の上ではなく、読める地の上に（昼は白っぽい地に紺、夜は紺の地に薄い文字） */
 html.theme-pawa .recnote:not(:empty):not(#z){background:rgba(255,255,255,.9);color:#13264A !important;padding:6px 10px;border-radius:10px}
 html.theme-pawa.pawa-dark .recnote:not(:empty):not(#z){background:rgba(12,24,52,.9);color:#DEE5F2 !important}
@@ -2727,6 +2730,7 @@ html.theme-pawa.pawa-dark .me-pick button small{color:#AEBCD5}
 html.theme-pawa.pawa-dark .me-pick button.none:not([aria-pressed="true"]):not(.on){background:rgba(22,36,63,.85)}
 html.theme-pawa.pawa-dark .me-pick button.none.on:not([aria-pressed="true"]):not(.on){border-color:#3F65AE}
 html.theme-pawa.pawa-dark{background:#1C2B45}
+html.theme-pawa.pawa-dark .srcnote:not(#z){background:rgba(22,36,63,.9);color:#DEE5F2 !important}
 html.theme-pawa.pawa-dark .recnote:not(:empty):not(#z){background:rgba(22,36,63,.9);color:#DEE5F2 !important}
 html.theme-pawa.pawa-dark .ptmore{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark .ptr{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
@@ -3769,9 +3773,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <p class="pl-only">パ・リーグ6球団の、月度ごとの最下位回避マジックを表示します（担当者・支払いはセ・リーグだけの遊びです）。3・4月と9・10月はまとめて1つの月度、それ以外は1か月ごとにリセット。交流戦も含む全公式戦の勝敗で集計します。</p>
       <p class="pl-only">順位は勝率（勝÷（勝＋敗）、引き分けは除外）。勝率で並んだ場合は、パ・リーグの規定どおり ①当該球団間の対戦勝率 ②リーグ内対戦（交流戦を除く）の勝率 ③前年度順位 の順で決めます（月度の成績で判定）。同率で並ぶ可能性が残っているうちは、★（回避確定）も最下位確定も出しません。</p>
       <p>M は、どの試合で勝っても最下位回避が確定する残りの勝ち数。自力で決められない（残り全勝でも最下位の可能性が残る）球団は「自力脱出消滅」と表示します。★は回避確定、赤い「<span class="cl-only">支払い</span><span class="pl-only">最下位</span>」は最下位確定。</p>
-      <p>勝差は1位とのゲーム差。</p>
     </details>
-    <details class="howto"><summary>見方</summary><ul><li class="cl-only">順位表：勝差は1位とのゲーム差、残試合はこの月度の残り試合。広島は参考として薄く表示（対象外なので順位・マジック・支払いは広島を除く5球団で計算）。球団名をタップすると公式サイト。</li><li class="pl-only">順位表：勝差は1位とのゲーム差、残試合はこの月度の残り試合。球団名をタップすると公式サイト。</li><li>マジック：最下位を回避するまでの勝ち数。★は回避確定、赤い「<span class="cl-only">支払い</span><span class="pl-only">最下位</span>」は最下位確定、「自力脱出消滅」は、残り試合に全部勝っても、ほかの球団の結果しだいで最下位の可能性が残る状態（自力での最下位脱出ができない）。</li><li>月度の切り替え：上の月度ボタンを押すか、帯・あなたの状況・順位表のあたりを左右にスワイプ（左へで次の月度、右へで前の月度）。それ以外の場所の左右スワイプはタブの切り替えです。</li><li>確定の条件と残り試合：各球団の説明に名前が出てくる相手（いちばん抜きやすい相手）との直接対決は、残り試合の中で<span class="th-s">白枠</span><span class="th-p">青い枠</span>で表示。勝てば自分の勝ちと相手の負けで、1試合で2つ進みます。</li><li>対戦成績：左の球団から見た、この月度だけの勝数-負数（引分数）。<span class="cl-only">広島は参考として薄く表示。</span></li><li class="cl-only">順位推移：広島（参考）は、5球団の勝率のあいだの位置に点線で表示（5球団の順位には関係しません）。</li><li>直近5試合：○は勝ち、●は負け、△は引き分け。下の文字は対戦相手。右が最新。並びは前年の順位順。</li><li>日程の天気は、試合開始時刻の球場の予報（約2週間先まで）。％は試合中の降水確率の最大値です。天気予報：Open-Meteo。</li><li class="cl-only">勝率で並んだときは、セ・リーグの規定（勝利数→当該球団間の対戦勝率→交流戦を除く勝率→前年度順位）で順位を決めます。</li><li class="pl-only">勝率で並んだときは、パ・リーグの規定（当該球団間の対戦勝率→交流戦を除く勝率→前年度順位）で順位を決めます。</li><li>振替待ちは、中止になって振替日がまだ決まっていない試合です。シーズン最後の月度（9・10月度）は、振替の試合も必ずこの月度に行われるので、残試合とマジックに入れて計算します（確定の条件の残り試合には「振替」と出ます）。それより前の月度は、振替日が決まって日程に入るとマジックが変わります。</li></ul></details>
   </section>
 
   <section class="view" id="v-cal" aria-label="日程" hidden>
@@ -3798,7 +3800,6 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="hist cl-only" id="hist"></div>
     <h2 class="cl-only">担当者別 年間成績</h2>
     <div class="tot cl-only" id="tot"></div>
-    <details class="howto"><summary>見方</summary><ul><li>順位表：勝差は1位とのゲーム差。1位の勝差の欄は優勝マジック。</li><li>クライマックスシリーズ・日本シリーズ：勝ち上がり表で、各ステージの勝敗（ファイナルステージの1位はアドバンテージ込み。2026年からは、ファーストステージの勝者が1位と10ゲーム差以上か勝率5割未満なら2勝のアドバンテージ・7試合制、それ以外は1勝・6試合制）と1試合ずつの結果（上の球団から見て○勝ち・●負け・△引き分け）を出します。シーズン終了までは今の順位で表示します。</li><li>順位表の残試合は、日程に入っている試合と、振替待ち（中止になって振替日がまだ決まっていない試合）を合わせた数です。</li><li>優勝ライン：首位と、まだ優勝の可能性がある球団の、残り試合の勝敗ごとの最終勝率。赤字は首位がこの成績以上なら優勝（優勝マジックと同じ）、黄色の背景は今の勝率のペースを保った場合。優勝が決まると表示されなくなります。</li><li>対戦成績：左の球団から見た勝数-負数（引分数）。<span class="cl-only">例：神の行・巨の列＝阪神の巨人戦。</span><span class="pl-only">例：ソの行・日の列＝ソフトバンクの日本ハム戦。</span></li><li class="cl-only">月度ごとの支払い：順位は左から1位で、一番右が最下位（支払い）。広島は対象外。</li><li class="cl-only">担当者ごとの年間成績：数字は各月度の順位（<span class="th-s">白</span><span class="th-p">金色</span>＝1位、赤＝最下位、点線の枠＝集計中）。支払いの少ない順、同じなら平均順位の順。MVPはいちばん上の人、「最多」は支払いの回数がいちばん多い人。</li></ul></details>
   </section>
   <section class="view" id="v-game" aria-label="今日の試合" hidden>
     <div id="pennantBox"></div>
@@ -3807,7 +3808,6 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <div id="today"></div>
     </section>
     <div class="rempty" id="noGame" hidden>対象の球団の試合はしばらくありません。</div>
-    <details class="howto"><summary>見方</summary><ul><li>雨などで試合が中断したとき・開始が遅れているとき・中止やノーゲーム・コールドになったときは、試合のスコアのすぐ下に帯で出ます（黄色＝中断・遅れ、赤＝中止・ノーゲーム、緑＝再開・コールド）。試合中の速報と同じように自動で更新されます。</li><li>ホーム画面から開いているときは、いちばん上で画面を下に引っぱると、最新の結果・スコアをすぐに取り直せます。</li><li>「勝ったら」は、その試合の結果だけで見た場合の変化です（同じ日のほかの試合は考えていません）。</li><li>「負けても自力脱出が残る」：負けた側のマジックの数字が減ることがありますが、それは残り試合が1つ減っただけで、状況が良くなったわけではありません。そのため数字の変化ではなく、残り試合で何勝すればよいかを書いています。</li><li>試合中は自動で更新します（スコアは30秒、一球速報は15秒ごと）。スコア表の点が入ったマスをタップすると、その回の流れが開きます。スコア表・流れ・一球速報のデータはスポーツナビから取得しています。</li></ul></details>
   </section>
 
   <section class="view" id="v-song" aria-label="応援歌" hidden>
@@ -3815,13 +3815,11 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="songhead" id="songHead"></div>
     <input class="songq" id="songQ" type="search" placeholder="名前・背番号でさがす" autocomplete="off">
     <div id="songList"></div>
-    <p class="foot">個別の応援歌がある選手だけを表示しています（それ以外の選手は共通の応援歌）。「聴く」でYouTube検索、「応援歌」で応援歌のページが開きます（阪神は選手・曲ごとのページ、中日は公式PDF、西武は応援歌まとめサイトの選手ごとのページ、ほかの球団は公式ページ。球団によってはその選手・曲の位置に移動します）。下にはチャンステーマ・チーム応援歌も並べています。応援歌の歌詞・音源は各応援団などの著作物のため、このサイトには載せていません。選手一覧はNPB公式から3月〜7月の間、毎日自動で更新します。</p>
   </section>
   <section class="view" id="v-off" aria-label="入退団" hidden>
     <h2 id="offHead">入退団情報<small id="offAsof"></small></h2>
     <div class="chips2 offcats" id="offCats"></div>
     <div id="offList"></div>
-    <details class="howto"><summary>見方</summary><ul><li>各球団の公式サイトの発表（来季の選手契約について・現役引退など）を自動で集めて、表示しているリーグの球団ごとに並べます。選手名をタップすると今季の成績が出ます。成績タブのチーム別成績・応援歌・選手の成績画面の名前の横にも「戦力外」「引退」の札が付きます。集め始めたばかりの球団は、発表から反映まで少し時間がかかることがあります。</li><li>監督の辞任・退任、コーチ（二軍監督を含む）の退団・就任・配置転換も、各球団の公式サイトの発表から拾って「首脳陣」として出します（監督は球団ごとのいちばん上。コーチの名前と役職はNPB公式の監督・コーチ一覧と照らします）。監督の名前をタップすると、監督としての通算成績（NPB公式の年度別成績から、今季の分も含む）が出ます。パワプロ風では、監督の名前は現役時代のポジションの色のタイルです。</li><li>戦力外・引退・首脳陣（監督・コーチの退団・就任・配置転換）のほか、トレード・FA（宣言と移籍）・新外国人・そのほかの加入（各球団の公式発表から）と、ドラフト会議の指名選手（NPB公式から）も出します。球団ごとに「退団」「FA宣言（残るか移籍か未定）」「入団」に分けて並べます。移籍は、退団する球団と入団する球団の両方に出ます。</li><li>このタブは、戦力外通告が始まる9月後半から12月までだけ表示します（発表があればそれより前でも）。</li></ul></details>
   </section>
 
   <section class="view" id="v-stats" aria-label="成績" hidden>
@@ -3837,7 +3835,6 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="rkbar"><div class="seg" id="ptSeg"><button type="button" data-k="bat" aria-pressed="true">打者</button><button type="button" data-k="pit" aria-pressed="false">投手</button></div>
       <label class="catsel"><select id="ptCat" aria-label="並べ替える項目"></select></label></div>
     <div id="ptList"></div>
-    <details class="howto"><summary>見方</summary><ul><li>並べ替え：チーム成績・個人ランキング・チーム別成績は、見出し（小さな上下の三角が付いた項目）をタップするとその項目で並べ替え、もう一度タップすると昇順／降順が入れ替わります。</li><li>チーム成績：<span class="th-s">黄色</span><span class="th-p">オレンジ</span>の太字が各項目のリーグトップ。得点・失点・得失点差は試合結果からすぐに計算しています。</li><li>チーム別成績：球団ボタンでチームを選ぶと、そのチームで出場した全選手の今季成績を並べます（打者の表は打者だけ、投手の表は投手だけ。出典：スポーツナビ）。最初は打率（投手は防御率）の順。右上のメニューで個人ランキングと同じ項目（打者24・投手27）を選ぶと、その項目で並べ替えます（表にない項目は、いちばん右の列に入れて出します。見出しでは K/9＝奪三振率、H＝ホールド、S＝セーブ などと短く書きます）。打率・OPSで並べるときは30打席未満、防御率で並べるときは10投球回未満の選手を下にまとめます。選手名をタップすると詳しい成績が出ます。</li><li>個人ランキング：スポーツナビの個人成績と同じ全項目（打者24・投手27）。右上のメニューで項目を選べます（選んだ項目の上位を並べます）。打率・出塁率・長打率・OPS・得点圏打率は規定打席以上、防御率・勝率・奪三振率・被打率・K/BB・WHIPは規定投球回以上の選手が対象。各項目の10位まで（同じ順位の選手はすべて表示）。出典：スポーツナビ。</li></ul></details>
   </section>
   <section class="view" id="v-rec" aria-label="歴代記録" hidden>
     <h2>歴代記録<small id="recAsof"></small></h2>
@@ -3846,13 +3843,13 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <label class="catsel"><select id="recCat" aria-label="部門"></select></label></div>
     <p class="recnote" id="recNote"></p>
     <div class="ywrap"><table class="ytab rtab rectab" id="recTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>通算：プロ野球（1936年〜）の通算記録の上位。現役：今シーズンの現役選手だけの通算記録。シーズン：1シーズンの記録の上位。</li><li><span class="recact">現役</span>は今シーズンの現役選手。いちばん太い数字がその部門の記録です。</li><li>所属：シーズンの記録はその年の球団、今の選手は今の球団、引退した選手はNPBの「プロ野球在籍者名簿」でいちばん長くいた球団（当時の球団名）です。</li><li>パワプロ風の名前の札の色は守備位置（先発＝赤・中継ぎ＝ピンク・捕手＝水色・内野手＝黄・外野手＝緑）。引退した打者はウィキペディアの記事の守備位置、引退した投手はNPBの通算成績（1登板あたり3回以上なら先発）で決めています。</li><li>出典：NPB（日本野球機構）公式サイト「歴代最高記録」。1日1回取り直しています。</li></ul></details>
+    <p class="srcnote">データ：NPB（日本野球機構）</p>
   </section>
   <section class="view" id="v-stdh" aria-label="歴代順位表" hidden>
     <h2><span id="stdhTtl">歴代順位表</span></h2>
     <label class="catsel stdhsel"><select id="stdhYear" aria-label="年度"></select></label>
     <div class="ywrap"><table class="ytab hstd" id="stdhTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>1950年（2リーグ制）からの各年の最終順位です。球団名は当時の名前で、左の色の帯は当時の球団の色です（今はない球団・名前の変わった球団も、当時の色）。</li><li>出典：NPB（日本野球機構）公式サイト「年度別成績」。</li></ul></details>
+    <p class="srcnote">データ：NPB（日本野球機構）</p>
   </section>
   <section class="view" id="v-ven" aria-label="球場別成績" hidden>
     <h2>球場別成績<small id="venAsof"></small></h2>
@@ -3864,7 +3861,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="seg venkey" id="venKey" role="tablist" aria-label="並べる項目"></div>
     <p class="recnote" id="venNote"></p>
     <div class="ywrap"><table class="ytab ventab" id="venTbl"></table></div>
-    <details class="howto"><summary>見方</summary><ul><li>今季の公式戦で、選んだ球団の選手が選んだ球場で残した成績です（ホームでもビジターでも、その球場の試合を全部足しています）。球団は去年の順位の順、球場は各球団の本拠地を去年の順位の順に並べ、本拠地以外の球場（倉敷・前橋・ほっと神戸など）は「地方球場」にまとめています。「すべて」を選ぶと、今見ているリーグの球団の選手が一緒に並びます。</li><li>項目のタブで並べ方を選べます。規定打席・規定投球回にかかわらず、その球場に出た選手を並べます（打数0の打者・投球回0の投手は出しません）。</li><li>打率＝安打÷打数。OPS＝出塁率＋長打率（出塁率＝(安打＋四球＋死球)÷(打数＋四球＋死球＋犠飛)、長打率＝塁打÷打数）。</li><li>防御率＝自責点×9÷投球回。</li><li>出典：スポーツナビの各試合の出場成績。試合が終わったあとの自動更新で足していきます。</li></ul></details>
+    <p class="srcnote">データ：スポーツナビ</p>
   </section>
   <p class="note" id="note"></p>
 </main>
@@ -6537,7 +6534,7 @@ function renderBracket() {
     else if (x.st === "live") r = `LIVE ${x.hs ?? ""}-${x.as ?? ""}`;
     return `<span class="bk-g${x.st === "live" ? " lv" : ""}"><em>第${g.no}戦</em>${md(g.d)}${r ? `<b class="num">${esc(r)}</b>` : ""}</span>`;
   };
-  const pro = me.done ? "" : "対戦する球団は今の順位で表示しています（シーズン終了で確定）";
+  const pro = me.done ? "" : "今の順位で表示（シーズン終了で確定）";
   const stage = (name, rule, gs, top, bottom, s, note) => `<div class="bk-st"><div class="bk-h"><b>${name}</b><small>${span(gs)}　${rule}</small></div>
     <div class="bk-m">${top}${bottom}</div>${gs.length ? `<div class="bk-gs">${gs.map(g => chip(g, s.hi)).join("")}</div>` : ""}
     ${s.win ? `<p class="bk-win">${fn(s.win)}${note}</p>` : ""}</div>`;
@@ -6546,10 +6543,10 @@ function renderBracket() {
     ${stage(`${L}・CSファーストステージ`, "先に2勝（3試合・並んだら2位）", me.cs1, tm(me.rk[1], "2位", me.s1.wh, me.s1.win), tm(me.rk[2], "3位", me.s1.wl, me.s1.win), { ...me.s1, hi: me.rk[1] }, "がファイナルステージへ")}
     ${stage(`${L}・CSファイナルステージ`, me.rule ? (me.rule.two ? "先に5勝（1位に2勝のアドバンテージ・7試合）" : "先に4勝（1位に1勝のアドバンテージ・6試合）") : "先に4勝（6試合・1位に1勝のアドバンテージ）／条件により先に5勝（7試合・2勝のアドバンテージ）", me.csf, tm(me.rk[0], "1位", me.sf.wh, me.sf.win, me.R.adv), tm(me.s1.win, "ファースト勝者", me.sf.wl, me.sf.win), { ...me.sf, hi: me.rk[0] }, `が日本シリーズへ（${L}・リーグ代表）`)}
     ${(() => {   // 2026年からの決まり：どちらの形になるか（なりそうか）を説明
-      const r = me.rule, f = me.rk[0], two = x => x.two ? `2勝のアドバンテージ・7試合制（${x.why.join("・")}）` : `1勝のアドバンテージ・6試合制（1位と${x.gb.toFixed(1)}ゲーム差・勝率${x.pct.toFixed(3).replace(/^0/, "")}）`;
-      const txt = r ? `${fn(me.s1.win)}が相手なので、${two(r)}${me.done ? "" : "（今の成績で計算・シーズン終了で確定）"}`
-        : `ファーストステージの勝者が「1位と10ゲーム差以上」または「勝率5割未満」なら、1位に2勝のアドバンテージ・7試合制（10/20に第7戦）。今の成績では、${fn(me.rk[1])}が勝ち上がれば${two(me.rule2)}、${fn(me.rk[2])}なら${two(me.rule3)}${me.done ? "" : "（シーズン終了で確定）"}`;
-      return `<p class="bk-rule"><b>2026年からの新ルール</b>${esc(txt)}</p>`;
+      // 相手が決まっていればステージの見出し（先に4勝／5勝）で分かるので何も出さない。決まっていなければ1行だけ
+      const r = me.rule, two = x => x.two ? "先に5勝（2勝のアドバンテージ）" : "先に4勝（1勝のアドバンテージ）";
+      if (r) return "";
+      return `<p class="bk-rule">ファイナル：${esc(fn(me.rk[1]))}が勝ち上がれば${two(me.rule2)}、${esc(fn(me.rk[2]))}なら${two(me.rule3)}</p>`;
     })()}
     ${stage("日本シリーズ", "先に4勝（7試合）", jsg, tm(seW, "セ代表", js.wh, js.win), tm(paW, "パ代表", js.wl, js.win), { ...js, hi: seW }, "が日本一")}
   </div>`;

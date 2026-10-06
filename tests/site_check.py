@@ -70,7 +70,7 @@ REC_SAMPLE = {"at": "2026-10-02T06:00:00+09:00", "src": "https://npb.jp/bis/hist
   "kinds": [{"k": "lt", "n": "通算"}, {"k": "ac", "n": "現役"}, {"k": "ss", "n": "シーズン"}],
   "bat": [{"k": "hr", "n": "本塁打"}, {"k": "avg", "n": "打率"}, {"k": "sb", "n": "盗塁"}], "pit": [{"k": "w", "n": "勝利"}, {"k": "so", "n": "奪三振"}],
   "lists": {
-    "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1], "team": [["巨人"], ["南海", "ロッテ", "西武"], ["西武"]], "pos": ["内野手", "", "内野手"]},
+    "ltb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間", "試合", "打数"], "rows": [["1", "王 貞治", "868", "(1959-1980)", "2831", "9250"], ["2", "野村 克也", "657", "(1954-1980)", "3017", "10472"], ["10", "中村 剛也", "482", "(2003-2026)", "2168", "7317"]], "asof": "2026年10月1日(木)", "note": "", "act": [0, 0, 1], "team": [["巨人"], ["南海", "ロッテ", "西武"], ["西武"]], "pos": ["内野手", "", "内野手"], "pid": ["81383808", "", ""]},
     "ltb_avg": {"cols": ["順位", "選手", "打率", "実働期間", "打数", "安打"], "rows": [["1", "リー", ".320", "(1977-1987)", "4934", "1579"]], "asof": "2026年10月1日(木)", "note": "4000打数以上"},
     "ltp_w": {"cols": ["順位", "選手", "勝利", "実働期間", "登板"], "rows": [["1", "金田 正一", "400", "(1950-1969)", "944"], ["2", "岩瀬 仁紀", "59", "(1999-2018)", "1002"]], "asof": "2026年10月1日(木)", "note": "", "role": ["先発", "中継ぎ"]},
     "acb_hr": {"cols": ["順位", "選手", "本塁打", "実働期間"], "rows": [["1", "中村 剛也", "482", "(2003-2026)"]], "asof": "2026年10月1日(木)", "note": ""},
@@ -3246,6 +3246,59 @@ async def num_cell_check(browser):
             await pg.close()
 
 
+async def ux_check(browser):
+    """使いやすさ：①最初の画面（公式戦が終わったらCS・日本シリーズのあいだは勝ち上がり表、そのあとは入退団）②選手をさがす（12球団）
+    ③ページの中の目次 ④名前を押すと開く（球場別・歴代記録）⑤字は11px未満にしない（丸の中の球団の印は除く）"""
+    for th in ["pawa", ""]:
+        for w in [320, 390]:
+            pg, errs = await open_page(browser, w, th)
+            r = await pg.evaluate("""async () => { const ng = [];
+              // ① 最初の画面
+              const so = seasonOver, jj = jst, post0 = DATA.post;
+              seasonOver = () => true; DATA.post = [{ d: '2026-10-10', stage: 'CS1', lg: 'C' }, { d: '2026-11-01', stage: 'JS', lg: 'C' }];
+              jst = () => ({ y: 2026, m: 10, d: 12, iso: '2026-10-12' }); const a1 = landingTab();
+              jst = () => ({ y: 2026, m: 11, d: 5, iso: '2026-11-05' }); const a2 = landingTab();
+              seasonOver = () => false; const a3 = landingTab();
+              seasonOver = so; jst = jj; DATA.post = post0;
+              if (!a1 || a1.tab !== 'std' || a1.to !== 'bracketBox') ng.push(`CS・日本シリーズのあいだの最初の画面が勝ち上がり表でない（${JSON.stringify(a1)}）`);
+              if (!a2 || a2.tab !== 'off') ng.push(`日本シリーズのあとの最初の画面が入退団でない（${JSON.stringify(a2)}）`);
+              if (a3) ng.push('シーズン中なのに最初の画面が戦況でない');
+              // ② 選手をさがす：名前・背番号。押すと選手の画面
+              openFind(); const q = document.getElementById('findQ');
+              q.value = '近本'; q.dispatchEvent(new Event('input'));
+              const f1 = document.querySelector('#findList .fi'); if (!f1 || !/近本/.test(f1.textContent)) ng.push('名前でさがせない');
+              q.value = '0'; q.dispatchEvent(new Event('input'));
+              { const bad0 = [...document.querySelectorAll('#findList .fi')].map(b => b.querySelector('.fno').textContent).filter(x => !/#0(\\s|$)/.test(x)); if (bad0.length) ng.push(`背番号でさがすと、ほかの背番号の選手まで出る（${bad0.slice(0, 3)}）`); }
+              q.value = '近本'; q.dispatchEvent(new Event('input')); document.querySelector('#findList .fi').click(); await new Promise(r => setTimeout(r, 400));
+              if (!document.getElementById('findSheet').hidden || document.getElementById('songSheet').hidden) ng.push('さがした選手を押しても選手の画面が開かない');
+              document.getElementById('songSheet').classList.remove('open'); document.getElementById('songSheet').hidden = true; await new Promise(r => setTimeout(r, 100));
+              const fb = document.getElementById('findBtn').getBoundingClientRect(); if (fb.width < 44 || fb.height < 44) ng.push('さがすボタンが小さい');
+              // ③ 目次：押すとその見出しが画面の上の方に来る
+              setTab('magic'); window.scrollTo(0, 0); document.querySelector('#v-magic .jump button[data-to="trendBlk"]').click(); await new Promise(r => setTimeout(r, 900));
+              const tt = document.getElementById('trendBlk').getBoundingClientRect().top; if (tt < 0 || tt > 160) ng.push(`目次の「順位推移」で順位推移に移動しない（上から${Math.round(tt)}px）`);
+              // ④ 名前を押すと開く
+              await loadVen(true); S.venTeam = 'T'; S.venPlace = null; setTab('ven'); renderVen(); if (!document.querySelector('#venTbl td.vn[data-pl]')) ng.push('球場別の名前が押せない');
+              await loadRec(true); setTab('rec'); S.recKind = 'lt'; S.recSide = 'b'; S.recKey = 'hr'; renderRec();
+              const tr = n => [...document.querySelectorAll('#recTbl tbody tr')].find(x => x.textContent.includes(n));
+              if (!tr('中村 剛也')?.querySelector('td.pnm[data-pl]')) ng.push('歴代記録の今の選手の名前が押せない');
+              if (tr('王 貞治')?.querySelector('td.pnm')?.dataset.npb !== '81383808') ng.push('歴代記録の引退した選手の名前でNPBの選手のページが開かない');
+              // ⑤ 字の大きさ
+              const small = [];
+              for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {
+                setTab(tb); await new Promise(r => setTimeout(r, 50));
+                const wk = document.createTreeWalker(document.getElementById('v-' + tb), NodeFilter.SHOW_TEXT); let n;
+                while ((n = wk.nextNode())) { const el = n.parentElement; if (!n.textContent.trim() || !el || !el.offsetParent || el.closest('.badge')) continue;
+                  if (parseFloat(getComputedStyle(el).fontSize) < 10.95) small.push(tb + ':' + n.textContent.trim().slice(0, 8) + '(' + getComputedStyle(el).fontSize + ')'); }
+              }
+              if (small.length) ng.push(`11px未満の字がある：${[...new Set(small)].slice(0, 6)}`);
+              return ng; }""")
+            for m in r:
+                bad(f"[使いやすさ {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] {m}")
+            for e in errs:
+                bad(f"[使いやすさ]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -3772,6 +3825,7 @@ async def main():
         await stdh_check(browser)
         await post_games_check(browser)
         await num_cell_check(browser)
+        await ux_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

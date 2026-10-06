@@ -1260,6 +1260,13 @@ async def offseason_check(browser):
         wp["張本勲"] = "'''張本 勲'''（はりもと いさお）は、広島県出身の元プロ野球選手（外野手）。東映フライヤーズで…"
         if ud.wiki_position("張本 勲", ["東映"]) != "外野手":
             bad("[歴代選手の守備位置] 記事の書き出しから守備位置を読めない")
+        # 記事の頭に「金本 (曖昧さ回避)」への案内があっても、本人の記事として読む。曖昧さ回避のページ（{{aimai}}）そのものは使わない
+        wp["金本知憲"] = "{{Otheruses|野球選手|その他の金本|金本 (曖昧さ回避)}}\n{{Infobox baseball player\n|ポジション = [[外野手]]\n}} 阪神タイガース"
+        wp["バース"] = "'''バース'''は…\n{{aimai}}"
+        if ud.wiki_position("金本 知憲", ["阪神", "広島"]) != "外野手":
+            bad("[歴代選手の守備位置] 記事の頭に曖昧さ回避への案内があると読めない（金本）")
+        if ud.wiki_pos_of(wp["バース"], ["阪神"]) != "":
+            bad("[歴代選手の守備位置] 曖昧さ回避のページを本人の記事として読んでしまう")
     finally:
         ud.wiki_get = keep_wg
     # 歴代の順位表：年度別成績のページの「チーム勝敗表」だけ（すぐ後ろのチーム打撃成績は読まない）。1位のゲーム差は空
@@ -3116,13 +3123,20 @@ async def stdh_check(browser):
               const hs0 = (setTab('std'), [...document.querySelectorAll('#std thead th')].map(x => x.textContent).slice(0, 8).join('|')); setTab('stdh');
               if (hs !== hs0) ng.push(`見出しが今季の順位表と違う（${hs} / ${hs0}）`);
               const txt = () => document.getElementById('stdhTbl').textContent;
-              if (!/阪神タイガース/.test(txt()) || !/優勝/.test(txt())) ng.push('2025年の順位表（1位は優勝）が出ない');
+              if (!/阪神/.test(txt()) || /タイガース/.test(txt()) || !/優勝/.test(txt())) ng.push('2025年の順位表（今季と同じ短い球団名・1位は優勝）が出ない');
+              // 球団名は今季の順位表と同じ形：短い名前・1行・同じ字の大きさ
+              { const a = document.querySelector('#stdhTbl td.tnm a'); setTab('std'); const a0 = document.querySelector('#std td.tnm a'); const f0 = a0 && getComputedStyle(a0).fontSize; setTab('stdh');
+                const a1 = document.querySelector('#stdhTbl td.tnm a');
+                if (!a1 || getComputedStyle(a1).fontSize !== f0) ng.push(`球団名の字の大きさが今季の順位表と違う（${a1 && getComputedStyle(a1).fontSize} / ${f0}）`);
+                const two = [...document.querySelectorAll('#stdhTbl td.tnm a')].filter(x => x.getClientRects().length > 1 || x.getBoundingClientRect().height > parseFloat(getComputedStyle(x).fontSize) * 1.9).map(x => x.textContent);
+                if (two.length) ng.push(`球団名が枠に収まらず2行になる（${two}）`); }
               const sl = document.getElementById('stdhYear'); sl.value = '1970'; sl.dispatchEvent(new Event('change'));
-              if (!/読売ジャイアンツ/.test(txt())) ng.push('1970年に切り替わらない');
+              if (!/巨人/.test(txt()) || /ジャイアンツ/.test(txt())) ng.push('1970年に切り替わらない（巨人と短い名前で出るはず）');
               const tb = document.getElementById('stdhTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('はみ出す');
               // 当時の色：パ・リーグ1970年の近鉄は赤（今のどの球団の色でもない）
               switchLeague('P'); setTab('stdh'); const sl2 = document.getElementById('stdhYear'); sl2.value = '1970'; sl2.dispatchEvent(new Event('change'));
               const kin = [...document.querySelectorAll('#stdhTbl tbody tr')].find(tr => /近鉄/.test(tr.textContent));
+              if (histShort('大阪近鉄バファローズ') !== '近鉄' || histShort('横浜DeNAベイスターズ') !== 'DeNA' || histShort('大洋松竹ロビンス') !== '松竹' || histShort('東北楽天ゴールデンイーグルス') !== '楽天') ng.push('短い球団名の付け方が違う');
               if (!kin || getComputedStyle(kin).getPropertyValue('--tc').trim().toUpperCase() !== '#D7001F') ng.push(`近鉄の色が当時の赤でない（${kin && getComputedStyle(kin).getPropertyValue('--tc')}）`);
               if (histStyle('南海ホークス').indexOf('#00813F') < 0 || histStyle('松竹ロビンス').indexOf('#8A94A6') < 0 || histStyle('阪神タイガース') !== tv('T')) ng.push('当時の色の決め方が違う');
               switchLeague('C');

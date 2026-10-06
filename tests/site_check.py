@@ -3296,16 +3296,20 @@ async def ux_check(browser):
                 const cut = [...se.querySelectorAll('.se-mt b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent);
                 if (cut.length) ng.push(`月度別の最下位の名前が切れる（${cut}）`);
                 seasonOver = so2; renderAll(); }
-              // ⑧ 月度は選ぶ欄（項目の選び方と同じ）：全部の月度が選べて、選ぶとその月度になる。横にすべらせるボタンは出さない
-              { setTab('magic'); const ps = document.getElementById('prdSel');
-                if (!ps || ps.tagName !== 'SELECT' || !ps.closest('.catsel')) ng.push('月度の選ぶ欄がない');
-                else {
-                  if (ps.options.length !== periods().length) ng.push(`月度の数が違う（${ps.options.length} / ${periods().length}）`);
-                  const p0 = periods()[0]; ps.value = p0.id; ps.dispatchEvent(new Event('change'));
-                  if (S.period.id !== p0.id || !document.getElementById('ttl').textContent.startsWith(p0.label)) ng.push('月度を選んでもその月度にならない');
-                  if (document.querySelector('#chips .chip')) ng.push('横にすべらせる月度のボタンが残っている');
-                  pickPeriod(defaultPeriod(periods()));
-                } }
+              // ⑧ 月度：全部の月度のボタン（「月度」付き）が画面に収まる。押すとその月度になる
+              { setTab('magic'); const cs = [...document.querySelectorAll('#chips .chip')];
+                if (cs.length !== periods().length) ng.push(`月度のボタンの数が違う（${cs.length} / ${periods().length}）`);
+                if (cs.some(c => { const r = c.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth || c.scrollWidth > c.clientWidth + 1; })) ng.push('月度のボタンが画面からはみ出す・切れる');
+                if (cs.some(c => !/月度/.test(c.textContent))) ng.push('月度のボタンに「月度」がない');
+                const p0 = periods()[0]; cs[0].click();
+                if (S.period.id !== p0.id) ng.push('月度のボタンを押してもその月度にならない');
+                pickPeriod(defaultPeriod(periods())); }
+              // ⑨ どのページにも、横にすべらせないと見えない並びがない
+              for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {
+                setTab(tb); await new Promise(r => setTimeout(r, 60));
+                const ov = [...document.querySelectorAll('#v-' + tb + ' *')].filter(el => { if (!el.offsetParent) return false; const cs = getComputedStyle(el); return (cs.overflowX === 'auto' || cs.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 1; }).map(el => (el.id ? '#' + el.id : '') + '.' + String(el.className).split(' ')[0]);
+                if (ov.length) ng.push(`${tb}：横にすべらせないと見えない並びがある（${ov.slice(0, 3)}）`);
+              }
               // ⑤ 字の大きさ
               const small = [];
               for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {

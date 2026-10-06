@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261005191337">
+<meta name="build" content="20261006044104">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -7995,6 +7995,15 @@ function histStyle(n) {
   const c = histCode(n);
   return c ? tv(c) : "--tc:#8A94A6;--ti:#FFF";
 }
+// 歴代の球団名を、今季の順位表と同じ短い名前に（読売ジャイアンツ→巨人、大洋ホエールズ→大洋、大洋松竹ロビンス→松竹、大阪タイガース→大阪 など）
+const HIST_NICK = /(ジャイアンツ|タイガース|ドラゴンズ|カープ|スワローズ|アトムズ|ホエールズ|ベイスターズ|ロビンス|ホークス|ファイターズ|フライヤーズ|ブレーブス|ブルーウェーブ|バファローズ|バファロー|パールス|ゴールデンイーグルス|イーグルス|ライオンズ|オリオンズ|マリーンズ|スターズ|ユニオンズ|パイレーツ|クリッパーズ)$/;
+const HIST_SHORT = { "読売": "巨人", "横浜DeNA": "DeNA", "東京ヤクルト": "ヤクルト", "広島東洋": "広島", "福岡ソフトバンク": "ソフトバンク", "北海道日本ハム": "日本ハム",
+  "千葉ロッテ": "ロッテ", "東北楽天": "楽天", "埼玉西武": "西武", "福岡ダイエー": "ダイエー", "大阪近鉄": "近鉄", "横浜大洋": "大洋", "大洋松竹": "松竹",
+  "太平洋クラブ": "太平洋", "クラウンライター": "クラウン", "日拓ホーム": "日拓" };
+function histShort(n) {
+  const base = String(n).normalize("NFKC").replace(/\s+/g, "").replace(HIST_NICK, "").replace(/[・･]$/, "");
+  return HIST_SHORT[base] || base || n;
+}
 function renderStdh() {
   recRestore();
   const lg = isPL() ? "P" : "C", tbl = $("stdhTbl"), sel = $("stdhYear");
@@ -8009,7 +8018,7 @@ function renderStdh() {
   const head = ["順位", "チーム名", "試合", "勝利", "敗戦", "引分", "勝率", "勝差"];
   // 表は順位タブの順位表（今季）と同じ見出し・同じ部品
   tbl.innerHTML = `<thead><tr>${head.map((h, i) => `<th class="${i === 1 ? "tnm" : ""}">${i === 1 ? h : v(h)}</th>`).join("")}</tr></thead><tbody>` +
-    std[y][lg].map((r, i) => `<tr style="${histStyle(r[0])}"><td class="num">${i + 1}</td><td class="tnm"><span class="hsnm">${esc(r[0])}</span></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${esc(r[5])}</td><td class="num">${i === 0 ? "優勝" : esc(r[6] || "-")}</td></tr>`).join("") + `</tbody>`;
+    std[y][lg].map((r, i) => { const sh = histShort(r[0]); return `<tr style="${histStyle(r[0])}"><td class="num">${i + 1}</td><td class="tnm${[...sh].length >= 6 ? " lnm6" : ""}"><a title="${esc(r[0])}">${esc(sh)}</a></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${esc(r[5])}</td><td class="num">${i === 0 ? "優勝" : esc(r[6] || "-")}</td></tr>`; }).join("") + `</tbody>`;
 }
 document.getElementById("stdhYear").addEventListener("change", e => { S.stdhYear = e.target.value; renderStdh(); });
 function renderRec() {

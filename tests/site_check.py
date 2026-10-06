@@ -3199,7 +3199,7 @@ async def stdh_check(browser):
               const kin = [...document.querySelectorAll('#stdhTbl tbody tr')].find(tr => /近鉄/.test(tr.textContent));
               if (histShort('大阪近鉄バファローズ') !== '近鉄' || histShort('横浜DeNAベイスターズ') !== 'DeNA' || histShort('大洋松竹ロビンス') !== '松竹' || histShort('東北楽天ゴールデンイーグルス') !== '楽天') ng.push('短い球団名の付け方が違う');
               if (!kin || getComputedStyle(kin).getPropertyValue('--tc').trim().toUpperCase() !== '#D7001F') ng.push(`近鉄の色が当時の赤でない（${kin && getComputedStyle(kin).getPropertyValue('--tc')}）`);
-              if (histStyle('南海ホークス').indexOf('#00813F') < 0 || histStyle('松竹ロビンス').indexOf('#8A94A6') < 0 || histStyle('阪神タイガース') !== tv('T')) ng.push('当時の色の決め方が違う');
+              if (histStyle('南海ホークス').indexOf('#00813F') < 0 || histStyle('松竹ロビンス').indexOf('#8A94A6') < 0 || histStyle('阪神タイガース') !== tv('T') || histStyle('横浜大洋ホエールズ') !== tv('DB') || histStyle('横浜ベイスターズ') !== tv('DB') || histStyle('大洋ホエールズ').indexOf('#00873C') < 0) ng.push('当時の色の決め方が違う（横浜は青・大洋は緑）');
               switchLeague('C');
               return ng; }""")
             for m in r:

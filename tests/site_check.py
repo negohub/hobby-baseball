@@ -3199,6 +3199,25 @@ async def stdh_check(browser):
             await pg.close()
 
 
+async def post_games_check(browser):
+    """CS・日本シリーズの試合が月別の日程に載っていても、公式戦（残り試合・マジック・順位）に数えない"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [];
+      const d = { games: [{ d: '2026-10-08', h: 'T', a: 'S', st: 'sched' }, { d: '2026-10-10', h: 'G', a: 'DB', st: 'sched' }, { d: '2026-10-11', h: 'G', a: 'DB', st: 'sched' }],
+                  post: [{ d: '2026-10-10', stage: 'CS1', lg: 'C' }, { d: '2026-10-14', stage: 'CSF', lg: 'C' }] };
+      normGames(d);
+      if (d.games.map(g => g.d).join() !== '2026-10-08') ng.push(`CSの日から後の試合が公式戦に残っている（${d.games.map(g => g.d)}）`);
+      const before = DATA.games.length; DATA.games = DATA.games.concat([{ d: '2099-01-01', h: 'G', a: 'DB', st: 'sched' }]); DATA.post = (DATA.post || []).concat([{ d: '2098-12-31', stage: 'CS1', lg: 'C' }]);
+      DATA._normOf = null; renderAll();
+      if (DATA.games.some(g => g.d === '2099-01-01')) ng.push('画面を描くときに、CSの試合が公式戦から外れていない');
+      return ng; }""")
+    for m in r:
+        bad(f"[CSの試合と公式戦] {m}")
+    for e in errs:
+        bad(f"[CSの試合と公式戦]: 画面のエラー {e}")
+    await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -3723,6 +3742,7 @@ async def main():
         await peek_rerender_check(browser)
         await rank_format_check(browser)
         await stdh_check(browser)
+        await post_games_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

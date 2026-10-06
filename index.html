@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261006124600">
+<meta name="build" content="20261006131850">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -7955,6 +7955,7 @@ const HIST_COLOR = [[/南海/, "#00813F", "#FFF"], [/阪急/, "#7B1E2B", "#FFF"]
   [/^日本ハムファイターズ/, "#F08300", "#FFF"], [/ロッテオリオンズ/, "#2D3F8C", "#FFF"]];
 const HIST_GONE = /松竹|大映|西日本|高橋|トンボ|ユニオンズ|パイレーツ|ロビンス|スターズ/;
 function histStyle(n) {
+  if (/横浜/.test(n)) return tv("DB");   // 横浜の時代（横浜大洋ホエールズ・横浜ベイスターズ）は青（今のDeNAの色）
   const h = HIST_COLOR.find(([re]) => re.test(n));
   if (h) return `--tc:${h[1]};--ti:${h[2]}`;
   if (HIST_GONE.test(n)) return "--tc:#8A94A6;--ti:#FFF";

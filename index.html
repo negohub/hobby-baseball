@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261006102054">
+<meta name="build" content="20261006110134">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -1937,6 +1937,48 @@ html.theme-pawa{background:#CDEBFF}
 #recKind{display:grid !important;grid-template-columns:repeat(3,1fr);width:100% !important;box-sizing:border-box}
 #recKind button{min-width:0;white-space:nowrap;padding-left:2px !important;padding-right:2px !important;justify-content:center;text-align:center}
 .stdhsel{display:block;width:100%;margin:0 0 10px}
+/* ページの中の目次（戦況・順位）：横に並ぶ小さなボタン。押した先の見出しは、上の帯に隠れない位置で止める */
+.jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 12px;padding:2px 0}
+.jump::-webkit-scrollbar{display:none}
+.jump button{flex:0 0 auto;white-space:nowrap;font:inherit;font-size:12px;font-weight:800;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+html.theme-pawa .jump button{background:rgba(255,255,255,.92);border:2px solid #1D3E7C;color:#13264A}
+html.theme-pawa.pawa-dark .jump button{background:rgba(16,30,62,.92);border-color:#3D64B0;color:#DEE5F2}
+#cards,#mh2hBlk,#trendBlk,#formBlk,#stdTop,#bracketBox,#h2hTop,#histTop{scroll-margin-top:84px}
+/* 選手をさがす（右上の虫めがね）：12球団の今の選手から、名前・呼び名・背番号で */
+.gear.sbtn{right:66px}
+.hwarn{width:calc(100% - 104px) !important}
+.find{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:calc(10px + env(safe-area-inset-top,0px)) 10px 10px}
+.find[hidden]{display:none}
+.find-in{width:100%;max-width:520px;max-height:100%;display:flex;flex-direction:column;background:var(--card,#141414);border-radius:18px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.45)}
+.find-bar{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--line)}
+.find-bar input{flex:1;min-width:0;font:inherit;font-size:16px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:inherit}
+.find-bar button{font:inherit;font-size:13px;font-weight:800;border:0;background:transparent;color:var(--muted);padding:0 6px;cursor:pointer}
+.find-list{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 10px 12px}
+.find-list .fi{display:flex;align-items:center;gap:10px;width:100%;padding:8px 4px;border:0;border-bottom:1px solid var(--line);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.find-list .fi .ventm{flex:none}
+.find-list .fi .fnm{flex:1;min-width:0;font-weight:800;font-size:14.5px}
+.find-list .fi .fno{font-size:12px;color:var(--muted);white-space:nowrap}
+.find-list .fmsg{padding:18px 6px;text-align:center;color:var(--muted);font-size:13px}
+.find-list .ventm{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;background:var(--tc);color:var(--ti) !important}
+html.theme-pawa .find-in{background:#F4F9FF;color:#13264A}
+html.theme-pawa.pawa-dark .find-in{background:#13213F;color:#DEE5F2}
+html.theme-pawa .find-bar input{background:#fff;border:2px solid #1D3E7C;color:#13264A}
+html.theme-pawa.pawa-dark .find-bar input{background:#0E1A33;border-color:#3D64B0;color:#DEE5F2}
+html.theme-pawa .find-bar button,html.theme-pawa .find-list .fi .fno,html.theme-pawa .find-list .fmsg{color:#3B5480}
+html.theme-pawa.pawa-dark .find-bar button,html.theme-pawa.pawa-dark .find-list .fi .fno,html.theme-pawa.pawa-dark .find-list .fmsg{color:#B8C6E0}
+/* ===== 読みやすさ：字は11px未満にしない（丸の中の球団の印など、字ではなく印として描いているものは除く） ===== */
+#v-cal .day span.mu:not(#z),#v-cal .day span.ps:not(#z),#v-game .bi.pre small:not(#z),
+#v-magic td.fr small:not(#z),#v-magic td.num small:not(#z),#v-magic td.tnm small:not(#z),#v-magic th:not(#z),
+#v-off .ofr .offtag:not(#z),.srcnote:not(#z),#v-rec td.rp .yr:not(#z),#v-rec td.pnm .recact:not(#z),#v-rec th:not(#z),
+#v-song .ptile em.tpos:not(#z),#v-song .ptile small.num:not(#z),#v-song .ptile .offtag:not(#z),
+#v-stats th:not(#z),#v-std .ytag:not(#z),#v-std .bk-w small:not(#z),#v-std .ynm small:not(#z),#v-std td.num small:not(#z),
+#v-std td.rk5 small:not(#z),#v-std td.tnm small:not(#z),#v-std td.ya small:not(#z),#v-std th:not(#z),#v-stdh th:not(#z),#v-ven th:not(#z){font-size:11px !important}
+/* 球団の切り替え（6つ並び）：幅の狭いiPhoneでは3つ×2段にして、球団名も11pxで1行に */
+@media (max-width:374px){.teams:not(#z){grid-template-columns:repeat(3,1fr) !important}.teams .tbtn:not(#z){font-size:11px !important}}
+html.lg-p .teams:not(#z){grid-template-columns:repeat(3,1fr) !important}
+html.lg-p .teams .tbtn:not(#z){font-size:11px !important;letter-spacing:0 !important}
+/* 名前は押せる（選手の画面・NPBの選手のページ） */
+.ventab td.vn[data-pl],.rectab td.pnm[data-pl],.rectab td.pnm[data-npb]{cursor:pointer}
 /* 球場別成績 */
 .venbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
 .venbar .catsel{width:100%}
@@ -1959,7 +2001,10 @@ html:not(.theme-pawa) .ventab .vnm{display:inline-block;max-width:6.5em;overflow
 .ventab td.rv{font-weight:800}
 /* 名前の札は試合の打順の表（.lnm）とまったく同じ：幅84px（狭いiPhoneは72px）・真ん中そろえ・2文字は字の間をあける・長い名前は字を小さく */
 html.theme-pawa .ventab .sptile{--w:84px;--fs:13px;width:var(--w);height:26px;padding:0 4px;justify-content:center;box-sizing:border-box;overflow:hidden;flex:none}
-html.theme-pawa .ventab .sptile b{font-size:min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))}
+html.theme-pawa .ventab .sptile b{font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3))))}
+/* とても長い名前は、11pxより小さくせずに札の中で2行に */
+html.theme-pawa .ventab .sptile.n7:not(#z){height:auto;min-height:26px;padding:2px 4px}
+html.theme-pawa .ventab .sptile.n7 b:not(#z){white-space:normal;line-height:1.1;word-break:break-all;text-align:center}
 @media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 1px !important}.ventab thead th{font-size:9px !important;letter-spacing:-.03em}html.theme-pawa .ventab .sptile{--w:72px;--fs:12px}.ventab .ventm{width:16px;height:16px;font-size:8.5px;margin-right:2px}}
 /* 歴代記録 */
 /* 歴代記録は個人ランキングと同じ表（.rtab）。ここでは歴代記録だけにある所（期間の列・現役の印・名前の札に入れる長い名前）だけ */
@@ -1989,7 +2034,7 @@ html.theme-pawa .rectab .recnmw{container-type:inline-size;width:100%;max-width:
 }
 /* 名前の札は個人ランキングと同じ大きさ（高さ34px・最大130px）。歴代の選手はフルネームなので、長い名前だけ字を小さくする */
 html.theme-pawa .rectab .rectile{display:flex;justify-content:center;align-items:center;box-sizing:border-box;width:100%;height:34px;padding:0 4px}
-html.theme-pawa .rectab .rectile b{font-size:min(14px, calc((100cqw - 14px) / var(--n, 3))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
+html.theme-pawa .rectab .rectile b{font-size:max(11px, min(14px, calc((100cqw - 14px) / var(--n, 3)))) !important;letter-spacing:0 !important;white-space:nowrap;overflow:hidden}
 html.theme-pawa .rectab td.pnm .recact{margin-top:6px}
 html.theme-pawa .ptile.pwh{background:linear-gradient(180deg,#FFFFFF,#E6EAF1);border-color:#A9B4C6}
 
@@ -2586,6 +2631,10 @@ html.theme-pawa.pawa-dark .me-pick button small{color:#AEBCD5}
 html.theme-pawa.pawa-dark .me-pick button.none:not([aria-pressed="true"]):not(.on){background:rgba(22,36,63,.85)}
 html.theme-pawa.pawa-dark .me-pick button.none.on:not([aria-pressed="true"]):not(.on){border-color:#3F65AE}
 html.theme-pawa.pawa-dark{background:#1C2B45}
+html.theme-pawa.pawa-dark .jump button:not([aria-pressed="true"]):not(.on){background:rgba(22,36,63,.92);border:2px solid #3F65AE;color:#DEE5F2}
+html.theme-pawa.pawa-dark .find-in{background:#18253B;color:#DEE5F2}
+html.theme-pawa.pawa-dark .find-bar input{background:#172338;border:2px solid #3F65AE;color:#DEE5F2}
+html.theme-pawa.pawa-dark .find-bar button:not([aria-pressed="true"]):not(.on),html.theme-pawa.pawa-dark .find-list .fi .fno,html.theme-pawa.pawa-dark .find-list .fmsg{color:#ABBCD8}
 html.theme-pawa.pawa-dark .srcnote:not(#z){background:rgba(22,36,63,.9);color:#DEE5F2 !important}
 html.theme-pawa.pawa-dark .recnote:not(:empty):not(#z){background:rgba(22,36,63,.9);color:#DEE5F2 !important}
 html.theme-pawa.pawa-dark .ptmore{background:#172338;color:#DEE5F2;border:2px solid #3F65AE}
@@ -3106,6 +3155,9 @@ html.sty-light:not(.theme-pawa) .songhead .sh{background:radial-gradient(120% 18
 html.sty-light:not(.theme-pawa) .songq,html.sty-light:not(.theme-pawa) #songQ{background:#F2F2F4 !important}
 html.sty-light:not(.theme-pawa) .howto summary,html.sty-light:not(.theme-pawa) .rules summary{color:#202027}
 html.sty-light:not(.theme-pawa){background:#F5F5F7}
+html.sty-light:not(.theme-pawa) .find{background:rgba(242,243,247,.55)}
+html.sty-light:not(.theme-pawa) .find-in{background:var(--card,#F2F2F2)}
+html.sty-light:not(.theme-pawa) .find-bar input{background:rgba(20,24,40,0.054)}
 html.sty-light:not(.theme-pawa) .recact{background:#17703D;color:#fff}
 html.sty-light:not(.theme-pawa):not(#y) .htab .hfix:not(#z){background:#C62828 !important;color:#fff !important}
 html.sty-light:not(.theme-pawa) .ptmore{border:1px solid var(--soft-line,#E4E4E4);background:rgba(20,24,40,0.036)}
@@ -3555,6 +3607,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
 <header class="top">
   <div class="brand">
     <button type="button" class="gear" id="gearBtn" aria-label="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><i class="gdot" id="gearDot" hidden></i></button>
+    <button type="button" class="gear sbtn" id="findBtn" aria-label="選手をさがす"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></button>
     <button type="button" class="hwarn" id="hWarn" hidden></button>
     <div class="j" id="kicker">hobby baseball</div>
     <h1 id="ttl">今月の戦況</h1>
@@ -3563,12 +3616,19 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   <div class="stripe" id="stripe"></div>
 </header>
 
+<div class="find" id="findSheet" hidden role="dialog" aria-modal="true" aria-label="選手をさがす">
+  <div class="find-in">
+    <div class="find-bar"><input id="findQ" type="search" placeholder="名前・背番号でさがす（12球団）" autocomplete="off" enterkeyhint="search"><button type="button" id="findClose" aria-label="閉じる">閉じる</button></div>
+    <div class="find-list" id="findList"></div>
+  </div>
+</div>
 <div class="archbar" id="archBar" hidden><span id="archTxt"></span><button type="button" id="archBack">今季に戻る</button></div>
 <main>
   <div class="seg subnav" id="subNav" role="tablist" aria-label="タブの中の切り替え" hidden></div>
   <section class="view" id="v-magic" aria-label="マジック">
     <section class="season-end" id="seasonEnd" hidden></section>
     <div class="chips" id="chips" role="tablist" aria-label="月度"></div>
+    <nav class="jump" aria-label="このページの中へ移動"><button type="button" data-to="cards">順位表</button><button type="button" data-to="mh2hBlk">対戦成績</button><button type="button" data-to="trendBlk">順位推移</button><button type="button" data-to="formBlk">直近5試合</button></nav>
     <div id="alert"></div>
     <div id="meCard"></div>
     <div class="cards" id="cards"></div>
@@ -3612,13 +3672,14 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   </section>
 
   <section class="view" id="v-std" aria-label="順位" hidden>
-    <h2><span id="stdTtl">セ・リーグ順位表</span><small id="stdNote"></small></h2>
+    <nav class="jump" aria-label="このページの中へ移動"><button type="button" data-to="stdTop">順位表</button><button type="button" data-to="bracketBox">CS・日本シリーズ</button><button type="button" data-to="h2hTop">対戦成績</button><button type="button" data-to="histTop" class="cl-only">月度別 支払い</button></nav>
+    <h2 id="stdTop"><span id="stdTtl">セ・リーグ順位表</span><small id="stdNote"></small></h2>
     <div id="std"></div>
     <div id="raceBox"></div>
     <div id="bracketBox"></div>
-    <h2>対戦成績<small>勝-敗（引分）</small></h2>
+    <h2 id="h2hTop">対戦成績<small>勝-敗（引分）</small></h2>
     <div id="h2h"></div>
-    <h2 class="cl-only">月度別 支払い</h2>
+    <h2 class="cl-only" id="histTop">月度別 支払い</h2>
     <div class="hist cl-only" id="hist"></div>
     <h2 class="cl-only">担当者別 年間成績</h2>
     <div class="tot cl-only" id="tot"></div>
@@ -6795,6 +6856,10 @@ document.addEventListener("click", e => {
   if (TEAM[t]) openManager(t, n);
 });
 document.addEventListener("click", e => {
+  const npb = e.target.closest("[data-npb]");
+  if (npb && /^\d+$/.test(npb.dataset.npb)) { window.open(`https://npb.jp/bis/players/${npb.dataset.npb}.html`, "_blank", "noopener"); return; }
+});
+document.addEventListener("click", e => {
   const el = e.target.closest("[data-pl]");
   if (!el || e.target.closest("button:not(.ptile)")) return;
   const [t, n, kind] = el.dataset.pl.split("|");
@@ -7669,6 +7734,46 @@ function renderRestSoon() {
 }
 // 全部のタブをすぐ描き終える（検査や、全部の画面がそろっている必要があるとき）
 function renderAllNow() { for (const t of [...TAB_DIRTY]) renderTab(t); }
+// ---------- 選手をさがす：12球団の今の選手（名簿）から、名前・呼び名・背番号で。押すと選手の画面 ----------
+const ALL12 = ["T", "DB", "G", "D", "C", "S", "H", "F", "B", "E", "L", "M"];
+function renderFind() {
+  const raw = $("findQ").value.normalize("NFKC").trim(), q = raw.replace(/\s+/g, "");
+  const list = $("findList");
+  if (!q) { list.innerHTML = `<p class="fmsg">名前（一部でも）か背番号を入れてください</p>`; return; }
+  const hits = [];
+  for (const t of ALL12) for (const r of (DATA.rosters || {})[t] || []) {
+    const nm = String(r.n || "").replace(/\s+/g, ""), cn = String(callName(t, r.n) || "").replace(/\s+/g, "");
+    const byNo = /^\d{1,3}$/.test(q) && String(r.no || "") === q;
+    if (byNo || nm.includes(q) || cn.includes(q)) hits.push({ t, r, sc: byNo ? 0 : nm.startsWith(q) ? 1 : 2 });
+  }
+  hits.sort((a, b) => a.sc - b.sc || ALL12.indexOf(a.t) - ALL12.indexOf(b.t) || String(a.r.no).localeCompare(String(b.r.no), "ja", { numeric: true }));
+  list.innerHTML = hits.length ? hits.slice(0, 80).map(({ t, r }) => `<button type="button" class="fi" data-t="${t}" data-n="${esc(r.n)}"><i class="ventm" style="${tv(t)}">${sn(t)}</i><span class="fnm">${esc(r.n)}</span><span class="fno">${esc(fn(t))}・${r.no ? "#" + esc(r.no) : ""} ${esc(r.p || "")}</span></button>`).join("")
+    : `<p class="fmsg">見つかりませんでした</p>`;
+}
+function openFind() { $("findSheet").hidden = false; $("findQ").value = ""; renderFind(); setTimeout(() => $("findQ").focus(), 50); }
+function closeFind() { $("findSheet").hidden = true; }
+document.getElementById("findBtn").addEventListener("click", openFind);
+document.getElementById("findClose").addEventListener("click", closeFind);
+document.getElementById("findSheet").addEventListener("click", e => { if (e.target.id === "findSheet") closeFind(); });
+document.getElementById("findQ").addEventListener("input", renderFind);
+document.getElementById("findList").addEventListener("click", e => {
+  const b = e.target.closest(".fi"); if (!b) return;
+  closeFind(); openPlayer(b.dataset.t, b.dataset.n);
+});
+// ページの中の目次：押すとその見出しまでなめらかに移動（上に出る小さな見出しの帯に隠れないよう、scroll-margin で少し上に止める）
+document.addEventListener("click", e => {
+  const b = e.target.closest(".jump button[data-to]"); if (!b) return;
+  const el = document.getElementById(b.dataset.to); if (!el) return;
+  el.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+});
+// 開いたときの最初の画面：シーズン中は戦況。公式戦が終わったら、CS・日本シリーズのあいだは順位タブの勝ち上がり表、そのあとは入退団
+function landingTab() {
+  if (!DATA || !seasonOver()) return null;
+  const post = (DATA.post || []).map(p => p.d).filter(Boolean).sort();
+  if (post.length && jst().iso <= post[post.length - 1]) return { tab: "std", to: "bracketBox" };
+  if (offSeason() || offItems().length) return { tab: "off" };
+  return null;
+}
 // CS・日本シリーズの試合は公式戦に入れない（月別の日程に載ってくるので、CSが始まる日から後の試合は外す）。
 // 入れてしまうと、残り試合・マジック・順位が狂う（阪神の優勝が決まっているのにマジック1のままになった）
 function normGames(d) {
@@ -7741,6 +7846,8 @@ async function load() {
   DATA = first; fromSnap = false; normGames(DATA);
   try { RAWSIG = first === cached ? localStorage.getItem(CACHE_KEY + "-sig") : null; } catch { RAWSIG = null; }
   renderAll();
+  // 最初の画面：シーズンの時期に合わせて（公式戦が終わったら勝ち上がり表・入退団）
+  try { const land = landingTab(); if (land) { setTab(land.tab); if (land.to) requestAnimationFrame(() => { const el = document.getElementById(land.to); if (el && el.innerHTML.trim()) el.scrollIntoView({ block: "start" }); }); } } catch {}
   requestAnimationFrame(() => moveLens(true));
   askMeOnce();
   try {
@@ -7907,7 +8014,9 @@ function renderRec() {
     const act = (L.act && L.act[ri]) || (kind !== "ss" && ni >= 0 && nowNames.has(nk(r[ni])));
     const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
     const rk = parseInt(r[0], 10) || 0, h0 = nowHit(r, ri);
-    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm">${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
+    // 名前を押すと：今の選手は選手の画面、引退した選手はNPBの選手のページ（ほかのタブと同じく、名前はどれも押せる）
+    const tapA = h0 ? ` data-pl="${h0.t}|${esc(h0.n)}|${side === "p" ? "pit" : "bat"}"` : (L.pid && L.pid[ri] ? ` data-npb="${esc(L.pid[ri])}"` : "");
+    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm"${tapA}>${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";
@@ -8014,7 +8123,7 @@ function renderVen() {
   const lowRow = (r, i, arr) => !r.q && (i === 0 || arr[i - 1].q) ? `<tr class="vdiv"><td colspan="8">${side === "b" ? "規定打席未満" : "規定投球回未満"}</td></tr>` : "";
   $("venNote").textContent = note.join("　");
   const all = t === "all";
-  const nameCell = (x, n, p) => `<td class="vn"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? pwName(x, n, p) : `<span class="vnm">${pwName(x, n, p)}</span>`}</div></td>`;   // ほかのタブと同じ呼び名（スタイリッシュも）
+  const nameCell = (x, n, p) => `<td class="vn" data-pl="${x}|${esc(n)}|${p ? "pit" : "bat"}"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? pwName(x, n, p) : `<span class="vnm">${pwName(x, n, p)}</span>`}</div></td>`;   // ほかのタブと同じ呼び名（スタイリッシュも）
   const hi = k => (k === key ? " rv" : "");
   if (side === "b") {
     // 試合, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打

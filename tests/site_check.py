@@ -3296,6 +3296,16 @@ async def ux_check(browser):
                 const cut = [...se.querySelectorAll('.se-mt b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent);
                 if (cut.length) ng.push(`月度別の最下位の名前が切れる（${cut}）`);
                 seasonOver = so2; renderAll(); }
+              // ⑧ 月度は選ぶ欄（項目の選び方と同じ）：全部の月度が選べて、選ぶとその月度になる。横にすべらせるボタンは出さない
+              { setTab('magic'); const ps = document.getElementById('prdSel');
+                if (!ps || ps.tagName !== 'SELECT' || !ps.closest('.catsel')) ng.push('月度の選ぶ欄がない');
+                else {
+                  if (ps.options.length !== periods().length) ng.push(`月度の数が違う（${ps.options.length} / ${periods().length}）`);
+                  const p0 = periods()[0]; ps.value = p0.id; ps.dispatchEvent(new Event('change'));
+                  if (S.period.id !== p0.id || !document.getElementById('ttl').textContent.startsWith(p0.label)) ng.push('月度を選んでもその月度にならない');
+                  if (document.querySelector('#chips .chip')) ng.push('横にすべらせる月度のボタンが残っている');
+                  pickPeriod(defaultPeriod(periods()));
+                } }
               // ⑤ 字の大きさ
               const small = [];
               for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {

@@ -2473,6 +2473,10 @@ def update_records(force=False):
         if ni < 0 or not reg or not reg.get("people"):
             continue
         persons = [record_person(r[ni], r[pi] if pi >= 0 else "", reg) for r in L["rows"]]
+        new_pid = [(p_[1] if p_ else "") for p_ in persons]   # NPBの選手のページの番号（画面で名前を押すと開く）
+        if new_pid != L.get("pid"):
+            L["pid"] = new_pid
+            got = got or 1
         if not k.startswith("ss"):
             new_team = [(p_[0] if p_ else []) for p_ in persons]
             teamed += sum(1 for x in new_team if x)

@@ -1957,6 +1957,7 @@ REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
 REG_PARSER = 3          # 名簿の読み方の版（2：［改名］の名前も覚える、3：選手のページの番号も覚える）。版が変わったらすぐ取り直す
 POS_BUDGET = 120        # 1回の更新で選手のページ（守備位置）を読むのに使う秒数の上限
 REG_MIN_PEOPLE = 3000   # これより少ない名簿は「取り損ね」とみなす（ほんとうは約1万人）
+POS_VERSION = 2         # 引退した打者の守備位置の調べ方の版（2：記事の書き出し「元プロ野球選手（内野手）」も読む・断られたら次の回）
 
 
 def reg_year(y):
@@ -2166,11 +2167,30 @@ WIKI_TEAM = {"巨人": ["ジャイアンツ", "読売"], "阪神": ["タイガ�
              "松竹": ["ロビンス"], "大映": ["スターズ"], "高橋": ["ユニオンズ"]}
 
 
+WIKI_DIAG = {"ok": 0, "http": 0, "err": 0, "found": 0, "nopos": 0, "last": ""}
+
+
+class WikiBusy(Exception):
+    """ウィキペディアに断られた（混んでいる）：この回はやめて、次の回にもう一度"""
+
+
 def wiki_get(params):
+    time.sleep(0.25)   # 続けて頼みすぎない
     try:
         r = requests.get(WIKI_API, params={**params, "format": "json", "formatversion": "2"}, headers=WIKI_UA, timeout=20)
-        return r.json() if r.status_code == 200 else {}
-    except (requests.RequestException, ValueError):
+    except requests.RequestException as e:
+        WIKI_DIAG["err"] += 1; WIKI_DIAG["last"] = str(e)[:120]
+        raise WikiBusy()
+    if r.status_code in (403, 429, 503):
+        WIKI_DIAG["http"] += 1; WIKI_DIAG["last"] = f"HTTP {r.status_code} {r.text[:100]}"
+        raise WikiBusy()
+    if r.status_code != 200:
+        WIKI_DIAG["http"] += 1; WIKI_DIAG["last"] = f"HTTP {r.status_code}"
+        return {}
+    WIKI_DIAG["ok"] += 1
+    try:
+        return r.json()
+    except ValueError:
         return {}
 
 
@@ -2180,10 +2200,12 @@ def wiki_pos_of(text, teams):
         return ""
     if teams and not any(any(a in text for a in [t] + WIKI_TEAM.get(t, [])) for t in teams[:3] if t):
         return ""
-    m = re.search(r"\|\s*ポジション\s*=\s*([^\n]+)", text)
-    if not m:
-        return ""
-    p = WIKI_POS.search(m.group(1))
+    # 情報欄の「ポジション」（「守備位置」の書き方もある）→ なければ記事の書き出し「…元プロ野球選手（内野手）」
+    m = re.search(r"\|\s*(?:ポジション|守備位置)\s*=\s*([^\n]+)", text)
+    p = WIKI_POS.search(m.group(1)) if m else None
+    if not p:
+        m2 = re.search(r"プロ野球選手[（(]([^）)]{1,30})[）)]", text[:6000])
+        p = WIKI_POS.search(m2.group(1)) if m2 else None
     if not p:
         return ""
     return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
@@ -2302,6 +2324,12 @@ def update_records(force=False):
     teamed, posc, pos_start, reg_dirty = 0, 0, time.time(), False
     poscache = dict((reg or {}).get("pos") or {})
     rolecache = dict((reg or {}).get("role") or {})
+    wiki_stop = [False]
+    if (reg or {}).get("posv") != POS_VERSION:
+        poscache = {k: ("" if v == "-" else v) for k, v in poscache.items()}   # 読み方を直したので、分からなかった選手をもう一度調べる
+        if reg:
+            reg["posv"] = POS_VERSION
+        reg_dirty = True
     for k, L in lists.items():
         ni = next((i for i, c in enumerate(L["cols"]) if re.search(r"選手|投手|打者", c)), -1)
         pi = next((i for i, c in enumerate(L["cols"]) if re.search(r"実働|期間|年度", c)), -1)
@@ -2337,10 +2365,15 @@ def update_records(force=False):
                 html = rec_fetch(f"https://npb.jp/bis/players/{pid}.html")
                 poscache[pid] = parse_player_pos(html) if html else ""
                 reg_dirty = True
-            if pid and poscache.get(pid) == "" and time.time() - pos_start < POS_BUDGET:
+            if pid and poscache.get(pid) == "" and time.time() - pos_start < POS_BUDGET and not wiki_stop[0]:
                 nm0 = L["rows"][len(new_pos)][ni]
-                poscache[pid] = wiki_position(nm0, tms) or "-"
-                reg_dirty = True
+                try:
+                    wp_ = wiki_position(nm0, tms)
+                    WIKI_DIAG["found" if wp_ else "nopos"] += 1
+                    poscache[pid] = wp_ or "-"
+                    reg_dirty = True
+                except WikiBusy:
+                    wiki_stop[0] = True
             v_ = poscache.get(pid, "") if pid else ""
             new_pos.append(v_ if v_ not in ("-",) else "")
         posc += sum(1 for x in new_pos if x)
@@ -2370,8 +2403,9 @@ def update_records(force=False):
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],
            "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER,
-           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed, "posd": posc}
-    if got or fail or not os.path.exists(RECORDS_OUT) or prev.get("reg") != out.get("reg"):
+           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed, "posd": posc, "wiki": dict(WIKI_DIAG)}
+    wiki_act = WIKI_DIAG["ok"] + WIKI_DIAG["http"] + WIKI_DIAG["err"] > 0
+    if got or fail or not os.path.exists(RECORDS_OUT) or prev.get("reg") != out.get("reg") or (wiki_act and prev.get("wiki") != out.get("wiki")):
         with open(RECORDS_OUT, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[歴代記録] 取得 {got}ページ・取れず {fail}ページ（全{len(lists)}件）")

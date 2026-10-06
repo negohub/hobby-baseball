@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261006092452">
+<meta name="build" content="20261006102054">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -1947,6 +1947,9 @@ html.theme-pawa{background:#CDEBFF}
 .venkey button{flex:0 0 auto;white-space:nowrap}
 .ventab .ventm{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-style:normal;font-size:9.5px;font-weight:900;background:var(--tc);color:var(--ti) !important;margin:0 4px 0 0;vertical-align:middle;flex:none}
 .ventab td.vn{white-space:nowrap}
+/* 規定未満の区切りと、その下の選手（少し薄く） */
+.ventab tr.vdiv td{text-align:left !important;font-size:11px !important;font-weight:800;color:var(--muted);padding:10px 8px 6px !important;background:transparent}
+.ventab tr.vlow td:not(.vn){opacity:.62}
 .ventab .venc{display:flex;align-items:center;min-width:0}
 html:not(.theme-pawa) .ventab .vnm{display:inline-block;max-width:6.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-weight:700}
 
@@ -8004,6 +8007,11 @@ function renderVen() {
   if (!v || !parts.length) { tbl.innerHTML = `<tbody><tr><td class="recmsg">この球団の試合はまだありません</td></tr></tbody>`; $("venNote").textContent = ""; return; }
   const note = [];
   if (VEN.have < VEN.total) note.push(`今季の${VEN.total}試合のうち、${VEN.have}試合分を集計しています（自動更新で順に足していきます）`);
+  // 率の項目（打率・OPS・防御率）は、少ない打席・投球回の選手が上に来ないよう、規定と同じ考え方で絞る（その球場でのチームの試合数が基準）。数を数える項目は全員
+  const rateKey = ["avg", "ops", "era"].includes(key);
+  if (rateKey) note.push(side === "b" ? "規定打席（この球場の試合数×3.1）以上の選手が上、未満の選手はその下" : "規定投球回（この球場の試合数）以上の投手が上、未満の投手はその下");
+  // 率の項目：規定に届いた選手を上に並べ、届いていない選手は区切りの下に（打席の少ない選手も見られるように）
+  const lowRow = (r, i, arr) => !r.q && (i === 0 || arr[i - 1].q) ? `<tr class="vdiv"><td colspan="8">${side === "b" ? "規定打席未満" : "規定投球回未満"}</td></tr>` : "";
   $("venNote").textContent = note.join("　");
   const all = t === "all";
   const nameCell = (x, n, p) => `<td class="vn"><div class="venc">${all ? `<i class="ventm" style="${tv(x)}">${sn(x)}</i>` : ""}${isPawa() ? pwName(x, n, p) : `<span class="vnm">${pwName(x, n, p)}</span>`}</div></td>`;   // ほかのタブと同じ呼び名（スタイリッシュも）
@@ -8016,16 +8024,18 @@ function renderVen() {
       const pa = ab + bb + hbp + sf, obpD = ab + bb + hbp + sf;
       rows.push({ x, n, g, ab, h, hr, rbi, pa, tg: d.games, avg: ab ? h / ab : null, ops: obpD && ab ? (h + bb + hbp) / obpD + tb / ab : null });
     }
-    rows.sort((a, b) => (b[key] ?? -1) - (a[key] ?? -1) || b.pa - a.pa);
-    const body = rows.slice(0, 100).map(r => `<tr>${nameCell(r.x, r.n)}<td>${r.g}</td><td class="${hi("ab")}">${r.ab}</td><td class="${hi("h")}">${r.h}</td><td class="${hi("hr")}">${r.hr}</td><td class="${hi("rbi")}">${r.rbi}</td><td class="${hi("avg")}">${rate3(r.h, r.ab)}</td><td class="${hi("ops")}">${r.ops == null ? "-" : rate3(r.ops, 1)}</td></tr>`).join("");
+    rows.forEach(r => (r.q = !rateKey || r.pa >= r.tg * 3.1));
+    rows.sort((a, b) => (b.q - a.q) || (b[key] ?? -1) - (a[key] ?? -1) || b.pa - a.pa);
+    const body = rows.slice(0, 100).map((r, i, arr) => `${lowRow(r, i, arr)}<tr${r.q ? "" : ' class="vlow"'}>${nameCell(r.x, r.n)}<td>${r.g}</td><td class="${hi("ab")}">${r.ab}</td><td class="${hi("h")}">${r.h}</td><td class="${hi("hr")}">${r.hr}</td><td class="${hi("rbi")}">${r.rbi}</td><td class="${hi("avg")}">${rate3(r.h, r.ab)}</td><td class="${hi("ops")}">${r.ops == null ? "-" : rate3(r.ops, 1)}</td></tr>`).join("");
     tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th>試合</th><th class="${hi("ab")}">打数</th><th class="${hi("h")}">安打</th><th class="${hi("hr")}">本塁打</th><th class="${hi("rbi")}">打点</th><th class="${hi("avg")}">打率</th><th class="${hi("ops")}">OPS</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">打席に立った選手がいません</td></tr>`}</tbody>`;
   } else {
     // 登板, アウト, 自責点, 勝, 敗, S, H, 奪三振, 被安打, 与四死球
     let rows = [];
     for (const [x, d] of parts) for (const [n, g, outs, er, w, l, sv, hd] of d.pit) if (outs > 0) rows.push({ x, n, g, outs, er, w, l, sv, hd, ip: outs, tg: d.games, era: outs ? er * 27 / outs : null });
-    rows.sort((a, b) => key === "era" ? (a.era ?? 1e9) - (b.era ?? 1e9) || b.outs - a.outs : (b[key] - a[key]) || b.outs - a.outs);
+    rows.forEach(r => (r.q = !rateKey || r.outs >= r.tg * 3));
+    rows.sort((a, b) => (b.q - a.q) || (key === "era" ? (a.era ?? 1e9) - (b.era ?? 1e9) || b.outs - a.outs : (b[key] - a[key]) || b.outs - a.outs));
     const ip = o => `${Math.floor(o / 3)}${o % 3 ? "." + (o % 3) : ""}`;
-    const body = rows.slice(0, 100).map(r => `<tr>${nameCell(r.x, r.n, "投手")}<td class="${hi("g")}">${r.g}</td><td class="${hi("ip")}">${ip(r.outs)}</td><td class="${hi("w")}">${r.w}</td><td>${r.l}</td><td class="${hi("sv")}">${r.sv}</td><td class="${hi("hd")}">${r.hd}</td><td class="${hi("era")}">${r.outs ? (Math.round(r.er * 2700 / r.outs + 1e-9) / 100).toFixed(2) : "-"}</td></tr>`).join("");
+    const body = rows.slice(0, 100).map((r, i, arr) => `${lowRow(r, i, arr)}<tr${r.q ? "" : ' class="vlow"'}>${nameCell(r.x, r.n, "投手")}<td class="${hi("g")}">${r.g}</td><td class="${hi("ip")}">${ip(r.outs)}</td><td class="${hi("w")}">${r.w}</td><td>${r.l}</td><td class="${hi("sv")}">${r.sv}</td><td class="${hi("hd")}">${r.hd}</td><td class="${hi("era")}">${r.outs ? (Math.round(r.er * 2700 / r.outs + 1e-9) / 100).toFixed(2) : "-"}</td></tr>`).join("");
     tbl.innerHTML = `<thead><tr><th class="vn">選手</th><th class="${hi("g")}">登板</th><th class="${hi("ip")}">投球回</th><th class="${hi("w")}">勝</th><th>敗</th><th class="${hi("sv")}">S</th><th class="${hi("hd")}">H</th><th class="${hi("era")}">防御率</th></tr></thead><tbody>${body || `<tr><td class="recmsg" colspan="8">投げた投手がいません</td></tr>`}</tbody>`;
   }
 }

@@ -2054,7 +2054,7 @@ def update_register(force=False):
         prev["diag"] = diag
         return prev
     out = {"at_ts": time.time(), "people": people, "alias": alias, "renames": renames, "diag": diag, "pv": REG_PARSER,
-           "pos": (prev or {}).get("pos") or {}, "role": (prev or {}).get("role") or {}}   # 守備位置・先発／中継ぎは取り直さずに引き継ぐ
+           "pos": (prev or {}).get("pos") or {}, "role": (prev or {}).get("role") or {}, "bbcf": (prev or {}).get("bbcf") or {}}   # 守備位置・先発／中継ぎ・外国人選手の一覧は取り直さずに引き継ぐ
     with open(REG_OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"[在籍者名簿] {got}ページ・{len(people)}人")
@@ -2119,8 +2119,8 @@ def record_person(name, period, reg):
         cnt = {t: len(v) for t, v in cnt.items()}
         order = [t for t in sorted(cnt, key=lambda t: (-cnt[t], first[t])) if cnt[t] > 0]   # 長くいた球団から（同じなら先にいた球団）。期間に重ならない球団は入れない
         if best is None or sum(cnt.values()) > best[2]:
-            best = (order, (e.get("id") if isinstance(e, dict) else "") or "", sum(cnt.values()))
-    return (best[0], best[1]) if best else None
+            best = (order, (e.get("id") if isinstance(e, dict) else "") or "", sum(cnt.values()), (min(yrs), max(yrs)))
+    return (best[0], best[1], best[3]) if best else None   # (所属, 選手のページの番号, (在籍の最初の年, 最後の年))
 
 
 def record_teams(name, period, reg):
@@ -2225,6 +2225,89 @@ def wiki_lead_position(titles):
             return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
         if ex and len(WIKI_DIAG.setdefault("samples", [])) < 12:
             WIKI_DIAG["samples"].append(f"{pg.get('title')}: {ex[:90]}")
+    return ""
+
+
+# ---------- 外国人選手の守備位置：ベースボールチャンネル「各球団の歴代助っ人外国人選手一覧＜在籍年数・ポジション＞」 ----------
+# 記録には「バース」「ローズ」のように名字だけで載るので、名字・球団・在籍年で本人を決める（同じ名字でも球団と年で見分ける）
+BBC_FOREIGN = {"G": 78993, "H": 79004, "L": 79021, "M": 79097, "F": 79149, "B": 79178, "K": 79189, "E": 79202,
+               "T": 79877, "C": 79905, "DB": 79914, "S": 79936, "D": 79973}
+FRANCHISE = [(r"近鉄|パールス", "K"), (r"巨人|ジャイアンツ|読売", "G"), (r"ソフトバンク|ダイエー|南海|ホークス", "H"),
+             (r"西武|西鉄|太平洋|クラウン|ライオンズ", "L"), (r"ロッテ|毎日|大毎|東京|オリオンズ", "M"),
+             (r"日本ハム|日拓|東映|東急|急映|セネタース|フライヤーズ|ファイターズ", "F"), (r"オリックス|阪急|ブレーブス|ブルーウェーブ", "B"),
+             (r"楽天|イーグルス", "E"), (r"阪神|大阪|タイガース", "T"), (r"広島|カープ", "C"),
+             (r"大洋|横浜|DeNA|洋松|ホエールズ|ベイスターズ", "DB"), (r"ヤクルト|国鉄|サンケイ|アトムズ|スワローズ", "S"), (r"中日|名古屋|ドラゴンズ", "D")]
+# 最後の備え：資料で確かめた守備位置（名前・球団）。ほかのどの方法でも分からなかったときだけ使う
+# 宮崎 剛＝選手名鑑・Baseball-Reference、ウィルソン・ブルックス・フランクリン＝ベースボールチャンネルの歴代助っ人一覧、ほかはよく知られた選手
+FIXED_POS = {("宮崎 剛", "DB"): "内野手", ("ウィルソン", "F"): "外野手", ("ブルックス", "F"): "外野手", ("フランクリン", "F"): "外野手",
+             ("バース", "T"): "内野手", ("ゴメス", "T"): "内野手", ("ローズ", "DB"): "内野手", ("ブライアント", "K"): "外野手",
+             ("マギー", "G"): "内野手", ("パウエル", "D"): "外野手", ("リー", "M"): "外野手", ("レオン", "M"): "内野手", ("マーティン", "M"): "外野手",
+             ("アルトマン", "M"): "外野手", ("エチェバリア", "F"): "外野手", ("クラーク", "K"): "内野手", ("ブルーム", "K"): "内野手"}   # 後の4人もベースボールチャンネルの一覧で確かめた
+
+
+def franchise_of(team):
+    t = re.sub(r"\s+", "", norm(team or ""))
+    return next((c for pat, c in FRANCHISE if re.search(pat, t)), None)
+
+
+def parse_bbc_foreign(html, code):
+    """「ナイジェル・ウィルソン（1997 – 2001）外野手」の行 → [球団, 名前, 最初の年, 最後の年, 守備位置]"""
+    text = norm(BeautifulSoup(html, "html.parser").get_text("\n"))
+    out = []
+    for m in re.finditer(r"([^\s（(、。]+?)\s*[（(]([^）)]*\d{4}[^）)]*)[）)]\s*((?:投手|捕手|内野手|外野手)(?:\s*→\s*(?:投手|捕手|内野手|外野手))*)", text):
+        ys = [int(y) for y in re.findall(r"\d{4}", m.group(2))]
+        ps = re.findall(r"投手|捕手|内野手|外野手", m.group(3))
+        if ys and ps:
+            out.append([code, m.group(1).strip(), min(ys), max(ys), ps[-1]])
+    return out
+
+
+def update_bbc_foreign(prev, budget=180):
+    """12球団（＋近鉄）の一覧を読む。1つの記事は何ページかに分かれている。読んだ球団は覚えておく（週1回取り直す）"""
+    data = dict(prev or {})
+    if data.get("at_ts") and time.time() - data["at_ts"] < REG_EVERY and len(data.get("done") or []) == len(BBC_FOREIGN):
+        return data
+    entries = [e for e in (data.get("list") or []) if e[0] in (data.get("done") or [])]
+    done, start = list(data.get("done") or []), time.time()
+    for code, aid in BBC_FOREIGN.items():
+        if code in done:
+            continue
+        if time.time() - start > budget:
+            break
+        got_any = False
+        for pg in range(1, 13):
+            url = f"https://www.baseballchannel.jp/npb/{aid}/" + (f"{pg}/" if pg > 1 else "")
+            html = rec_fetch(url)
+            if not html:
+                break
+            es = parse_bbc_foreign(html, code)
+            entries += es
+            got_any = got_any or bool(es)
+            if f"/npb/{aid}/{pg + 1}/" not in html:
+                break
+        if got_any:
+            done.append(code)
+    return {"at_ts": time.time() if len(done) == len(BBC_FOREIGN) else data.get("at_ts", 0), "done": done, "list": entries}
+
+
+def foreign_pos(name, teams, lo, hi, bbcf):
+    """名前だけの外国人選手：一覧のうち、名前の後ろ（「バース」＝ランディ・バース）か前（「レオン」＝レオン・リー）が同じで、
+    同じ球団に、同じ年にいた人の守備位置。同じ名字の人が2人いれば（リー＝レロン・リーとレオン・リー）、在籍年が記録の期間にいちばん近い人。
+    見つからなければ、名前の後ろが記録の名前で始まる人（「ブルーム」＝ブルームフィールド）"""
+    nm = re.sub(r"\s+", "", norm(name))
+    codes = {franchise_of(t) for t in (teams or [])} - {None}
+    pool = [e for e in (bbcf or {}).get("list") or [] if (not codes or e[0] in codes) and e[3] >= lo - 1 and e[2] <= hi + 1]
+    def parts(e):
+        return re.sub(r"\s+", "", e[1]).split("・")
+    for test in (lambda ps: nm in (ps[-1], ps[0], "".join(ps)), lambda ps: ps[-1].startswith(nm) and len(nm) >= 3):
+        hits = [e for e in pool if test(parts(e))]
+        if not hits:
+            continue
+        if len({e[4] for e in hits}) == 1:
+            return hits[0][4]
+        dist = sorted(hits, key=lambda e: abs(e[2] - lo) + abs(e[3] - hi))
+        d0, d1 = abs(dist[0][2] - lo) + abs(dist[0][3] - hi), abs(dist[1][2] - lo) + abs(dist[1][3] - hi)
+        return dist[0][4] if d0 < d1 else ""
     return ""
 
 
@@ -2361,6 +2444,15 @@ def update_records(force=False):
     poscache = dict((reg or {}).get("pos") or {})
     rolecache = dict((reg or {}).get("role") or {})
     wiki_stop = [False]
+    pos_miss = set()
+    try:
+        bbcf = update_bbc_foreign((reg or {}).get("bbcf"))
+        if reg is not None and bbcf != (reg or {}).get("bbcf"):
+            reg["bbcf"] = bbcf
+            reg_dirty = True
+    except Exception as e:
+        print(f"[外国人選手の一覧] 読めませんでした: {e}")
+        bbcf = (reg or {}).get("bbcf") or {}
     if (reg or {}).get("posv") != POS_VERSION:
         poscache = {k: ("" if v == "-" else v) for k, v in poscache.items()}   # 読み方を直したので、分からなかった選手をもう一度調べる
         if reg:
@@ -2396,7 +2488,7 @@ def update_records(force=False):
         # 読んだ選手は覚えておく（"-"＝調べたが分からなかった）。1回あたり POS_BUDGET 秒まで
         new_pos = []
         for p_ in persons:
-            pid, tms = (p_[1], p_[0]) if p_ else ("", [])
+            pid, tms, span_ = (p_[1], p_[0], p_[2]) if p_ else ("", [], None)
             if pid and pid not in poscache and time.time() - pos_start < POS_BUDGET:
                 html = rec_fetch(f"https://npb.jp/bis/players/{pid}.html")
                 poscache[pid] = parse_player_pos(html) if html else ""
@@ -2411,6 +2503,27 @@ def update_records(force=False):
                 except WikiBusy:
                     wiki_stop[0] = True
             v_ = poscache.get(pid, "") if pid else ""
+            if v_ in ("", "-"):
+                row_ = L["rows"][len(new_pos)]
+                per_ = row_[pi] if pi >= 0 else ""
+                mm_ = re.findall(r"\d{4}", per_ or "")
+                lo_, hi_ = (int(mm_[0]), int(mm_[-1])) if mm_ else (0, 9999)
+                lo2, hi2 = span_ or (lo_, hi_)   # 名簿で本人が分かれば、その人の在籍の最初と最後の年で探す（リー＝レロン・リー、レオン＝レオン・リー を見分ける）
+                tm_ = list(tms or [])
+                ti_ = next((i for i, c in enumerate(L["cols"]) if "所属" in c), -1)
+                if ti_ >= 0:
+                    tm_.append(row_[ti_])
+                fp = foreign_pos(row_[ni], tm_, lo2, hi2, bbcf)
+                if not fp:
+                    nmf = re.sub(r"\s+", " ", norm(row_[ni])).strip()
+                    fp = next((FIXED_POS[(nmf, c)] for c in [franchise_of(x) for x in tm_] if (nmf, c) in FIXED_POS), "")
+                if fp:
+                    v_ = fp
+                    if pid:
+                        poscache[pid] = fp
+                        reg_dirty = True
+                else:
+                    pos_miss.add(row_[ni])
             new_pos.append(v_ if v_ not in ("-",) else "")
         posc += sum(1 for x in new_pos if x)
         if new_pos != L.get("pos"):
@@ -2439,7 +2552,7 @@ def update_records(force=False):
            "kinds": [{"k": k, "n": n} for k, n in REC_KINDS],
            "bat": [{"k": k, "n": n} for k, n in REC_BAT], "pit": [{"k": k, "n": n} for k, n in REC_PIT],
            "lists": lists, "done": done, "tried": tried, "pv": REC_PARSER,
-           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed, "posd": posc, "wiki": dict(WIKI_DIAG)}
+           "reg": (reg or {}).get("diag") if isinstance(reg, dict) else None, "teamed": teamed, "posd": posc, "wiki": dict(WIKI_DIAG), "posmiss": sorted(pos_miss)}
     wiki_act = WIKI_DIAG["ok"] + WIKI_DIAG["http"] + WIKI_DIAG["err"] > 0
     if got or fail or not os.path.exists(RECORDS_OUT) or prev.get("reg") != out.get("reg") or (wiki_act and prev.get("wiki") != out.get("wiki")):
         with open(RECORDS_OUT, "w", encoding="utf-8") as f:

@@ -1957,7 +1957,7 @@ REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
 REG_PARSER = 3          # 名簿の読み方の版（2：［改名］の名前も覚える、3：選手のページの番号も覚える）。版が変わったらすぐ取り直す
 POS_BUDGET = 120        # 1回の更新で選手のページ（守備位置）を読むのに使う秒数の上限
 REG_MIN_PEOPLE = 3000   # これより少ない名簿は「取り損ね」とみなす（ほんとうは約1万人）
-POS_VERSION = 5         # 引退した打者の守備位置の調べ方の版（2：書き出しも読む・断られたら次の回、3：曖昧さ回避の見分け方、4：プレーンな書き出し、5：題に名前が入る記事を球団名と探す）
+POS_VERSION = 6         # 引退した打者の守備位置の調べ方の版（2：書き出しも読む・断られたら次の回、3：曖昧さ回避の見分け方、4：プレーンな書き出し、5：題に名前が入る記事を球団名と探す）
 
 
 def reg_year(y):
@@ -2174,6 +2174,14 @@ class WikiBusy(Exception):
     """ウィキペディアに断られた（混んでいる）：この回はやめて、次の回にもう一度"""
 
 
+def wiki_pick(s):
+    """「投手、外野手」「投手→外野手」のように並んでいたら、投手でない方（打撃の記録に載るのは野手として打った選手）"""
+    ps = list(WIKI_POS.finditer(s or ""))
+    if not ps:
+        return None
+    return next((p for p in ps if p.group(1) != "投手"), ps[0])
+
+
 def wiki_get(params):
     time.sleep(0.25)   # 続けて頼みすぎない
     try:
@@ -2203,10 +2211,10 @@ def wiki_pos_of(text, teams):
         return ""
     # 情報欄の「ポジション」（「守備位置」の書き方もある）→ なければ記事の書き出し「…元プロ野球選手（内野手）」
     m = re.search(r"\|\s*(?:ポジション|守備位置)\s*=\s*([^\n]+)", text)
-    p = WIKI_POS.search(m.group(1)) if m else None
+    p = wiki_pick(m.group(1)) if m else None
     if not p:
         m2 = re.search(r"プロ野球選手[（(]([^）)]{1,30})[）)]", text[:6000])
-        p = WIKI_POS.search(m2.group(1)) if m2 else None
+        p = wiki_pick(m2.group(1)) if m2 else None
     if not p:
         return ""
     return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
@@ -2220,7 +2228,7 @@ def wiki_lead_position(titles):
             continue
         ex = pg.get("extract") or ""
         m2 = re.search(r"プロ野球選手[（(]([^）)]{1,40})[）)]", ex)
-        p = WIKI_POS.search(m2.group(1)) if m2 else None
+        p = wiki_pick(m2.group(1)) if m2 else None
         if p:
             return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
         if ex and len(WIKI_DIAG.setdefault("samples", [])) < 12:
@@ -2242,7 +2250,7 @@ FRANCHISE = [(r"近鉄|パールス", "K"), (r"巨人|ジャイアンツ|読売"
 FIXED_POS = {("宮崎 剛", "DB"): "内野手", ("ウィルソン", "F"): "外野手", ("ブルックス", "F"): "外野手", ("フランクリン", "F"): "外野手",
              ("バース", "T"): "内野手", ("ゴメス", "T"): "内野手", ("ローズ", "DB"): "内野手", ("ブライアント", "K"): "外野手",
              ("マギー", "G"): "内野手", ("パウエル", "D"): "外野手", ("リー", "M"): "外野手", ("レオン", "M"): "内野手", ("マーティン", "M"): "外野手",
-             ("アルトマン", "M"): "外野手", ("エチェバリア", "F"): "外野手", ("クラーク", "K"): "内野手", ("ブルーム", "K"): "内野手"}   # 後の4人もベースボールチャンネルの一覧で確かめた
+             ("アルトマン", "M"): "外野手", ("糸井 嘉男", "F"): "外野手", ("糸井 嘉男", "B"): "外野手", ("糸井 嘉男", "T"): "外野手", ("エチェバリア", "F"): "外野手", ("クラーク", "K"): "内野手", ("ブルーム", "K"): "内野手"}   # 後の4人もベースボールチャンネルの一覧で確かめた
 
 
 def franchise_of(team):
@@ -2454,7 +2462,8 @@ def update_records(force=False):
         print(f"[外国人選手の一覧] 読めませんでした: {e}")
         bbcf = (reg or {}).get("bbcf") or {}
     if (reg or {}).get("posv") != POS_VERSION:
-        poscache = {k: ("" if v == "-" else v) for k, v in poscache.items()}   # 読み方を直したので、分からなかった選手をもう一度調べる
+        # 読み方を直したので、分からなかった選手と「投手」になっていた選手（打撃の記録に載る野手のはず）をもう一度調べる
+        poscache = {k: ("" if v in ("-", "投手") else v) for k, v in poscache.items()}
         if reg:
             reg["posv"] = POS_VERSION
         reg_dirty = True

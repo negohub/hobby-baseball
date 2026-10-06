@@ -1957,7 +1957,7 @@ REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
 REG_PARSER = 3          # 名簿の読み方の版（2：［改名］の名前も覚える、3：選手のページの番号も覚える）。版が変わったらすぐ取り直す
 POS_BUDGET = 120        # 1回の更新で選手のページ（守備位置）を読むのに使う秒数の上限
 REG_MIN_PEOPLE = 3000   # これより少ない名簿は「取り損ね」とみなす（ほんとうは約1万人）
-POS_VERSION = 4         # 引退した打者の守備位置の調べ方の版（2：記事の書き出しも読む・断られたら次の回、3：曖昧さ回避の見分け方、4：プレーンな書き出しも読む）
+POS_VERSION = 5         # 引退した打者の守備位置の調べ方の版（2：書き出しも読む・断られたら次の回、3：曖昧さ回避の見分け方、4：プレーンな書き出し、5：題に名前が入る記事を球団名と探す）
 
 
 def reg_year(y):
@@ -2255,6 +2255,19 @@ def wiki_position(name, teams):
         pos = wiki_lead_position(titles)
         if pos:
             return pos
+    # 最後の手：記事の題に名前が入っているもの（「バース」→「ランディ・バース」、「宮崎剛」→「宮崎剛 (野球)」）を、球団名と一緒に探す。
+    # 記事の中にその球団の名前がある記事だけを本人とみなす（同じ名字の別の外国人選手と取り違えない）
+    for tm in (teams or [""])[:2]:
+        d = wiki_get({"action": "query", "list": "search", "srsearch": f'intitle:"{nm}" {tm} 野球', "srlimit": 6})
+        cand = [x.get("title") for x in (d.get("query") or {}).get("search") or [] if nm in re.sub(r"\s+", "", x.get("title") or "")]
+        if not cand:
+            continue
+        for title, txt in zip(cand, contents(cand)):
+            if not txt or not any(any(a in txt for a in [t] + WIKI_TEAM.get(t, [])) for t in (teams or [])[:3] if t):
+                continue
+            pos = wiki_pos_of(txt, teams) or wiki_lead_position([title])
+            if pos:
+                return pos
     return ""
 
 

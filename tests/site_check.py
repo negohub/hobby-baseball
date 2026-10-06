@@ -3017,6 +3017,15 @@ async def ven_check(browser):
               // 佐藤：200打数60安打 → .300、OPS＝(60+20+3)/(200+20+3+2)＋120/200＝.369＋.600＝.969
               if (cells[6] !== '.300' || cells[7] !== '.969') ng.push(`佐藤の打率・OPSが違う（${cells.slice(6)}）`);
               if (row('代打')) ng.push('打数0の選手（代打 太郎）が出ている');
+              // 打率・OPSは規定打席（甲子園60試合×3.1＝186打席）以上だけ：ウィットリー（162打席）は打率には出ず、本塁打には出る
+              // 規定打席に届いた選手が上、届かない選手（ウィットリー）は「規定打席未満」の区切りの下
+              { const trs = [...document.querySelectorAll('#venTbl tbody tr')], dv = trs.findIndex(tr => tr.classList.contains('vdiv')), wi = trs.findIndex(tr => tr.textContent.includes('ウィットリー')), si = trs.findIndex(tr => tr.textContent.includes('佐藤'));
+                if (dv < 0 || wi < dv || si > dv || !trs[wi].classList.contains('vlow')) ng.push(`打率で、規定打席未満の選手が区切りの下に出ていない（区切り${dv}・ウィットリー${wi}・佐藤${si}）`); }
+              if (!/規定打席/.test(document.getElementById('venNote').textContent)) ng.push('打率のときに規定打席の注記がない');
+              document.querySelector('#venKey button[data-k="hr"]').click();
+              if (!row('ウィットリー')) ng.push('本塁打（数を数える項目）で、規定打席に届かない選手まで外している');
+              if (/規定/.test(document.getElementById('venNote').textContent)) ng.push('本塁打のときに規定の注記が出ている');
+              document.querySelector('#venKey button[data-k="avg"]').click();
               const tb = document.getElementById('venTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push(`打撃の表がはみ出す（${tb.scrollWidth}/${tb.parentElement.clientWidth}）`);
               // 名前の札：長い名前でも字が札からはみ出さない（埋もれない）。打数の順で全員を出して確かめる
               document.querySelector('#venKey button[data-k="ab"]').click();
@@ -3041,10 +3050,11 @@ async def ven_check(browser):
               const sai = row('才木'), c2 = sai ? [...sai.querySelectorAll('td')].map(td => td.textContent) : [];
               // 才木：240アウト＝80回、自責18 → 防御率 2.03
               if (c2[2] !== '80' || c2[7] !== '2.03') ng.push(`才木の投球回・防御率が違う（${c2}）`);
-              // 規定にはこだわらず全員：防御率の順に、才木（2.03）→ 岩崎（2.16）
-              const ord0 = [...document.querySelectorAll('#venTbl tbody tr')].map(tr => tr.textContent).join('|');
-              if (!row('岩崎') || ord0.indexOf('才木') > ord0.indexOf('岩崎')) ng.push('防御率の順に全員が並んでいない（規定にこだわらない）');
-              if (/規定/.test(document.getElementById('venNote').textContent)) ng.push('規定の注記が残っている');
+              // 防御率は規定投球回（この球場の試合数）以上の投手が上：甲子園60試合 → 60回以上。才木（80回）が上、岩崎（25回）は区切りの下
+              { const trs = [...document.querySelectorAll('#venTbl tbody tr')], dv = trs.findIndex(tr => tr.classList.contains('vdiv'));
+                const ii = trs.findIndex(tr => tr.textContent.includes('岩崎')), si = trs.findIndex(tr => tr.textContent.includes('才木'));
+                if (dv < 0 || ii < dv || si > dv) ng.push(`防御率で、規定投球回未満の投手が区切りの下に出ていない（区切り${dv}・岩崎${ii}・才木${si}）`); }
+              if (!/規定投球回/.test(document.getElementById('venNote').textContent)) ng.push('防御率のときに規定投球回の注記がない');
               document.querySelector('#venKey button[data-k="sv"]').click();
               if (document.querySelector('#venKey button[aria-pressed="true"]')?.dataset.k !== 'sv') ng.push('Sのタブが選ばれた状態にならない');
               if (!row('岩崎') || [...document.querySelectorAll('#venTbl tbody tr')][0] !== row('岩崎')) ng.push('Sで並べると岩崎（20S）がいちばん上にならない');

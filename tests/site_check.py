@@ -3218,6 +3218,24 @@ async def post_games_check(browser):
     await pg.close()
 
 
+async def num_cell_check(browser):
+    """成績の数字のマス（今季の対○○・選手の成績など）：「81-21」「12-10」「160.1」のような長い数字も2行にならず、マスからはみ出さない"""
+    for th in ["pawa", ""]:
+        for w in [320, 390]:
+            pg, errs = await open_page(browser, w, th)
+            r = await pg.evaluate("""() => { const box = document.createElement('div'); box.className = 'psheet';
+              box.innerHTML = '<div class="ps-sec ps-vs"><div class="ps-main">' + [['打率', '.259'], ['打数-安打', '81-21'], ['本塁打', '1'], ['OPS', '.636']].map(([k, v]) => peekCell(k, v)).join('') +
+                '</div><div class="ps-main">' + [['防御率', '12.34'], ['勝敗', '12-10'], ['投球回', '160.1'], ['打数-安打', '512-158']].map(([k, v]) => peekCell(k, v)).join('') + '</div></div>';
+              document.body.append(box);
+              const ng = [...box.querySelectorAll('b.num')].filter(x => x.getClientRects().length > 1 || x.getBoundingClientRect().height > parseFloat(getComputedStyle(x).fontSize) * 1.9 || x.scrollWidth > x.clientWidth + 1).map(x => x.textContent);
+              box.remove(); return ng; }""")
+            if r:
+                bad(f"[成績の数字のマス {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] 2行になる・はみ出す数字：{r}")
+            for e in errs:
+                bad(f"[成績の数字のマス]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def player_today_check(browser):
     """選手の画面：今日の試合（試合中・試合後）に出ていれば、その試合の成績をいちばん上に出す"""
     pg, errs = await open_page(browser, 390, "pawa")
@@ -3743,6 +3761,7 @@ async def main():
         await rank_format_check(browser)
         await stdh_check(browser)
         await post_games_check(browser)
+        await num_cell_check(browser)
         await player_today_check(browser)
         await runner_request_check(browser)
         await peek_check(browser)

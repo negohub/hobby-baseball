@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261006044104">
+<meta name="build" content="20261006081555">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -63,7 +63,6 @@ body{margin:0;background:var(--bg);color:var(--text);
   font-size:16px;line-height:1.7;letter-spacing:.02em;-webkit-font-smoothing:antialiased;
   padding-bottom:calc(72px + env(safe-area-inset-bottom,0px));}
 .num,.it{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
-.it{}
 button{font:inherit;color:inherit}
 button:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline:2px solid #fff;outline-offset:2px}
 
@@ -104,7 +103,6 @@ h2 small{font-size:12.5px;color:var(--muted);font-weight:600;font-style:normal;m
 .cards{margin-top:16px;border-top:1px solid var(--line)}
 .card{border-bottom:1px solid var(--line);position:relative}
 .card.ng{background:linear-gradient(90deg,rgba(255,43,43,.16),transparent 70%)}
-.card-main{display:grid;grid-template-columns:44px 88px 1fr;gap:12px;align-items:center;padding:14px 0 10px}
 .card .side{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 .card .side .rkn{font-size:26px;font-weight:900;line-height:1;color:var(--muted)}
 .lamp{display:flex;align-items:flex-end;justify-content:flex-start;gap:3px;font-weight:900;font-size:52px;line-height:.9;letter-spacing:-.04em;color:#fff}
@@ -120,12 +118,6 @@ h2 small{font-size:12.5px;color:var(--muted);font-weight:600;font-style:normal;m
 .rec{margin-top:3px;font-size:14.5px;font-weight:700;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;color:#D6D6D6}
 .rec .pct{font-size:20px;font-weight:900;color:#fff}
 .meta{font-size:12.5px;color:var(--muted);margin-top:1px;display:flex;gap:12px}
-.meter{margin:0 0 12px 56px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-.meter .track{height:5px;background:var(--p2)}
-.meter .fill{height:100%;background:var(--tc)}
-.meter .cap{font-size:12.5px;color:var(--muted);white-space:nowrap}
-.meter .cap span{display:none}
-.meter .cap b{color:#fff;font-weight:900;font-size:15px}
 .card details{margin-left:56px;border-top:1px dashed var(--line)}
 .card summary{list-style:none;cursor:pointer;padding:9px 0;font-size:13px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
 .card summary::-webkit-details-marker{display:none}
@@ -135,8 +127,6 @@ h2 small{font-size:12.5px;color:var(--muted);font-weight:600;font-style:normal;m
 .more p{margin:0 0 8px}
 .more b{}
 .pairs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
-.pair{background:var(--p2);padding:3px 9px;font-size:13px;font-weight:700}
-.pair em{font-style:normal;font-weight:900;margin-left:4px}
 .left{display:flex;flex-wrap:wrap;gap:6px}
 .left span{border:1px solid var(--line);padding:2px 8px;font-size:13px;color:#CFCFCF}
 .left span.vs{border-color:#fff;color:#fff;font-weight:800}
@@ -180,9 +170,6 @@ h2 small{font-size:12.5px;color:var(--muted);font-weight:600;font-style:normal;m
 .detail .empty{color:var(--dim);font-size:14px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
 .legend i{display:inline-block;width:14px;height:3px;background:#fff;vertical-align:middle;margin-right:4px}
-
-/* 順位表 */
-.table-wrap{overflow-x:auto;border-top:1px solid var(--line)}
 table{border-collapse:collapse;width:100%}
 th,td{padding:12px 6px;text-align:right;font-size:15px;white-space:nowrap}
 th:last-child,td:last-child{padding-right:4px}
@@ -191,27 +178,15 @@ td{border-bottom:1px solid var(--line2)}
 th:first-child,td:first-child{text-align:center;width:30px;padding-left:0;color:var(--muted);font-weight:900;font-size:18px}
 th:first-child{font-size:11.5px;font-style:normal}
 th:nth-child(2),td:nth-child(2){text-align:left}
-td .tn{display:flex;align-items:center;gap:8px;font-weight:900}
-td .tn .badge{width:24px;height:24px;font-size:13px}
 td.mg{font-weight:900;color:#fff}
 td.pc{font-weight:900}
-@media (max-width:420px){th,td{font-size:14px;padding-left:4px;padding-right:4px}td .tn{gap:6px}}
-@media (max-width:359px){td .tn .nmx{display:none}}
+@media (max-width:420px){th,td{font-size:14px;padding-left:4px;padding-right:4px}}
+@media (max-width:359px){}
 .hist{border-top:1px solid var(--line)}
-.hrow{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line2)}
-.hrow .pl{font-weight:900;font-size:15px}
-.hrow .py{font-weight:900;font-size:16px;text-align:right}
-.hrow .ranks{grid-column:1/-1}
 .ranks{display:flex;gap:4px}
 .ranks .badge{width:26px;height:26px;font-size:13px;opacity:.55}
 .ranks .badge.last{opacity:1;outline:2px solid #fff;outline-offset:2px}
 .tot{border-top:1px solid var(--line)}
-.trow{display:grid;grid-template-columns:28px 1fr auto auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line2)}
-.trow .badge{width:28px;height:28px;font-size:14px}
-.trow .tp{font-size:16px;font-weight:900}
-.trow .tp small{font-size:11.5px;color:var(--muted);font-weight:700;margin-left:8px;border:1px solid var(--line);padding:1px 6px}
-.trow .tc{font-size:14px;color:var(--muted);font-weight:700}
-.trow .ta{font-size:17px;font-weight:900;min-width:92px;text-align:right}
 .foot{font-size:12px;color:var(--dim);margin-top:10px;line-height:1.7}
 
 /* ルール */
@@ -226,10 +201,6 @@ td.pc{font-weight:900}
 .seg{display:flex;border:1px solid var(--line);margin:0 0 12px;width:max-content}
 .seg button{background:none;border:0;padding:8px 20px;font-size:14px;font-weight:800;color:var(--muted);cursor:pointer}
 .seg button[aria-pressed="true"]{background:#fff;color:#000}
-.tstat td,.tstat th{font-size:14px}
-.tstat td.best{color:#fff;font-weight:900}
-.tstat td.v{color:#BDBDBD}
-.tstat td.v.best{color:#fff}
 .cats{display:grid;grid-template-columns:34px 1fr;align-items:center;gap:8px;margin-bottom:8px}
 .cats .cl{font-size:12px;color:var(--muted);font-weight:800}
 .chips2{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
@@ -242,9 +213,7 @@ td.pc{font-weight:900}
 .rrow .badge{width:30px;height:30px;font-size:15px}
 .rrow .pn{font-size:16px;font-weight:800;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rrow .pn small{display:block;font-size:12px;color:var(--muted);font-weight:600}
-.rrow .pv{font-size:24px;font-weight:900;letter-spacing:-.01em}
 .rrow.lead .rk{color:#fff}
-.rrow.lead .pv{font-size:30px}
 .rempty{padding:24px 0;color:var(--dim);font-size:14px;text-align:center}
 
 /* 更新のお知らせ */
@@ -265,7 +234,6 @@ td.pc{font-weight:900}
 .note{font-size:12px;color:var(--dim);text-align:center;margin-top:18px}
 @media (max-width:374px){
   .brand h1{font-size:29px}
-  .card-main{grid-template-columns:36px 76px 1fr;gap:10px}
   .lamp{font-size:44px}
   .meter,.card details{margin-left:46px}
   .day .mu{font-size:10.5px}
@@ -273,26 +241,12 @@ td.pc{font-weight:900}
 
 /* マジック一覧（見やすさ優先） */
 .cards{margin-top:16px;border-top:2px solid #fff}
-.bhead{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-weight:800;padding:8px 2px}
-.brow{display:grid;grid-template-columns:22px 36px 1fr 112px;gap:10px;align-items:center;padding:14px 8px 14px 6px;border-top:1px solid var(--line);position:relative}
-.brow::before{content:"";position:absolute;left:-16px;top:0;bottom:0;width:4px;background:transparent}
-.brow.low{background:rgba(255,43,43,.12)}
-.brow.low::before,.brow.paid::before{background:var(--ng)}
-.brow.paid{background:rgba(255,43,43,.18)}
-.brow .rk{font-size:20px;font-weight:900;color:var(--muted);text-align:center}
-.brow .badge{width:36px;height:36px;font-size:19px}
 .tm{display:flex;flex-direction:column;min-width:0}
 .tm b{font-size:18px;font-weight:900;line-height:1.3}
 .tm b .ow{font-size:13px;color:var(--muted);font-weight:800;margin-left:8px}
 .tm span{font-size:14px;color:#DADADA;font-weight:700;white-space:nowrap}
 .tm em{font-style:normal;color:#fff;font-weight:900;font-size:15px}
-.tm .sm{font-size:12.5px;color:var(--muted);font-weight:600}
 .mg{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;text-align:right}
-.mn{font-size:36px;font-weight:900;line-height:1;letter-spacing:-.02em;display:flex;align-items:baseline;gap:1px;white-space:nowrap}
-.mn.ng{color:var(--ng)}
-.mn.star{font-size:34px}
-.mn small{font-size:inherit;color:inherit;font-weight:inherit}
-.mn.off{color:var(--dim)}
 .rt{font-size:11.5px;color:var(--muted);font-weight:700;white-space:nowrap}
 .rt b{color:#fff;font-size:13px}
 .st{font-size:15px;font-weight:900;padding:7px 10px;white-space:nowrap}
@@ -311,17 +265,13 @@ td.pc{font-weight:900}
 .conds .sub2 b{color:#DADADA}
 .conds .lab{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:8px}
 .conds .pairs{margin:4px 0 0}
-@media (max-width:374px){.brow{grid-template-columns:18px 30px 1fr 96px;gap:8px}.brow .badge{width:30px;height:30px;font-size:16px}.mn{font-size:31px}.tm b{font-size:16px}}
+@media (max-width:374px){.tm b{font-size:16px}}
 
 /* 順位の推移・直近の調子 */
 .blk{margin-top:6px}
 .blk[hidden]{display:none}
 .trend{background:#0E0E0E;padding:12px 8px 6px}
 .trend svg{display:block;width:100%;height:auto}
-.frow{display:grid;grid-template-columns:30px 1fr auto 64px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line2)}
-.frow .badge{width:30px;height:30px;font-size:15px}
-.frow .fn{font-size:15px;font-weight:900;white-space:nowrap}
-.frow .fn small{display:block;font-size:11.5px;color:var(--muted);font-weight:700}
 .fb{display:flex;gap:3px}
 .fb i{font-style:normal;width:28px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#141414;line-height:1}
 .fb i b{font-size:15px;font-weight:900}
@@ -332,7 +282,7 @@ td.pc{font-weight:900}
 .fs{text-align:right;font-size:15px;font-weight:900;color:var(--muted);white-space:nowrap}
 .fs.w{color:#fff}
 .fs.l{color:var(--ng)}
-@media (max-width:374px){.frow{grid-template-columns:28px 1fr auto 54px;gap:8px}.fb i{width:24px}.frow .fn{font-size:14px}}
+@media (max-width:374px){.fb i{width:24px}}
 
 /* 画像保存 */
 .shot{display:block;width:100%;margin-top:14px;border:0;padding:15px;font-size:16px;font-weight:900;cursor:pointer;background:#fff;color:#000}
@@ -360,25 +310,10 @@ h2 small{font-weight:600}
 .tgo li.ok{color:#fff;font-weight:800}
 .tgo li.ng{color:var(--ng);font-weight:800}
 .tgo li.nil{color:var(--muted)}
-
-/* 担当者ごとの年間成績 */
-.yrow{padding:12px 0 14px;border-bottom:1px solid var(--line2)}
-.yh{display:flex;align-items:center;gap:10px}
-.yh .badge{width:28px;height:28px;font-size:14px}
-.yh .tp{font-size:17px;font-weight:900}
 .ytag{font-size:11px;font-weight:900;padding:2px 7px}
 .ytag.top,.ytag.mvp{background:#fff;color:#000}
 .ytag.bad{background:var(--ng);color:#fff}
-.yh .ta{margin-left:auto;font-size:16px;font-weight:900;text-align:right;line-height:1.2}
-.yh .ta small{display:block;font-size:11.5px;color:var(--muted);font-weight:700}
 .yr{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:10px}
-.yc{background:#141414;display:flex;flex-direction:column;align-items:center;padding:4px 0 5px}
-.yc em{font-style:normal;font-size:10px;color:var(--muted);font-weight:700}
-.yc b{font-size:19px;font-weight:900;line-height:1.2}
-.yc.first{background:#fff;color:#000}.yc.first em{color:#555}
-.yc.last{background:var(--ng);color:#fff}.yc.last em{color:#ffd0d0}
-.yc.now{background:none;outline:1px dashed #444;outline-offset:-1px}
-.ym{margin-top:6px;font-size:12px;color:var(--muted);font-weight:700}
 
 /* ===== 仕上げ（中継グラフィック） ===== */
 .top{position:relative;overflow:hidden}
@@ -391,7 +326,6 @@ h2 small{font-weight:600}
 .alert{padding:18px 20px 20px;min-height:170px;
   background:repeating-linear-gradient(-70deg,rgba(0,0,0,.10) 0 2px,transparent 2px 16px),var(--tc)}
 .alert::after{right:-60px;width:170px;background:rgba(0,0,0,.18)}
-.alert .wm{position:absolute;right:-6px;bottom:-40px;font-size:190px;font-weight:900;line-height:1;opacity:.16;z-index:0;letter-spacing:-.05em}
 .alert .lbl{font-size:12.5px;letter-spacing:.08em}
 .alert .who b{font-size:60px;letter-spacing:-.04em;line-height:1.05}
 .alert .who span{font-size:16px;opacity:.85}
@@ -399,24 +333,12 @@ h2 small{font-weight:600}
 .alert .sub{margin-top:8px}
 
 .cards{border-top:0;margin-top:18px}
-.bhead{padding:0 2px 8px}
-.brow{grid-template-columns:62px 1fr 112px;gap:0;padding:0;border-top:0;margin-bottom:4px;background:#0E0E0E;min-height:80px;align-items:stretch}
-.brow::before{display:none}
-.brow .tb{background:var(--tc);color:var(--ti);position:relative;display:grid;place-items:center;
-  clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
-.brow .tb .rk{position:absolute;left:7px;top:5px;font-size:12px;font-weight:900;color:inherit;opacity:.75}
-.brow .tb .kj{font-size:30px;font-weight:900;line-height:1;margin-right:8px}
-.brow .tm{justify-content:center;padding:10px 0 10px 14px}
-.brow .mg{padding-right:14px}
-.brow.low{background:#2A0A0C;box-shadow:inset 0 0 0 1px rgba(255,43,43,.55)}
-.brow.paid{background:#3A0B0E;box-shadow:inset 0 0 0 1px rgba(255,43,43,.7)}
 @media (prefers-reduced-motion:no-preference){
-  .brow{animation:rowIn .45s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 60ms)}
   @keyframes rowIn{from{transform:translateX(-18px);opacity:0}}
   .alert .who b{animation:nameIn .5s cubic-bezier(.2,.8,.2,1) both}
   @keyframes nameIn{from{transform:translateY(10px);opacity:0}}
 }
-@media (max-width:374px){.brow{grid-template-columns:54px 1fr 96px}.brow .tb .kj{font-size:26px}.alert .who b{font-size:50px}}
+@media (max-width:374px){.alert .who b{font-size:50px}}
 
 .day.win{background:color-mix(in srgb,var(--tc) 24%,#000)}
 .day.win .rs.w{color:#fff}
@@ -441,28 +363,16 @@ h2 small{margin-left:10px}
 .chip{border:1px solid var(--line);margin-right:6px;padding:8px 14px}
 .chip[aria-pressed="true"]{background:#fff;color:#000;border-color:#fff}
 .chip[aria-pressed="true"]::after{display:none}
-/* マジック一覧：チームカラーを横に流す */
-.brow{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 34%,#0B0B0B) 0%,color-mix(in srgb,var(--tc) 12%,#0B0B0B) 38%,#0B0B0B 70%)}
-.brow .tm span{color:#E6E6E6}
-.brow .tm .sm{color:#A8A8A8}
-.brow.low{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 30%,#1A0406) 0%,#2A080B 55%,#2A080B 100%);box-shadow:inset 0 0 0 2px rgba(255,59,59,.75)}
-.brow.paid{background:linear-gradient(90deg,#3A0B0E,#2A080B);box-shadow:inset 0 0 0 2px #FF3B3B}
-.bhead{font-size:11.5px;letter-spacing:.04em}
 /* パネル類 */
 .trend,.tg{background:#101010;border:1px solid #1E1E1E}
 .tg{border-left:0;border-right:0}
-.frow{padding:10px 8px;margin-bottom:4px;border-bottom:0;background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 22%,#0B0B0B),#0B0B0B 60%)}
 .fb i{background:#1A1A1A}
 /* 順位表：行ごとにチームカラーをうっすら */
 #std tbody tr,.mtbl tbody tr{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 20%,transparent),transparent 55%)}
 #std tbody tr:first-child td{border-top:0}
-.hrow{padding:12px 10px;margin-bottom:4px;border-bottom:0;background:#0E0E0E}
-.yrow{padding:12px 10px 14px;margin-bottom:6px;border-bottom:0;background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 20%,#0B0B0B),#0B0B0B 60%)}
-.yc{background:rgba(255,255,255,.06)}
 /* 成績 */
 .rrow{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 20%,#0B0B0B),#0B0B0B 60%);border-bottom:0;margin-bottom:4px;padding:11px 10px}
 .rank{border-top:0}
-.tstat tbody tr{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 18%,transparent),transparent 55%)}
 /* 日程 */
 .tbtn{background:#101010;border:1px solid #1E1E1E;border-bottom:3px solid transparent}
 .tbtn[aria-pressed="true"]{background:color-mix(in srgb,var(--tc) 22%,#101010);border-bottom-color:var(--tc)}
@@ -477,8 +387,6 @@ h2 small{margin-left:10px}
 a.tb{text-decoration:none}
 a.tb:active,a.tl:active,a.tn:active{opacity:.7}
 a.tl{color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.28)}
-a.tn{color:inherit;text-decoration:none}
-a.tn .nmx{border-bottom:1px solid rgba(255,255,255,.28)}
 
 /* 応援歌 */
 .songhead{margin:14px 0 10px}
@@ -576,11 +484,8 @@ a.tn .nmx{border-bottom:1px solid rgba(255,255,255,.28)}
 .plays .pt{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:4px}
 .pl{display:grid;grid-template-columns:44px 1fr auto;gap:2px 8px;align-items:baseline;padding:6px 0;border-top:1px solid #1E1E1E;font-size:13.5px}
 .pl .ph{color:var(--muted);font-weight:800;font-size:12px}
-.pl .pnm2{font-weight:800}
 .pl .pk{grid-column:2;font-size:11.5px;font-weight:900;color:#000;background:#FFD21F;padding:0 6px;justify-self:start}
 .pl .ps{grid-column:3;grid-row:1 / span 2;font-weight:900;font-size:14px;align-self:center}
-.pbp{display:block;text-align:center;border:1px solid #333;color:#fff;text-decoration:none;font-size:13px;font-weight:800;padding:9px;margin-bottom:10px}
-.pbp:active{opacity:.7}
 .tabbar button{font-size:10px}
 .tabbar button svg{width:22px;height:22px}
 
@@ -593,21 +498,16 @@ h1,h2,.brand h1,.alert .who b,.mn,.tm b,.tb .kj,.sc,.tgm,.ls td,.yc2 b,.ytbl .yn
 h2{font-weight:700;margin-top:30px}
 .brand .upd,.foot,.bhead,.excl,.lab,.ym,.scount,.snote,.tgh,.hint,.upd{font-weight:400}
 .tm span{font-weight:400;color:#E0E0E0}
-.tm .sm{font-weight:400}
 .tm em{font-weight:700}
-.tm .sm{color:#A8A8A8}
 .tm b .ow,.ynm small,.frow .fn small,.sgt small,.sgrp summary small,.fb i em,.yc em{font-weight:400}
 .tgo li{font-weight:400}
 .tgo li.ok,.tgo li.ng{font-weight:600}
 .conds .main,.conds .sub2,.rules p{font-weight:400;line-height:1.8}
 .conds .main b{font-weight:700}
-.pl{font-weight:400}.pl .pnm2{font-weight:600}
+.pl{font-weight:400}
 .nowbat .sit{font-weight:400}
 .day .tx,.day .mu{font-weight:600}
 .chip,.tabbar button,.tbtn,.seg button,.cats button{font-weight:600}
-.trow .tc,.frow .fs,.hrow .pl{font-weight:600}
-.brow{min-height:86px;margin-bottom:6px}
-.brow .tm{gap:2px;padding:12px 0 12px 16px}
 .frow,.yrow,.srow,.rrow{margin-bottom:6px}
 .tg{margin-bottom:10px;padding:16px 16px 14px}
 .alert{padding:20px 22px 22px}
@@ -618,18 +518,6 @@ h2{font-weight:700;margin-top:30px}
 
 /* マジックタブの表（順位表と同じ形） */
 .cards{margin-top:18px}
-.mtbl td .own{display:block;font-size:11px;color:var(--muted);font-weight:400;margin:1px 0 0 32px;letter-spacing:0}
-.mtbl td .lvmini{margin-left:32px}
-.mtbl tbody tr.low{background:linear-gradient(90deg,rgba(255,43,43,.28),rgba(255,43,43,.10) 70%)}
-.mtbl tbody tr.low td:first-child{box-shadow:inset 3px 0 0 var(--ng)}
-.mtbl tbody tr.paid{background:linear-gradient(90deg,rgba(255,43,43,.4),rgba(255,43,43,.15))}
-.mtbl td.mgc{text-align:right;min-width:48px}
-.mtbl .mt{font-size:19px;font-weight:700;color:#fff}
-.mtbl .mt.ng{color:var(--ng);font-size:14px}
-.mtbl th.mgh{text-align:right}
-.mtbl td,.mtbl th{padding-left:4px;padding-right:4px}
-.mtbl td:first-child,.mtbl th:first-child{padding-left:8px}
-.mtbl td:last-child,.mtbl th:last-child{padding-right:8px}
 
 /* このままだと支払い（コンパクト版） */
 .hero{margin-top:16px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;padding:14px 16px;
@@ -689,13 +577,6 @@ h2{font-weight:700;margin-top:30px}
 .blk{margin-top:0}
 .ywrap{margin-top:0}
 .cards{margin-top:16px}
-.howto{margin:36px 0 8px;border-top:1px solid #222;padding-top:4px}
-.howto summary{cursor:pointer;list-style:none;font-size:13px;color:var(--muted);font-weight:600;padding:10px 0;display:flex;justify-content:space-between}
-.howto summary::-webkit-details-marker{display:none}
-.howto summary::after{content:"＋"}
-.howto[open] summary::after{content:"－"}
-.howto ul{margin:0;padding:0 0 6px 1.1em;color:#9A9A9A;font-size:12.5px;line-height:1.8}
-.howto li{margin-bottom:4px}
 .rules,.conds{margin-top:36px}
 
 /* チーム成績・ランキング */
@@ -755,9 +636,6 @@ h2{font-weight:700;margin-top:30px}
 /* シーズン終了後 */
 .season-end{margin-top:18px;padding-bottom:22px;border-bottom:1px solid #222;margin-bottom:6px}
 .season-end[hidden]{display:none}
-.se-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
-.se-head .se-k{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.08em}
-.se-head b{font-size:20px;font-weight:700}
 .se-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .se-box{padding:12px 14px;border-left:4px solid var(--tc);background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 30%,#0B0B0B),#0B0B0B 80%)}
 .se-box .se-l{display:block;font-size:11px;color:#FFD21F;font-weight:700;letter-spacing:.06em}
@@ -831,17 +709,12 @@ html.theme-pawa.pawa-dark .pnbox .pnm:not(#z){color:#FFD84D !important}
 .pvs3.hbat .pc3.pcp{order:2}
 .pc3{position:relative;overflow:hidden;padding:12px 12px 12px;background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 26%,#0A0A0A) 0%,#0A0A0A 55%)}
 .pc3::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--tc)}
-.pc3 .wm{position:absolute;right:-4px;top:-6px;font-size:64px;font-weight:700;color:rgba(255,255,255,.06);line-height:1;letter-spacing:-.04em;pointer-events:none}
 .pr3{font-size:10px;letter-spacing:.14em;color:#8A8A8A;font-weight:700;display:flex;gap:8px;align-items:baseline}
 .pr3 em{font-style:normal;letter-spacing:0;font-size:11px;color:#BDBDBD}
 .pn3{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:4px 0 8px;position:relative}
 .pn3 b{font-size:17px;font-weight:700;line-height:1.25}
 .hd{font-style:normal;font-size:10.5px;font-weight:700;padding:1px 5px;color:#fff}
 .hd.l{background:#1E6FD9}.hd.r{background:#C2185B}
-.pg3{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;position:relative}
-.pg3 div{display:flex;align-items:baseline;gap:6px;border-bottom:1px solid rgba(255,255,255,.06);padding:3px 0}
-.pg3 span{font-size:11px;color:#8A8A8A;width:12px}
-.pg3 b{font-size:15px;font-weight:700}
 .pres3{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
 .pres3 span{font-size:11.5px;background:rgba(255,255,255,.07);padding:2px 6px;display:inline-flex;gap:4px;align-items:baseline}
 .pres3 span em{font-style:normal;color:#8A8A8A;font-size:10px}
@@ -892,7 +765,7 @@ html.theme-pawa .pupd{color:#4A6390}
 .pl3 .prs{font-weight:700;text-align:right}
 .pl3.b .prs{color:#2ECC71}.pl3.s .prs{color:#FFD21F}.pl3.o .prs{color:#FF6B6B}.pl3.h .prs{color:#5AB0FF}.pl3.sac .prs{color:#C8C8C8}
 .pnone{font-size:12.5px;color:var(--muted);margin:0;padding:10px 14px}
-@media (max-width:374px){.pmid{padding:10px 10px}.bso3{gap:6px}.bso3 div{gap:3px}.bso3 i{width:9px;height:9px}.bso3 span{font-size:11px}.pkm b{font-size:24px}.plr b{font-size:16px}.plast{padding:12px 12px}.pl3{grid-template-columns:24px 64px 1fr 56px;gap:8px}.pc3{padding:10px}.pg3 b{font-size:14px}}
+@media (max-width:374px){.pmid{padding:10px 10px}.bso3{gap:6px}.bso3 div{gap:3px}.bso3 i{width:9px;height:9px}.bso3 span{font-size:11px}.pkm b{font-size:24px}.plr b{font-size:16px}.plast{padding:12px 12px}.pl3{grid-template-columns:24px 64px 1fr 56px;gap:8px}.pc3{padding:10px}}
 
 /* 打順 */
 .lu{margin:0 0 12px;border:1px solid #1E1E1E;background:#080808}
@@ -1066,10 +939,6 @@ body{padding-bottom:calc(98px + env(safe-area-inset-bottom,0px))}
 
 /* 球場の天気 */
 .day{position:relative}
-.wxc{position:absolute;right:2px;top:2px;display:flex;flex-direction:column;align-items:center;line-height:1}
-.wxc .wxi{width:15px;height:15px}
-.wxc small{font-size:8.5px;color:#9FC9FF;font-weight:700;margin-top:1px}
-.wxc small.wxhi{color:#5AB0FF}
 .wxd{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:4px 0 8px;font-size:13px;color:#DADADA}
 .wxd .wxi{width:22px;height:22px}
 .wxd b{font-weight:700}
@@ -1090,9 +959,6 @@ body{padding-bottom:calc(98px + env(safe-area-inset-bottom,0px))}
   background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04)),#151515;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px 36px 10px 14px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
 .catsel::after{content:"";position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:2px solid #BDBDBD;border-bottom:2px solid #BDBDBD;transform:translateY(-70%) rotate(45deg);pointer-events:none}
-.chips2.quick{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}
-.chips2.quick::-webkit-scrollbar{display:none}
-.chips2.quick button{flex:0 0 auto}
 .qnote{font-size:11.5px;color:var(--muted);margin:6px 0 0}
 
 /* ===== 通知とデータの状態 ===== */
@@ -1206,7 +1072,6 @@ h2::before{transform:none;width:5px;height:18px;border-radius:3px;background:lin
 /* 開閉できる欄（確定の条件・計算のルール・見方）は間を詰めてまとまりに */
 .rules,.conds,.howto{margin-top:12px !important}
 #conds{margin-top:28px !important}
-.howto{margin-top:28px !important}
 /* ラベル類を角丸に */
 .tgo b em,.ytag,.hero .hp small,.res,.lvmini{border-radius:5px}
 .ytbl .yc2 b{border-radius:6px}
@@ -1677,12 +1542,9 @@ html.theme-pawa .sptile.n7 b,.ptile.rtile.n7 b{letter-spacing:-.02em;margin-righ
   html.theme-pawa .lnm .sptile,html.theme-pawa .putab td.pnx .sptile,html.theme-pawa .flow .fb .sptile{--w:72px;--fs:12px}
   .ptile.rtile{--w:60px;--fs:11.5px;padding:0 2px}
 }
-/* スワイプで切り替えたとき：次の画面が横からすべり込む */
-.view.sw-l:not([hidden]){animation:swl .45s cubic-bezier(.2,1,.3,1)}
-.view.sw-r:not([hidden]){animation:swr .45s cubic-bezier(.2,1,.3,1)}
 @keyframes swl{0%{opacity:.4;transform:translate3d(48px,0,0)}100%{opacity:1;transform:none}}
 @keyframes swr{0%{opacity:.4;transform:translate3d(-48px,0,0)}100%{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.view.sw-l:not([hidden]),.view.sw-r:not([hidden]){animation:none}}
+@media (prefers-reduced-motion:reduce){}
 /* パ・リーグ表示のときは、セ・リーグの遊び（支払い・担当者）の部分を隠す */
 html.lg-p .cl-only{display:none !important}
 html:not(.lg-p) .pl-only{display:none !important}
@@ -1819,7 +1681,6 @@ html.theme-pawa .conds small,html.theme-pawa .rules small{color:#4A6390}
 html.theme-pawa .day,html.theme-pawa .day .dn,html.theme-pawa .day .mu,html.theme-pawa .day .res,html.theme-pawa .day .tx,html.theme-pawa .day .rs{color:#13264A !important}
 html.theme-pawa .day .res.w,html.theme-pawa .day .rs.w{color:#E53935 !important}
 html.theme-pawa .day .res.l,html.theme-pawa .day .rs.l{color:#1E6FD0 !important}
-html.theme-pawa .day.sat .dn,html.theme-pawa .day .dn.sat{color:#1E6FD0 !important}
 html.theme-pawa .day.sun .dn,html.theme-pawa .day .dn.sun{color:#E53935 !important}
 html.theme-pawa .day.today{box-shadow:inset 0 0 0 3px #E53935}
 html.theme-pawa .day.sel{box-shadow:inset 0 0 0 3px #1D3E7C}
@@ -1878,9 +1739,7 @@ html.theme-pawa .pvs3{background:#DCE7F5;border-color:#DCE7F5}
 html.theme-pawa .pc3{background:linear-gradient(160deg,color-mix(in srgb,var(--tc) 22%,#fff) 0%,#fff 60%) !important}
 html.theme-pawa .pc3 *{color:#13264A}
 html.theme-pawa .pc3 .hd{color:#fff !important}
-html.theme-pawa .pc3 .wm{color:rgba(19,38,74,.08) !important}
 html.theme-pawa .pr3,html.theme-pawa .pg3 span,html.theme-pawa .pnx3{color:#4A6390 !important}
-html.theme-pawa .pg3 div{border-color:#DCE7F5}
 html.theme-pawa .pr3 .abt{color:#C98A00 !important}
 html.theme-pawa .pnx3.up{background:#FFF3C4;color:#8A5A00 !important}
 html.theme-pawa .pnx3.up b{color:#13264A !important}
@@ -2074,8 +1933,6 @@ html.theme-pawa{background:#CDEBFF}
 /* 通算｜現役｜シーズン：画面の幅にきっちり並べる */
 #recKind{display:grid !important;grid-template-columns:repeat(3,1fr);width:100% !important;box-sizing:border-box}
 #recKind button{min-width:0;white-space:nowrap;padding-left:2px !important;padding-right:2px !important;justify-content:center;text-align:center}
-#recBar.stdmode .catsel{width:100%}
-.hstd td.tnm .hsnm{font-size:12.5px;line-height:1.25;white-space:normal}
 .stdhsel{display:block;width:100%;margin:0 0 10px}
 /* 球場別成績 */
 .venbar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
@@ -2315,7 +2172,6 @@ html.theme-pawa .offtag.k-draft{color:#fff;background:linear-gradient(180deg,#6F
 #offList .ofr .ono{font-size:11.5px;color:var(--muted,#8B8B95);flex:0 0 auto}
 #offList .ofr .okd{margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--muted,#8B8B95)}
 #offList .ofr .odt{white-space:nowrap}
-#offList .ofr a.oln{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:0 4px;font-size:12px;font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}
 #offList .ofnone{margin:10px 2px 0;font-size:12.5px;color:var(--muted,#8B8B95)}
 /* パワプロ風：白いカード＋紺の太枠、見出しは球団色の帯、行は緑と白の交互、名前は守備位置の色のタイル、札とボタンはツヤのある立体 */
 html.theme-pawa #offList .ofteam{background:#fff;border:3px solid #1D3E7C;border-radius:16px;box-shadow:0 4px 0 rgba(29,62,124,.35)}
@@ -2332,9 +2188,6 @@ html.theme-pawa #offList .ptile.otl b{font-size:14px;letter-spacing:.06em;margin
 html.theme-pawa #offList .ptile.otl.n5 b{font-size:13px;letter-spacing:0;margin-right:0}
 html.theme-pawa #offList .ptile.otl.n7 b{font-size:11.5px;letter-spacing:-.02em;margin-right:.02em}
 html.theme-pawa #offList .ofr .ono{color:#4A5B7A;font-weight:800}
-html.theme-pawa #offList a.oln{min-width:54px;min-height:44px;margin:0;border-radius:10px;text-decoration:none;font-weight:800;color:#1D3E7C;
-  background:linear-gradient(180deg,#FFFFFF,#D9EBFF);border:2px solid #1D3E7C;box-shadow:inset 0 2px 0 #fff,0 3px 0 #1D3E7C;box-sizing:border-box}
-html.theme-pawa #offList a.oln:active{transform:translateY(2px);box-shadow:inset 0 2px 0 #fff,0 1px 0 #1D3E7C}
 html.theme-pawa #offList .ofnone{color:#13264A;font-weight:700;background:#fff;border:2px solid #1D3E7C;border-radius:12px;padding:8px 12px;box-shadow:0 3px 0 rgba(29,62,124,.25)}
 /* パワプロ風の札：ツヤのある立体（戦力外は赤、引退は銀） */
 html.theme-pawa .offtag{height:20px;padding:0 7px;border-radius:7px;font-size:11px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.3);
@@ -2505,7 +2358,6 @@ html.theme-pawa .wxr small.wxhi{color:#fff;background:#1E6FD9}
 html.theme-pawa .wxd{color:#13264A}
 html.theme-pawa .wxd span.wxhi{color:#1E6FD9}
 html.theme-pawa .wxd em{color:#4A6390;border-color:#C9D8EC;border-radius:6px}
-html.theme-pawa .wxc small.wxhi{color:#1E6FD9}
 
 
 /* ===== パワプロ風（夜）：自動で作った色の置き換え（pawa_night.py） ===== */
@@ -2638,7 +2490,6 @@ html.theme-pawa.pawa-dark .conds small,html.theme-pawa.pawa-dark .rules small{co
 html.theme-pawa.pawa-dark .day,html.theme-pawa.pawa-dark .day .dn,html.theme-pawa.pawa-dark .day .mu,html.theme-pawa.pawa-dark .day .res,html.theme-pawa.pawa-dark .day .tx,html.theme-pawa.pawa-dark .day .rs{color:#DEE5F2 !important}
 html.theme-pawa.pawa-dark .day .res.w,html.theme-pawa.pawa-dark .day .rs.w{color:#DDA8A6 !important}
 html.theme-pawa.pawa-dark .day .res.l,html.theme-pawa.pawa-dark .day .rs.l{color:#A6BFDD !important}
-html.theme-pawa.pawa-dark .day.sat .dn,html.theme-pawa.pawa-dark .day .dn.sat{color:#A6BFDD !important}
 html.theme-pawa.pawa-dark .day.sun .dn,html.theme-pawa.pawa-dark .day .dn.sun{color:#DDA8A6 !important}
 html.theme-pawa.pawa-dark #detail *{color:#DEE5F2}
 html.theme-pawa.pawa-dark .race td,html.theme-pawa.pawa-dark .race td:first-child{color:#DEE5F2 !important;background:#172338}
@@ -2684,7 +2535,6 @@ html.theme-pawa.pawa-dark .pvs3{background:#1B2A43;border-color:#224167}
 html.theme-pawa.pawa-dark .pc3{background:linear-gradient(160deg,#172338 0%,#172338 60%) !important}
 html.theme-pawa.pawa-dark .pc3 *{color:#DEE5F2}
 html.theme-pawa.pawa-dark .pr3,html.theme-pawa.pawa-dark .pg3 span,html.theme-pawa.pawa-dark .pnx3{color:#AEBCD5 !important}
-html.theme-pawa.pawa-dark .pg3 div{border-color:#224167}
 html.theme-pawa.pawa-dark .pr3 .abt{color:#DDCCA6 !important}
 html.theme-pawa.pawa-dark .pnx3.up{background:#1D2C47;color:#F2EBDE !important}
 html.theme-pawa.pawa-dark .pnx3.up b{color:#DEE5F2 !important}
@@ -2765,7 +2615,6 @@ html.theme-pawa.pawa-dark #offList .ofh small{color:#DEE5F2;background:#172338;b
 html.theme-pawa.pawa-dark #offList .ofr{color:#DEE5F2;border-top:1px solid #3A5B2E;background:#1A283F}
 html.theme-pawa.pawa-dark #offList .ofr:nth-child(odd){background:#172338}
 html.theme-pawa.pawa-dark #offList .ofr .ono{color:#B3BDD1}
-html.theme-pawa.pawa-dark #offList a.oln{color:#DEE5F2;background:linear-gradient(180deg,#172338,#1B2942);border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark #offList .ofnone{color:#DEE5F2;background:#172338;border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark .offtag{color:#fff;background:linear-gradient(180deg,#FF7A7A,#D62828);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),0 2px 0 rgba(142,20,20,.45)}
 html.theme-pawa.pawa-dark .offtag.k-retire{color:#13264A;background:linear-gradient(180deg,#F7F9FC,#B9C3D3);box-shadow:inset 0 2px 0 #fff,0 2px 0 rgba(111,123,143,.5)}
@@ -2817,7 +2666,6 @@ html.sty-light:not(.theme-pawa) .alert .pay{background:rgba(242,243,247,.22)}
 html.sty-light:not(.theme-pawa) .lamp.ok i{background:#15171D;color:#FFFFFF}
 html.sty-light:not(.theme-pawa) .rec{color:#303030}
 html.sty-light:not(.theme-pawa) .rec .pct{color:#171717}
-html.sty-light:not(.theme-pawa) .meter .cap b{color:#171717}
 html.sty-light:not(.theme-pawa) .left span{color:#343434}
 html.sty-light:not(.theme-pawa) .left span.vs{color:#171717}
 html.sty-light:not(.theme-pawa) .copy{background:#15171D;color:#FFFFFF}
@@ -2832,9 +2680,6 @@ html.sty-light:not(.theme-pawa) .legend i{background:#15171D}
 html.sty-light:not(.theme-pawa) td.mg{color:#171717}
 html.sty-light:not(.theme-pawa) .rules p{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .seg button[aria-pressed="true"]{background:#15171D;color:#FFFFFF}
-html.sty-light:not(.theme-pawa) .tstat td.best{color:#171717}
-html.sty-light:not(.theme-pawa) .tstat td.v{color:#5C5C5C}
-html.sty-light:not(.theme-pawa) .tstat td.v.best{color:#171717}
 html.sty-light:not(.theme-pawa) .chips2 button:not([aria-pressed="true"]):not(.on){color:#343434}
 html.sty-light:not(.theme-pawa) .chips2 button[aria-pressed="true"]{background:#15171D;color:#FFFFFF}
 html.sty-light:not(.theme-pawa) .rrow.lead .rk{color:#171717}
@@ -2864,35 +2709,18 @@ html.sty-light:not(.theme-pawa) .tgo li{color:#2D2D2D}
 html.sty-light:not(.theme-pawa) .tgo li.ok{color:#171717}
 html.sty-light:not(.theme-pawa) .ytag.top,html.sty-light:not(.theme-pawa) .ytag.mvp{background:#15171D;color:#FFFFFF}
 html.sty-light:not(.theme-pawa) .ytag.bad{color:#171717}
-html.sty-light:not(.theme-pawa) .yc{background:#F2F2F2}
-html.sty-light:not(.theme-pawa) .yc.first{background:#15171D;color:#FFFFFF}
-html.sty-light:not(.theme-pawa) .yc.last{color:#171717}
-html.sty-light:not(.theme-pawa) .yc.last em{color:#AA0E0E}
-html.sty-light:not(.theme-pawa) .yc.now{outline:1px dashed #E9E9E9}
 html.sty-light:not(.theme-pawa) .top::before{background:repeating-linear-gradient(-70deg,rgba(20,24,40,0.045) 0 2px,transparent 2px 14px)}
 html.sty-light:not(.theme-pawa) .brand .j{color:#171717}
 html.sty-light:not(.theme-pawa) .alert{background:repeating-linear-gradient(-70deg,rgba(242,243,247,.10) 0 2px,transparent 2px 16px),var(--tc)}
 html.sty-light:not(.theme-pawa) .alert::after{background:rgba(242,243,247,.18)}
 html.sty-light:not(.theme-pawa) .alert .pay{background:#FBFBFB;color:#171717}
-html.sty-light:not(.theme-pawa) .brow{background:#F5F5F5}
-html.sty-light:not(.theme-pawa) .brow.low{background:#F3ECEC}
-html.sty-light:not(.theme-pawa) .brow.paid{background:#3A0B0E;box-shadow:inset 0 0 0 1px rgba(255,43,43,.7)}
 html.sty-light:not(.theme-pawa) .day.win{background:color-mix(in srgb,var(--tc) 24%,#FBFBFB)}
 html.sty-light:not(.theme-pawa) .day.win .rs.w{color:#171717}
 html.sty-light:not(.theme-pawa){--p1:#F4F4F4;--p2:#EFEFEF;--line:#E3E3E3;--line2:#E1E1E1;--muted:#5C5C5C}
 html.sty-light:not(.theme-pawa) h2::before{background:#15171D}
 html.sty-light:not(.theme-pawa) .chip[aria-pressed="true"]{background:#15171D;color:#FFFFFF}
-html.sty-light:not(.theme-pawa) .brow{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 34%,#F6F6F6) 0%,color-mix(in srgb,var(--tc) 12%,#F6F6F6) 38%,#F6F6F6 70%)}
-html.sty-light:not(.theme-pawa) .brow .tm span{color:#262626}
-html.sty-light:not(.theme-pawa) .brow .tm .sm{color:#5C5C5C}
-html.sty-light:not(.theme-pawa) .brow.low{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 30%,#F7F2F2) 0%,#F4ECED 55%,#F4ECED 100%)}
-html.sty-light:not(.theme-pawa) .brow.paid{background:linear-gradient(90deg,#3A0B0E,#2A080B);box-shadow:inset 0 0 0 2px #FF3B3B}
 html.sty-light:not(.theme-pawa) .trend,html.sty-light:not(.theme-pawa) .tg{background:#F4F4F4;border:1px solid #E1E1E1}
-html.sty-light:not(.theme-pawa) .frow{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 22%,#F6F6F6),#F6F6F6 60%)}
 html.sty-light:not(.theme-pawa) .fb i{background:#EFEFEF}
-html.sty-light:not(.theme-pawa) .hrow{background:#F5F5F5}
-html.sty-light:not(.theme-pawa) .yrow{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 20%,#F6F6F6),#F6F6F6 60%)}
-html.sty-light:not(.theme-pawa) .yc{background:rgba(20,24,40,0.054)}
 html.sty-light:not(.theme-pawa) .rrow{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 20%,#F6F6F6),#F6F6F6 60%)}
 html.sty-light:not(.theme-pawa) .tbtn:not([aria-pressed="true"]):not(.on){background:#F4F4F4;border:1px solid #E1E1E1}
 html.sty-light:not(.theme-pawa) .cal{border-color:#E1E1E1;background:#EEEEEE}
@@ -2900,7 +2728,6 @@ html.sty-light:not(.theme-pawa) .cal .wd{background:#F4F4F4}
 html.sty-light:not(.theme-pawa) .detail{background:#F4F4F4}
 html.sty-light:not(.theme-pawa) .tabbar{background:rgba(248,248,250,0.94);border-top:1px solid #E2E2E2}
 html.sty-light:not(.theme-pawa) a.tl{border-bottom:1px solid rgba(20,24,40,0.120)}
-html.sty-light:not(.theme-pawa) a.tn .nmx{border-bottom:1px solid rgba(20,24,40,0.120)}
 html.sty-light:not(.theme-pawa) .sh{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 30%,#F6F6F6),#F6F6F6 70%)}
 html.sty-light:not(.theme-pawa) .sh a{color:#FFFFFF;background:#15171D}
 html.sty-light:not(.theme-pawa) .songq{background:#F4F4F4;border:1px solid #E3E3E3;color:#171717}
@@ -2937,11 +2764,8 @@ html.sty-light:not(.theme-pawa) .nowbat{background:#F7F2F2}
 html.sty-light:not(.theme-pawa) .nowbat .sit{color:#2D2D2D}
 html.sty-light:not(.theme-pawa) .pl{border-top:1px solid #E1E1E1}
 html.sty-light:not(.theme-pawa) .pl .pk{color:#FFFFFF;background:#FFD21F}
-html.sty-light:not(.theme-pawa) .pbp{border:1px solid #E6E6E6;color:#171717}
 html.sty-light:not(.theme-pawa) .tm span{color:#2A2A2A}
-html.sty-light:not(.theme-pawa) .tm .sm{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .lvmini{color:#AA0E0E}
-html.sty-light:not(.theme-pawa) .mtbl .mt{color:#171717}
 html.sty-light:not(.theme-pawa) .hero{background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 38%,#F6F6F6) 0%,color-mix(in srgb,var(--tc) 12%,#F6F6F6) 55%,#F6F6F6 100%)}
 html.sty-light:not(.theme-pawa) .hero.none{border-left-color:#E6E6E6;background:#F5F5F5}
 html.sty-light:not(.theme-pawa) .hero .hl{color:#AA0E0E}
@@ -2958,8 +2782,6 @@ html.sty-light:not(.theme-pawa) .h2h th.rh{background:#F2F2F2;color:#383838}
 html.sty-light:not(.theme-pawa) .h2h td b{color:#171717}
 html.sty-light:not(.theme-pawa) .h2h td small{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .h2h td.self{background:#F1F1F1}
-html.sty-light:not(.theme-pawa) .howto{border-top:1px solid #E2E2E2}
-html.sty-light:not(.theme-pawa) .howto ul{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .tst td.v.best{color:#171717}
 html.sty-light:not(.theme-pawa) .tst td.v{color:#383838}
 html.sty-light:not(.theme-pawa) .rtab td.pnm{color:#171717}
@@ -3024,8 +2846,6 @@ html.sty-light:not(.theme-pawa) .pr3 em{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .hd{color:#171717}
 html.sty-light:not(.theme-pawa) .hd.l{background:#1E6FD9}
 html.sty-light:not(.theme-pawa) .hd.r{background:#C2185B}
-html.sty-light:not(.theme-pawa) .pg3 div{border-bottom:1px solid rgba(20,24,40,0.054)}
-html.sty-light:not(.theme-pawa) .pg3 span{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .pres3 span{background:rgba(20,24,40,0.063)}
 html.sty-light:not(.theme-pawa) .pres3 span em{color:#5C5C5C}
 html.sty-light:not(.theme-pawa) .pres3 span.h{color:#0E5FAA}
@@ -3108,7 +2928,6 @@ html.sty-light:not(.theme-pawa) .tabbar button[aria-selected="true"]{color:#1717
 html.sty-light:not(.theme-pawa) .tabbar .lens{background:radial-gradient(120% 90% at 50% 0%,rgba(20,24,40,0.120),rgba(20,24,40,0.090) 60%,rgba(20,24,40,0.054))}
 html.sty-light:not(.theme-pawa) .minibar{background:linear-gradient(180deg,rgba(20,24,40,0.120),rgba(20,24,40,0.036)),rgba(22,22,24,.42)}
 html.sty-light:not(.theme-pawa) .rleg{border-bottom:1px solid #E0E0E0}
-html.sty-light:not(.theme-pawa) .wxc small{color:#0E52AA}
 html.sty-light:not(.theme-pawa) .wxd{color:#2D2D2D}
 html.sty-light:not(.theme-pawa) .wxd em{border:1px solid #E4E4E4}
 html.sty-light:not(.theme-pawa) .wxr small{color:#0E4DAA}
@@ -3390,7 +3209,6 @@ html.theme-pawa:not(.pawa-dark) .day .ps:not(#z){background:linear-gradient(180d
 html.theme-pawa:not(.pawa-dark) .se-box .se-l:not(#z){color:#8C6000 !important}
 html.theme-pawa:not(.pawa-dark) .day .res.w:not(#z),html.theme-pawa:not(.pawa-dark) .day .rs.w:not(#z){color:#CD1E1A !important}
 html.theme-pawa:not(.pawa-dark) .day .res.l:not(#z),html.theme-pawa:not(.pawa-dark) .day .rs.l:not(#z){color:#1C68C3 !important}
-html.theme-pawa:not(.pawa-dark) .day.sat .dn:not(#z),html.theme-pawa:not(.pawa-dark) .day .dn.sat:not(#z){color:#1C68C3 !important}
 html.theme-pawa:not(.pawa-dark) .day.sun .dn:not(#z),html.theme-pawa:not(.pawa-dark) .day .dn.sun:not(#z){color:#CD1E1A !important}
 html.theme-pawa:not(.pawa-dark) .race td.clinch:not(#z),html.theme-pawa:not(.pawa-dark) .race td.clinch:first-child{color:#CD1E1A !important}
 html.theme-pawa:not(.pawa-dark) .sgo:not(#z),html.theme-pawa:not(.pawa-dark) .sbtn.go:not(#z){background:linear-gradient(180deg,#21852F,#19862E) !important}
@@ -3415,7 +3233,6 @@ html.theme-pawa:not(.pawa-dark) .mgtab td.best:not(#z){color:#A84F00 !important}
 html.theme-pawa:not(.pawa-dark) .ls td.now:not(#z){color:#935B00 !important}
 html.theme-pawa:not(.pawa-dark) .wxr small:not(#z){color:#1C68CC !important}
 html.theme-pawa:not(.pawa-dark) .wxd span.wxhi:not(#z){color:#1C68CC !important}
-html.theme-pawa:not(.pawa-dark) .wxc small.wxhi:not(#z){color:#1C68CC !important}
 html.theme-pawa:not(.pawa-dark) .ytbl td.yc2.last b:not(#z){background:linear-gradient(180deg,#EA1000,#E32C27) !important}
 html.theme-pawa.pawa-dark .rtab .rkm.r1:not(#z),html.theme-pawa.pawa-dark .rtab .rkm.r2:not(#z),html.theme-pawa.pawa-dark .rtab .rkm.r3:not(#z){color:#7699DC !important}
 html.theme-pawa.pawa-dark .rc.sb:not(#z){background:linear-gradient(180deg,#1E8277,#138A7D) !important}
@@ -3441,7 +3258,6 @@ html.theme-pawa.pawa-dark .ytbl td.yc2.last b:not(#z){background:linear-gradient
 html:not(.theme-pawa):not(.sty-light) .copy.done:not(#z){background:#00A660 !important}
 html:not(.theme-pawa):not(.sty-light) .day .rs.l:not(#z){color:#858585 !important}
 html:not(.theme-pawa):not(.sty-light) .fb i.l b:not(#z){color:#858585 !important}
-html:not(.theme-pawa):not(.sty-light) .yc.first em:not(#z){color:#858585 !important}
 html:not(.theme-pawa):not(.sty-light) .sgt small:not(#z),html:not(.theme-pawa):not(.sty-light) .sgrp summary small:not(#z){color:#858585 !important}
 html:not(.theme-pawa):not(.sty-light) .tgo b em:not(#z){background:#ED0000 !important}
 html:not(.theme-pawa):not(.sty-light) .h2h td.self:not(#z){color:#808080 !important}
@@ -4353,7 +4169,6 @@ const ownT = t => {
   const c = { "投": "pp", "中": "pp", "抑": "pp", "先": "ps", "捕": "pc", "内": "pi", "外": "po" }[ownerPosOf(t)] || "pi";
   return `<span class="ptile otile ${c}${nmCls(own(t))}"><b>${own(t)}</b></span>`;
 };
-const payLine = t => own(t) === CONFIG.payee ? `${own(t)}が ${yen(CONFIG.fee)} 支払い` : `${own(t)} → ${CONFIG.payee}へ ${yen(CONFIG.fee)}`;
 // 日本時間の今日（1秒間は同じ結果を使い回す：描画中に何百回も呼ばれるため）
 let ARCH = null;   // 前のシーズンの記録を見ているときの年（ふだんは null）
 let __jstAt = 0, __jst = null;
@@ -4676,12 +4491,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ---------- マジック ---------- */
-function lampHTML(r) {
-  if (r.safe) return `<div class="lamp ok"><i>✓</i>回避</div>`;
-  if (r.eliminated) return `<div class="lamp ng"><i>支払い</i></div>`;
-  if (r.self === null) return `<div class="lamp off"><small>M</small>--</div>`;
-  return `<div class="lamp num"><small>M</small>${r.self}</div>`;
-}
 function seasonOver() {
   const gs = DATA.games.filter(inLg);
   return gs.some(g => g.st === "final") && gs.every(g => g.st === "final" || g.st === "canc") && !pendingMakeups().length;
@@ -4850,13 +4659,6 @@ function renderMagic() {
 }
 
 /* ---------- ライブ ---------- */
-function liveTag(t) {
-  const today = jst().iso;
-  const g = DATA.games.find(x => x.d === today && x.st === "live" && (x.h === t || x.a === t));
-  if (!g) return "";
-  const me = g.h === t ? g.hs : g.as, op = g.h === t ? g.as : g.hs, o = g.h === t ? g.a : g.h;
-  return `<span class="lvtag">● ${sn(o)}戦 ${me}-${op} ${esc(g.inn || "")}</span>`;
-}
 let liveAt = null, liveChangedAt = null;
 function liveMini(t) {
   const g = DATA.games.find(x => x.d === jst().iso && x.st === "live" && (x.h === t || x.a === t));
@@ -5649,7 +5451,6 @@ function callNameRaw(t, name) {
 // 名前の長さの目印（パワプロ風の札は大きさをそろえ、長い名前は文字を小さくする）
 // 名前の札の字間・文字の大きさの目印（サイト全体で共通）：2文字以下 sp・3〜4文字 なし・5〜6文字 n5・7文字以上 n7（空白は数えない）
 const nmCls = nm => { const n = [...String(nm || "").replace(/\s+/g, "")].length; return n <= 2 ? " sp" : n >= 7 ? " n7" : n >= 5 ? " n5" : ""; };
-const nmLen = nm => { const n = [...String(nm || "")].length; return n >= 7 ? " n7" : n >= 5 ? " n5" : ""; };
 function pwName(t, name, fallback) {
   if (!isPawa() || !name) return esc(callName(t, name));
   const gr = rosterGroups(t, name, fallback), nm = callName(t, name);

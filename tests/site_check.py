@@ -3282,6 +3282,20 @@ async def ux_check(browser):
               const tr = n => [...document.querySelectorAll('#recTbl tbody tr')].find(x => x.textContent.includes(n));
               if (!tr('中村 剛也')?.querySelector('td.pnm[data-pl]')) ng.push('歴代記録の今の選手の名前が押せない');
               if (tr('王 貞治')?.querySelector('td.pnm')?.dataset.npb !== '81383808') ng.push('歴代記録の引退した選手の名前でNPBの選手のページが開かない');
+              // ⑥ 見出しは右上のボタン（さがす・設定）にかからない：長い見出し（3・4月度の戦況・最終結果）も
+              for (const tt of ['3・4月度の戦況', '9・10月度の戦況', '最終結果', '順位・支払い']) {
+                document.getElementById('ttl').textContent = tt; await new Promise(r => setTimeout(r, 60)); fitTitle();
+                const rg = document.createRange(); rg.selectNodeContents(document.getElementById('ttl'));
+                if (rg.getBoundingClientRect().right > document.getElementById('findBtn').getBoundingClientRect().left - 4) ng.push(`見出し「${tt}」が右上のボタンにかかる`);
+              }
+              // ⑦ シーズンの最終結果：月度別の最下位をカードで（月度・球団の印・名前）。見出しは「最終結果」
+              { const so2 = seasonOver; seasonOver = () => true; renderAll(); setTab('magic');
+                const se = document.getElementById('seasonEnd');
+                if (!se.hidden && !se.querySelector('.se-mon .se-m .se-bd')) ng.push('最終結果に月度別の最下位のカードが出ない');
+                if (!se.hidden && document.getElementById('ttl').textContent !== '最終結果') ng.push(`最終結果の見出しが違う（${document.getElementById('ttl').textContent}）`);
+                const cut = [...se.querySelectorAll('.se-mt b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent);
+                if (cut.length) ng.push(`月度別の最下位の名前が切れる（${cut}）`);
+                seasonOver = so2; renderAll(); }
               // ⑤ 字の大きさ
               const small = [];
               for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {

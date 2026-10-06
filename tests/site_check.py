@@ -3543,7 +3543,10 @@ async def csf_rule_check(browser):
       if (s.win !== 'A' || s.wh !== 5) ng.push(`2勝のアドバンテージで3勝しても勝ち抜けにならない：${JSON.stringify(s)}`);
       // パ・リーグ（今のデータでは1位が独走）：勝ち上がり表に新ルールの説明、日程に第7戦（10/20）
       switchLeague('P'); setTab('std'); renderAll();
-      if (!/新ルール/.test((document.querySelector('.bk-rule') || {}).textContent || '')) ng.push('勝ち上がり表に新ルールの説明が出ない');
+      // 相手が決まっていないときだけ、1行で「勝ち上がれば先に4勝／5勝」。決まっていればステージの見出しに出るので、説明の行は出さない
+      { const lp0 = lgPost('P'), br = document.querySelector('.bk-rule');
+        if (!lp0.rule && (!br || !/勝ち上がれば先に[45]勝/.test(br.textContent))) ng.push(`勝ち上がり表にファイナルの形（先に4勝／5勝）が出ない（${br && br.textContent}）`);
+        if (br && br.textContent.length > 60) ng.push('勝ち上がり表の説明が長い'); }
       const lp = lgPost('P');
       if ((lp.rule2.two || lp.rule3.two) && !postGames().some(g => g.stage === 'CSF' && g.no === 7)) ng.push('7試合制になりうるのに、日程に第7戦がない');
       switchLeague('C');

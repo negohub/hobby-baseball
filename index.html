@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261006131850">
+<meta name="build" content="20261006184444">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -83,6 +83,9 @@ h2 small{font-size:12.5px;color:var(--muted);font-weight:600;font-style:normal;m
 
 /* 月度 */
 .chips{display:flex;gap:0;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none;border-bottom:1px solid var(--line)}
+/* 月度は選ぶ欄で（項目の選び方と同じ形）。横いっぱい */
+#chips:not(#z){display:block;overflow:visible;margin:0 0 10px;padding:0;border-bottom:0}
+#chips .prdsel{display:block;width:100%}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;border:0;background:none;padding:10px 12px 11px;font-size:14.5px;font-weight:800;cursor:pointer;color:var(--dim);display:flex;align-items:center;gap:6px;position:relative}
 .chip[aria-pressed="true"]{color:var(--text)}
@@ -4640,15 +4643,12 @@ function renderMagic() {
   renderSeasonEnd();
   const results = {};
   list.forEach(p => (results[p.id] = analyze(DATA.games, p, CONFIG)));
-  $("chips").innerHTML = list.map(p => {
-    const done = results[p.id].finished;
-    return `<button class="chip" role="tab" type="button" data-id="${p.id}" aria-pressed="${p.id === S.period.id}">${p.label}${done ? "" : `<span class="dot" title="集計中"></span>`}</button>`;
-  }).join("");
-  $("chips").querySelectorAll(".chip").forEach(b => (b.onclick = () => { pickPeriod(CONFIG.periods.find(p => p.id === b.dataset.id)); }));
+  // 月度の選び方：打率・本塁打などの項目と同じ、選ぶ欄（横にすべらせる必要がない）。集計中の月度は「（集計中）」
+  $("chips").innerHTML = `<label class="catsel prdsel"><select id="prdSel" aria-label="月度">${list.map(p => `<option value="${p.id}"${p.id === S.period.id ? " selected" : ""}>${esc(p.label)}${results[p.id].finished ? "" : "（集計中）"}</option>`).join("")}</select></label>`;
+  $("prdSel").onchange = e => pickPeriod(CONFIG.periods.find(p => p.id === e.target.value));
   const a = results[S.period.id];
   window.__last = a;
   // 選択中の月度ボタンを真ん中へ（寸法の読み取りは描画の途中でやると全体の再計算が起きて重いので、次の画面更新のときに）
-  requestAnimationFrame(() => { const c = $("chips"), on = c.querySelector('[aria-pressed="true"]'); if (on) c.scrollLeft = on.offsetLeft - (c.clientWidth - on.offsetWidth) / 2; });
 
   const hero = (t, lbl, sub, state) => {
     const toPayee = own(t) === CONFIG.payee ? "支払い" : `→ ${CONFIG.payee}`;

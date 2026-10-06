@@ -1291,6 +1291,18 @@ async def offseason_check(browser):
         got_l = (ud.wiki_position("金本 知憲", ["阪神"]), ud.wiki_position("バース", ["阪神"]))
         if got_l != ("外野手", "内野手"):
             bad(f"[歴代選手の守備位置] 記事の書き出しでの読み方が違う：{got_l}")
+        # 題に名前が入る記事を球団名と探す：横浜のローズはボビー・ローズ（内野手）。同じ名字の近鉄のタフィ・ローズ（外野手）と取り違えない
+        def fake_wg3(prm):
+            if prm.get("list") == "search":
+                return {"query": {"search": ([{"title": "タフィ・ローズ"}, {"title": "ボビー・ローズ"}] if prm["srsearch"].startswith('intitle:"ローズ" 横浜') else [{"title": "1973年の野球"}])}}
+            ts = prm["titles"].split("|")
+            if "extracts" in prm.get("prop", ""):
+                return {"query": {"pages": [{"title": x, "extract": ("ボビー・ローズは、アメリカ合衆国出身の元プロ野球選手（内野手）。" if x == "ボビー・ローズ" else "")} for x in ts]}}
+            body = {"タフィ・ローズ": "|ポジション = [[外野手]] 大阪近鉄バファローズ", "ボビー・ローズ": "横浜ベイスターズで…"}
+            return {"query": {"pages": [{"title": x, "revisions": [{"slots": {"main": {"content": body.get(x, "")}}}]} for x in ts]}}
+        ud.wiki_get = fake_wg3
+        if ud.wiki_position("ローズ", ["横浜"]) != "内野手":
+            bad(f"[歴代選手の守備位置] 外国人選手（横浜のローズ）を球団で見分けられない：{ud.wiki_position('ローズ', ['横浜'])}")
     finally:
         ud.wiki_get = keep_wg2
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない

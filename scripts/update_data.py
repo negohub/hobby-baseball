@@ -1957,7 +1957,7 @@ REG_EVERY = 7 * 86400   # 名簿は週に1回だけ取り直す
 REG_PARSER = 3          # 名簿の読み方の版（2：［改名］の名前も覚える、3：選手のページの番号も覚える）。版が変わったらすぐ取り直す
 POS_BUDGET = 120        # 1回の更新で選手のページ（守備位置）を読むのに使う秒数の上限
 REG_MIN_PEOPLE = 3000   # これより少ない名簿は「取り損ね」とみなす（ほんとうは約1万人）
-POS_VERSION = 3         # 引退した打者の守備位置の調べ方の版（2：記事の書き出しも読む・断られたら次の回、3：曖昧さ回避の見分け方を直した）
+POS_VERSION = 4         # 引退した打者の守備位置の調べ方の版（2：記事の書き出しも読む・断られたら次の回、3：曖昧さ回避の見分け方、4：プレーンな書き出しも読む）
 
 
 def reg_year(y):
@@ -2212,6 +2212,22 @@ def wiki_pos_of(text, teams):
     return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
 
 
+def wiki_lead_position(titles):
+    """記事の書き出し（プレーンな文章）から守備位置：「…出身の元プロ野球選手（外野手）」。曖昧さ回避のページは pageprops で見分けて外す"""
+    d = wiki_get({"action": "query", "prop": "extracts|pageprops", "exintro": 1, "explaintext": 1, "redirects": 1, "titles": "|".join(titles)})
+    for pg in (d.get("query") or {}).get("pages") or []:
+        if "disambiguation" in (pg.get("pageprops") or {}):
+            continue
+        ex = pg.get("extract") or ""
+        m2 = re.search(r"プロ野球選手[（(]([^）)]{1,40})[）)]", ex)
+        p = WIKI_POS.search(m2.group(1)) if m2 else None
+        if p:
+            return {"一塁手": "内野手", "二塁手": "内野手", "三塁手": "内野手", "遊撃手": "内野手"}.get(p.group(1), p.group(1))
+        if ex and len(WIKI_DIAG.setdefault("samples", [])) < 12:
+            WIKI_DIAG["samples"].append(f"{pg.get('title')}: {ex[:90]}")
+    return ""
+
+
 def wiki_position(name, teams):
     """引退した選手の守備位置（NPBの選手のページに載っていない）：ウィキペディアの記事から。名前（・(野球)）→ 見つからなければ検索"""
     nm = re.sub(r"\s+", "", norm(name))
@@ -2226,6 +2242,9 @@ def wiki_position(name, teams):
         pos = wiki_pos_of(txt, teams)
         if pos:
             return pos
+    pos = wiki_lead_position([nm, f"{nm} (野球)"])
+    if pos:
+        return pos
     d = wiki_get({"action": "query", "list": "search", "srsearch": f"{nm} {teams[0] if teams else ''} プロ野球選手", "srlimit": 3})
     titles = [x.get("title") for x in (d.get("query") or {}).get("search") or [] if x.get("title")]
     if titles:
@@ -2233,6 +2252,9 @@ def wiki_position(name, teams):
             pos = wiki_pos_of(txt, teams)
             if pos:
                 return pos
+        pos = wiki_lead_position(titles)
+        if pos:
+            return pos
     return ""
 
 

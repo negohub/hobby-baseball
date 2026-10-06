@@ -1276,6 +1276,23 @@ async def offseason_check(browser):
                                   '<table><tr><th>チーム</th><th>打率</th></tr><tr><td>阪神タイガース</td><td>.245</td><td>130</td><td>4300</td><td>435</td><td>1053</td><td>173</td></tr></table>')
     if hs_ != [["読売ジャイアンツ", 130, 79, 47, 4, ".627", ""], ["阪神タイガース", 130, 77, 49, 4, ".611", "2.0"]]:
         bad(f"[歴代の順位表の読み取り] チーム勝敗表を正しく読めない：{hs_}")
+    # 記事の中身（ウィキテキスト）で見つからなくても、記事の書き出し（プレーンな文章）「元プロ野球選手（外野手、…）」で読む。曖昧さ回避（pageprops）は外して検索の結果へ
+    keep_wg2 = ud.wiki_get
+    try:
+        def fake_wg(prm):
+            if prm.get("list") == "search":
+                return {"query": {"search": [{"title": "ランディ・バース"}]}}
+            ts = prm["titles"].split("|")
+            if "extracts" in prm.get("prop", ""):
+                ex = {"金本知憲": "金本 知憲（かねもと ともあき）は、広島県出身の元プロ野球選手（外野手、右投左打）。", "ランディ・バース": "ランディ・バースは、アメリカ合衆国出身の元プロ野球選手（内野手）。"}
+                return {"query": {"pages": [({"title": x, "pageprops": {"disambiguation": ""}, "extract": "バースは"} if x == "バース" else {"title": x, "extract": ex.get(x, "")}) for x in ts]}}
+            return {"query": {"pages": [{"title": x, "revisions": [{"slots": {"main": {"content": ""}}}]} for x in ts]}}
+        ud.wiki_get = fake_wg
+        got_l = (ud.wiki_position("金本 知憲", ["阪神"]), ud.wiki_position("バース", ["阪神"]))
+        if got_l != ("外野手", "内野手"):
+            bad(f"[歴代選手の守備位置] 記事の書き出しでの読み方が違う：{got_l}")
+    finally:
+        ud.wiki_get = keep_wg2
     # 歴代記録の1ページ（NPBの歴代最高記録）：見出しの空の列（現役の印「*」）を外して行ごとの印に。注記の行は読まない
     rp = ud.parse_record_page('<p>■ 2026年10月1日(木) 現在</p><table><tr><th>順位</th><th></th><th>選手</th><th>本塁打</th><th>実働期間</th></tr>'
                               '<tr><td>1</td><td></td><td>王 貞治</td><td>868</td><td>(1959-1980)</td></tr><tr><td>10</td><td>*</td><td>中村 剛也</td><td>482</td><td>(2003-2026)</td></tr>'

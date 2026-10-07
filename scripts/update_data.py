@@ -365,8 +365,15 @@ ROSTER_CODE = {"T": "t", "G": "g", "DB": "db", "D": "d", "C": "c", "S": "s",
 POSITIONS = ("投手", "捕手", "内野手", "外野手")
 
 
+# NPBの選手一覧の「備考」：シーズン中にいなくなった選手も、備考付きでそのまま載っている（7/17 自由契約、5/25 任意引退、5/13 ソフトバンクへ移籍 など）
+ROSTER_GONE = re.compile(r"自由契約|引退|へ移籍|退団|ウェイバー|制限選手|資格停止|失格|死去")
+ROSTER_TO_DEV = re.compile(r"育成選手契約|育成契約|育成選手へ")
+
+
 def parse_roster(html):
-    """NPBの選手一覧ページから、背番号・名前・ポジション・育成かどうかを取る"""
+    """NPBの選手一覧ページから、背番号・名前・ポジション・育成かどうかを取る。
+    備考にいなくなったこと（自由契約・引退・ほかの球団へ移籍など）が書いてある選手は入れない
+    （入れると支配下が70人を超え、自由契約になった選手が名鑑に残る）"""
     soup = BeautifulSoup(html, "html.parser")
     out = []
     for table in soup.find_all("table"):
@@ -381,6 +388,9 @@ def parse_roster(html):
                 pos = cells[1] if cells[1] in POSITIONS else None
                 continue
             if pos and re.fullmatch(r"\d{1,3}", cells[0]) and cells[1]:
+                note = " ".join(cells[2:])
+                if ROSTER_GONE.search(note) or (not dev and ROSTER_TO_DEV.search(note)) or (dev and "支配下" in note):
+                    continue   # いなくなった選手・育成に移った選手（支配下の表）・支配下になった選手（育成の表）
                 out.append({"no": cells[0], "n": re.sub(r"\s+", " ", cells[1]), "p": pos, "dev": dev})
     return out
 
@@ -1728,9 +1738,9 @@ def fetch_rosters(old):
     rosters = dict((old or {}).get("rosters") or {})
     have_all = (len(rosters) == len(ROSTER_CODE) and all(any("song" in r for r in v) for v in rosters.values())
                 and (old or {}).get("song_rev") == SONG_REV)
-    # 更新は3月〜7月だけ（支配下登録の期限が7月末のため）。まだ全球団そろっていなければ時期に関係なく取る
-    if have_all and not (3 <= now.month <= 7):
-        return rosters, (old or {}).get("roster_date")
+    # 1年中、1日1回取りに行く（7月までだけだと、8月以降の自由契約・引退・移籍が名鑑に反映されなかった）
+    # 1月〜2月はNPBのページが新しい年度に切り替わるまで前の年のままのことがあるが、そのままで問題ない
+    _ = have_all
     # 取りに行くのは1日1回まで（応援歌ページが読めない球団があっても、何度も取りに行かない）
     if len(rosters) == len(ROSTER_CODE) and (old or {}).get("roster_date") == today and (old or {}).get("song_rev") == SONG_REV:
         return rosters, today

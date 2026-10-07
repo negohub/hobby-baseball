@@ -280,22 +280,36 @@ function parseGame(html) {
   // 打席の見出し（「4番 小野寺 暖 無死走者なし」）。ページによって打順・名前・状況が別々の行になることがあるので、3行先までつないで確かめる
   const PA1 = /(?:^|\s|:)(\d+番|代打|代走)\s*:?\s*(.+?)\s+(無死|一死|二死)\s*(走者なし|満塁|[一二三]+塁)/;
   const PAN = /^(\d+番|代打|代走)\s*:?\s*(.+?)\s+(無死|一死|二死)\s*(走者なし|満塁|[一二三]+塁)$/;
+  const TOK = /^(\d+番|代打|代走)/;
   for (let i = st < 0 ? 0 : st + 1; i < lines.length; i++) {
     const l = lines[i];
-    if (halves.length && /^新着動画|の日程・結果$/.test(l)) break;   // 本文（回の見出し）より前にある日程の欄では止めない
+    // 「テキスト速報」の見出しのあとなら、下の「今日の日程・結果」などで止める（見出しが見つからないときは、本文が始まってから）
+    if ((st >= 0 || halves.length) && /^新着動画|の日程・結果$/.test(l)) break;
     let m;
     if ((m = l.match(/^(\d+)回(表|裏)(?:\s|$)/))) { cur = { half: `${m[1]}回${m[2]}`, n: +m[1] * 2 + (m[2] === "裏" ? 1 : 0), bats: [] }; halves.push(cur); bat = null; continue; }
     if (!cur) continue;
     m = l.match(PA1);
     let used = 0;
-    if (!m && /^(\d+番|代打|代走)/.test(l)) for (let k = 1; k <= 3 && !m; k++) { const j = lines.slice(i, i + k + 1).join(" "); if ((m = j.match(PAN))) used = k; }
+    // 打順・名前・状況が別々の行のとき：この行が「4番」「4番 小野寺 暖」「代打:松山」だけのときに限って、次の行（打席の見出しで始まらない行）とつなぐ
+    if (!m && /^(\d+番|代打|代走)(\s*:?\s*[^\s:]+(\s[^\s:]+)?)?$/.test(l))
+      for (let k = 1; k <= 3 && !m && i + k < lines.length && !TOK.test(lines[i + k]) && !PA1.test(lines[i + k]); k++) { const j = lines.slice(i, i + k + 1).join(" "); if ((m = j.match(PAN))) used = k; }
     if (m) { bat = { order: m[1], name: m[2], sit: m[3] + m[4], ev: [] }; cur.bats.push(bat); i += used; continue; }
-    if (/試合終了/.test(l)) over = true;
+    if (bat && /試合終了/.test(l)) over = true;   // 打席の中の「試合終了」だけ（ほかの試合の「試合終了」は拾わない）
     if (bat) bat.ev.push(l);
   }
-  if (halves.length > 1 && halves[0].n > halves[halves.length - 1].n) {
-    halves.reverse();
-    halves.forEach(h => h.bats.reverse());
+  // 打席のない回（本文でない所の「7回表」など）は捨てる
+  for (let i = halves.length - 1; i >= 0; i--) if (!halves[i].bats.length) halves.splice(i, 1);
+  // 並び：試合中は新しい回・新しい打席が上に来る。回の並びと、回の中のアウトの数（無死→一死→二死）・打順で、古い順に直す
+  const desc = halves.length > 1 && halves[0].n > halves[halves.length - 1].n;
+  if (desc) halves.reverse();
+  const outsOf = b => ({ 無死: 0, 一死: 1, 二死: 2 })[String(b.sit).slice(0, 2)] ?? 0;
+  const ordOf = b => { const m2 = String(b.order).match(/^(\d+)番/); return m2 ? +m2[1] : null; };
+  for (const h of halves) {
+    const B = h.bats; if (B.length < 2) continue;
+    const o0 = outsOf(B[0]), o1 = outsOf(B[B.length - 1]);
+    let rev = o0 > o1;
+    if (o0 === o1) { const a = ordOf(B[0]), b2 = ordOf(B[1]); rev = a != null && b2 != null && a !== b2 ? (a - b2 + 9) % 9 === 1 : desc; }
+    if (rev) B.reverse();
   }
   // 併殺打（ダブルプレー）になった打席：出場成績が「三ゴロ」のままのときに「三併打」に直すため（何回の、その打者の何打席目か）
   const dps = [];
@@ -580,7 +594,7 @@ function fixDoublePlays(box, dps, nm) {
 }
 
 function parseBox(html) {
-  const pit = {}, bat = {}, lineups = [], pitchers = [];
+  const pit = {}, bat = {}, lineups = [], pitchers = [], batS = [{}, {}], pitS = [{}, {}];   // batS・pitS：チームごと（0＝ビジター、1＝ホーム）。同じ名前の選手が両チームにいても取り違えない
   const nm = x => x.normalize("NFKC").replace(/\s+/g, "").replace(/髙/g, "高").replace(/﨑/g, "崎");
   for (const tb of html.match(/<table[\s\S]*?<\/table>/g) || []) {
     const raws = (tb.match(/<tr[\s\S]*?<\/tr>/g) || []).map(tr => tr.match(/<t[dh][\s\S]*?<\/t[dh]>/g) || []);
@@ -602,6 +616,7 @@ function parseBox(html) {
         dec = dec.normalize("NFKC");
         const row = { ip: at("投球回"), np: at("投球数"), bf: at("打者"), h: at("被安打"), hr: at("被本塁打"), so: at("奪三振"), bb: at("与四球"), hbp: at("与死球"), r: at("失点"), er: at("自責点") };
         pit[nm(name)] = row;
+        if (pitS[pitchers.length]) pitS[pitchers.length][nm(name)] = row;
         list.push({ name, dec, era: at("防御率"), ...row });
       }
       if (list.length) pitchers.push(list);
@@ -637,6 +652,7 @@ function parseBox(html) {
         }
         const row = { ab: r[ix("打数")], hit: r[ix("安打")], rbi: r[ix("打点")], hr: r[ix("本塁打")], bb: r[ix("四球")], so: r[ix("三振")], sb: r[ix("盗塁")], results, rbis, inn: r.slice(i1) };
         bat[nm(r[1])] = row;
+        if (batS[lineups.length]) batS[lineups.length][nm(r[1])] = row;
         const starter = /^\(.+\)$/.test(r[0]);
         if (starter || !order) order++;
         lu.push({ order, pos: r[0].replace(/[()]/g, ""), starter, name: r[1], avg: r[ix("打率")], ...row });
@@ -644,7 +660,7 @@ function parseBox(html) {
       if (lu.length) lineups.push(lu);
     }
   }
-  return { pit, bat, lineups, pitchers };
+  return { pit, bat, lineups, pitchers, batS, pitS };
 }
 
 async function pitchDetail(key, cache, cors) {
@@ -660,8 +676,12 @@ async function pitchDetail(key, cache, cors) {
         parseBox(await (await fetch(`https://baseball.yahoo.co.jp/npb/game/${id}/stats`, UA)).text())).catch(() => ({ pit: {}, bat: {} })),
     ]);
     const nm = x => (x || "").normalize("NFKC").replace(/\s+/g, "").replace(/髙/g, "高").replace(/﨑/g, "崎");
-    if (data.pitcher) data.pitcher.game = box.pit[nm(data.pitcher.name)] || null;
-    if (data.batter) data.batter.game = box.bat[nm(data.batter.name)] || null;
+    // 今日の成績：攻撃中のチームの打者・守っているチームの投手から探す（両チームに同じ名前の選手がいても取り違えない）
+    const atkC = ({ ...TEAM_NAMES, ...TEAM_NAMES_P })[String(data.attack || "").normalize("NFKC")] || null, homeC = String(key).split("-")[0];
+    const bs = atkC ? (atkC === homeC ? 1 : 0) : null;
+    const pick = (side, all, n) => side != null && side[n] !== undefined ? side[n] : side != null ? null : all[n];
+    if (data.pitcher) data.pitcher.game = pick(bs == null ? null : (box.pitS || [])[1 - bs] || null, box.pit || {}, nm(data.pitcher.name)) || null;
+    if (data.batter) data.batter.game = pick(bs == null ? null : (box.batS || [])[bs] || null, box.bat || {}, nm(data.batter.name)) || null;
     return new Response(JSON.stringify({ id, url: `https://baseball.yahoo.co.jp/npb/game/${id}/score`, ...data }), { headers: cors });
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { headers: cors });

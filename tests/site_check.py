@@ -3280,7 +3280,7 @@ async def ux_check(browser):
     """使いやすさ：①最初の画面（公式戦が終わったらCS・日本シリーズのあいだは勝ち上がり表、そのあとは入退団）②選手をさがす（12球団）
     ③ページの中の目次 ④名前を押すと開く（球場別・歴代記録）⑤字は11px未満にしない（丸の中の球団の印は除く）
     ⑥見出しと右上のボタン ⑦シーズンの最終結果 ⑧月度のボタン ⑨横にすべらせる並びがない ⑩戦況の試合速報
-    ⑪切り替えはボタン（6つ以下）か選ぶ欄（7つ以上） ⑫スクロールしてもページを切り替えられる ⑬対戦成績は戦況の1か所 ⑭時期で中身を入れ替える（CS・日本シリーズ・オフ）"""
+    ⑪切り替えはボタン（6つ以下）か選ぶ欄（7つ以上） ⑫スクロールしてもページを切り替えられる ⑬対戦成績は戦況の1か所 ⑭時期で中身を入れ替える（CS・日本シリーズ・オフ） ⑮9・10月度は2か月分の支払い"""
     for th in ["pawa", ""]:
         for w in [320, 390]:
             pg, errs = await open_page(browser, w, th)
@@ -3414,6 +3414,19 @@ async def ux_check(browser):
                 jst = () => ({ y: 2026, m: 12, d: 20, iso: '2026-12-20' }); TAB_DIRTY.add('game'); setTab('game');
                 if (document.getElementById('noGame').hidden || !/すべて終わりました/.test(document.getElementById('noGame').textContent)) ng.push('日本シリーズのあとの試合タブが「今季の試合はすべて終わりました」になっていない');
                 seasonOver = so4; jst = jj4; S.period = defaultPeriod(periods()); renderAll(); setTab('magic'); }
+              // ⑮ 支払い額：9・10月度は2か月分（5,160円）、ほかの月度は2,580円。戦況の帯・月度別の表・合計がそろう
+              { const P = periods(), p910 = P.find(p => p.id === '9-10'), p34 = P.find(p => p.id === '3-4');
+                if (feeOf(p910) !== 5160 || feeOf(p34) !== 2580) ng.push(`支払い額が違う（9・10月度 ${feeOf(p910)}・3・4月度 ${feeOf(p34)}）`);
+                if (!isPL()) {
+                  pickPeriod(p910); setTab('magic'); const hp = document.querySelector('#alert .hp b'); if (hp && hp.textContent !== '5,160円') ng.push(`9・10月度の戦況の支払い額が ${hp.textContent}`);
+                  pickPeriod(p34); const hp2 = document.querySelector('#alert .hp b'); if (hp2 && hp2.textContent !== '2,580円') ng.push(`3・4月度の戦況の支払い額が ${hp2.textContent}`);
+                  pickPeriod(defaultPeriod(P)); TAB_DIRTY.add('std'); setTab('std');
+                  const row = [...document.querySelectorAll('#hist tbody tr')].find(r => r.querySelector('td.mo')?.textContent === '9・10'), cell = row && row.querySelectorAll('td')[3];
+                  if (cell && cell.textContent !== '-' && cell.textContent !== '5,160円') ng.push(`月度別 支払いの9・10月度が ${cell.textContent}`);
+                  const sum = [...document.querySelectorAll('#hist tbody tr')].reduce((n, r) => n + (parseInt((r.querySelectorAll('td')[3]?.textContent || '').replace(/[^\d]/g, ''), 10) || 0), 0);
+                  const sum2 = [...document.querySelectorAll('#tot tbody td.ya b')].reduce((n, b) => n + (parseInt(b.textContent.replace(/[^\d]/g, ''), 10) || 0), 0);
+                  if (sum !== sum2) ng.push(`月度別の支払いの合計（${sum}）と担当者別の合計（${sum2}）が合わない`);
+                  setTab('magic'); } }
               // ⑤ 字の大きさ
               const small = [];
               for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {

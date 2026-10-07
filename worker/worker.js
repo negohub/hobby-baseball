@@ -367,7 +367,7 @@ function flowsFromBox(line, lineups) {
   for (let i = 0; i < n; i++) {
     for (const side of [0, 1]) { // 0=表（ビジター）, 1=裏（ホーム）
       const cell = (side ? line.home : line.away).inn[i];
-      const runs = /^\d+$/.test(cell || "") ? +cell : null;
+      const runs = /^\d+X?$/i.test(String(cell || "").trim()) ? parseInt(cell, 10) : null;   // サヨナラの回は「1X」
       // この回の打席を、打順ごとに並べる
       const slots = {};
       for (const r of lineups[side] || []) {

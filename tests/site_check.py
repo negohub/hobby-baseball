@@ -1187,6 +1187,32 @@ async def month_done_check(browser):
     await pg.close()
 
 
+async def radius_check(browser):
+    """角の丸みの決まり（全部のタブ・4つの見た目）：大きい箱＝そのテーマのカードの丸み（パワプロ風16px・スタイリッシュ20px）、
+    中の箱・四角いボタン・入力欄＝14px、札＝8px、小さい札＝5px、丸いボタン＝999px、丸い印＝50%、表のマス・線＝0〜2px。
+    それ以外の丸みが出たら、どこかの部品だけ形がちがう（スタイリッシュのチームの札は大きさに合わせた丸みなので除く）"""
+    for theme, mode in [("pawa", "light"), ("pawa", "dark"), ("", "dark"), ("", "light")]:
+        pg, errs = await open_page(browser, 390, theme)
+        await pg.evaluate(f"localStorage.setItem('mode','{mode}'); applyPawaMode(); S.gpaneAll = false; POST_SHOWN = true; renderAll()")
+        bad_ = set()
+        for tab in ["magic", "game", "cal", "post", "std", "stdh", "stats", "ven", "rec", "song", "off"]:
+            r = await pg.evaluate("""(tab) => { setTab(tab); document.querySelectorAll('.fold').forEach(f => f.classList.remove('shut')); document.querySelectorAll('#v-' + tab + ' details').forEach(d => (d.open = true));
+              const lg = isPawa() ? '16px' : '20px', ok = new Set(['0px', '2px', '50%', '999px', '5px', '8px', '14px', lg]), out = [];
+              for (const e of document.querySelectorAll('#v-' + tab + ' *')) { if (!e.getClientRects().length || e.closest('svg')) continue; const cs = getComputedStyle(e);
+                if (!(cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.backgroundImage !== 'none' || parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderLeftWidth) > 0)) continue;
+                if (['TD', 'TH', 'TR', 'I', 'U'].includes(e.tagName)) continue;
+                const cls = (typeof e.className === 'string' ? e.className : '').trim().split(' ')[0] || e.tagName.toLowerCase(), r = cs.borderTopRightRadius, h = e.getBoundingClientRect().height;
+                if (ok.has(r) || (!isPawa() && cls === 'badge') || ['bk', 'hb', 'bt'].includes(cls) || parseFloat(r) >= h / 2 - 1) continue;   // 高さの半分以上＝丸い札
+                out.push(`${tab}：${cls}（${r}）`); }
+              return [...new Set(out)]; }""", tab)
+            bad_.update(r)
+        for m in sorted(bad_)[:12]:
+            bad(f"[角の丸み {'パワプロ風' if theme else 'スタイリッシュ'}・{'ダーク' if mode == 'dark' else 'ライト'}] 決まりにない丸み：{m}")
+        for e in errs:
+            bad(f"[角の丸み]: 画面のエラー {e}")
+        await pg.close()
+
+
 async def tap_target_check(browser):
     """指で押す部品が縦横44px以上あるか（表の球団名はマス全体が押せるか）。両テーマ×幅390/320×両リーグ・全タブ"""
     for theme in ["", "pawa"]:
@@ -3958,9 +3984,21 @@ async def ux_check(browser):
               if (!document.getElementById('findSheet').hidden || document.getElementById('songSheet').hidden) ng.push('さがした選手を押しても選手の画面が開かない');
               document.getElementById('songSheet').classList.remove('open'); document.getElementById('songSheet').hidden = true; await new Promise(r => setTimeout(r, 100));
               const fb = document.getElementById('findBtn').getBoundingClientRect(); if (fb.width < 44 || fb.height < 44) ng.push('さがすボタンが小さい');
-              // ③ 目次：押すとその見出しが画面の上の方に来る
-              setTab('magic'); window.scrollTo(0, 0); document.querySelector('#v-magic .jump button[data-to="trendBlk"]').click(); await new Promise(r => setTimeout(r, 900));
-              const tt = document.getElementById('trendBlk').getBoundingClientRect().top; if (tt < 0 || tt > 160) ng.push(`目次の「順位推移」で順位推移に移動しない（上から${Math.round(tt)}px）`);
+              // ③ 戦況はすっきり（10/8）：目次の段はなし。順位推移・直近5試合・担当者別 年間成績は、見出しを押すと開く（最初は閉じている）。開いたかどうかは端末に覚える
+              setTab('magic'); window.scrollTo(0, 0);
+              if (document.querySelector('#v-magic .jump')) ng.push('戦況に目次の段が残っている');
+              for (const id of ['trendBlk', 'formBlk', 'totBlk']) { const sec = document.getElementById(id), h = sec && sec.querySelector(':scope > h2');
+                if (!sec || !h) { ng.push(`${id} がない`); continue; }
+                const body = [...sec.children].find(c => c !== h);
+                if (!sec.classList.contains('shut') || (body && body.getClientRects().length)) ng.push(`${h.textContent}が最初から開いている`);
+                h.click(); if (sec.classList.contains('shut') || (body && !body.getClientRects().length) || h.getAttribute('aria-expanded') !== 'true') ng.push(`${h.textContent}の見出しを押しても開かない`);
+                if (h.getBoundingClientRect().height < 43.5) ng.push(`${h.textContent}の見出しが押しにくい（44px未満）`);
+                if (!JSON.parse(localStorage.getItem('fold-v1') || '{}')[sec.dataset.fold]) ng.push(`${h.textContent}を開いたことを端末に覚えていない`);
+                h.click(); if (!sec.classList.contains('shut')) ng.push(`${h.textContent}の見出しを押しても閉じない`); }
+              // 「画像にしてLINEで送る」は小さく右下に
+              { const sb = document.getElementById('shotBtn'); if (sb && sb.getClientRects().length && sb.getBoundingClientRect().width > innerWidth * .7) ng.push('「画像にしてLINEで送る」が画面いっぱいの大きさのまま'); }
+              // 広島の行に「対象外」の札は出さない（行が薄く・順位が「-」で分かる）
+              if ([...document.querySelectorAll('#cards td.tnm small')].some(e => e.textContent.includes('対象外'))) ng.push('戦況の順位表に「対象外」の札が残っている');
               // ④ 名前を押すと開く
               await loadVen(true); S.venTeam = 'T'; S.venPlace = null; setTab('ven'); renderVen(); if (!document.querySelector('#venTbl td.vn[data-pl]')) ng.push('球場別の名前が押せない');
               await loadRec(true); setTab('rec'); S.recKind = 'lt'; S.recSide = 'b'; S.recKey = 'hr'; renderRec();
@@ -4623,6 +4661,7 @@ async def main():
         await multi_pos_check(browser)
         await tournament_check(browser)
         await month_done_check(browser)
+        await radius_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

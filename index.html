@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007161755">
+<meta name="build" content="20261007173813">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -1906,8 +1906,20 @@ html:not(.theme-pawa) #songList .ptile.n5:not(#z) b{letter-spacing:0}
 html.theme-pawa #songList .ptiles:not(#z){padding:6px 4px 8px 2px}
 html.theme-pawa #songList .ptile:not(#z){overflow:visible}
 html.theme-pawa #songList .tno small:not(#z){position:absolute;left:5px;top:3px}
-html.theme-pawa #songList .tno .tsong:not(#z){position:absolute;top:-4px;right:-3px;z-index:3;width:15px;height:15px;box-shadow:0 0 0 1.5px #fff}
-html.theme-pawa #songList .ptile.ho[data-hs] .offtag:not(#z){right:14px}
+html.theme-pawa #songList .tno .tsong:not(#z){position:absolute;top:-12px;right:5px;z-index:3;width:15px;height:15px;box-shadow:0 0 0 1.5px #fff}
+/* 名前は背番号の右から（重ならない）。字の大きさはほかのタブと同じ（14・13・11.5px）で、入らないときだけ11pxまで小さく、それでも入らない長い名前は2行に */
+html.theme-pawa #songList .ptiles:not(#z){row-gap:16px;padding-top:14px}
+html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:0 4px 0 25px;box-sizing:border-box;--fs:14px}
+html.theme-pawa #songList .ptile.n5:not(#z){--fs:13px}
+html.theme-pawa #songList .ptile.n7:not(#z){--fs:11.5px}
+html.theme-pawa #songList .ptile:not(#z) b{font-size:max(11px, min(var(--fs), calc(100cqw / var(--w, 3.5)))) !important;margin:0 !important;max-width:100%;
+  white-space:normal;word-break:keep-all;overflow-wrap:anywhere;text-wrap:balance;text-align:center;line-height:1.1}
+html.theme-pawa #songList .ptile.sp:not(#z) b{margin-right:-.7em !important}
+/* 4字までの名前は、ほかのタブと同じ14pxのまま（1行） */
+html.theme-pawa #songList .ptile:not(.n5):not(.n7):not(#z) b{font-size:14px !important;white-space:nowrap}
+/* 戦力外・引退などの札は、タイルの上の辺にのせる（名前に重ならない） */
+html.theme-pawa #songList .ptile .offtag:not(#z){top:-13px;right:6px;height:16px;line-height:14px}
+html.theme-pawa #songList .ptile.ho[data-hs] .offtag:not(#z){right:24px}
 html.theme-pawa #songList .tft:not(#z){display:none}
 html:not(.theme-pawa) #songList .ptile:not(#z){--fmax:16px}
 html:not(.theme-pawa) #songList .ptile:not(#z){height:auto;min-height:64px;padding-top:8px;padding-bottom:8px;box-sizing:border-box}
@@ -7119,10 +7131,12 @@ function renderSong() {
   const pawa = document.documentElement.classList.contains("theme-pawa");
   const POSC = { "投手": "pp", "捕手": "pc", "内野手": "pi", "外野手": "po" };
   const PLBL = { "投": "投手", "先": "先発", "中": "中継ぎ", "抑": "抑え", "捕": "捕手", "内": "内野", "外": "外野" };
-  const tile = x => { const sur = shortName(t, x.n), gr = posGroups(t, x.n, x.p), n = [...sur.replace(/\s+/g, "")].length, off = offTag(t, x.n);
+  // 「・」の入ったとても長い名前（スチュワート・ジュニアなど）は、札には「・」の前だけ（押すと出る選手の画面には正式な名前）
+  const tile = x => { let sur = shortName(t, x.n); if ([...sur].length >= 10 && sur.includes("・")) sur = sur.split("・")[0];
+    const gr = posGroups(t, x.n, x.p), n = [...sur.replace(/\s+/g, "")].length, off = offTag(t, x.n);
     const w = n <= 2 ? 2.8 : n >= 7 ? n * 1.02 : n >= 5 ? n * 1.08 : n * 1.16;   // 名前の幅（字の大きさの何倍か）。タイルの幅に合わせて字の大きさを決める
     const note = x.song ? `<i class="tsong" aria-label="応援歌あり">♪</i>` : "";
-    return `<button type="button" class="ptile ${TILEC[gr[0]] || POSC[x.p] || "pp"}${nmCls(sur)}${n >= 5 ? " lg" : ""}${off ? " ho" : ""}" style="${tileStyle(gr)};${tv(t)};--w:${w.toFixed(2)}" data-song="${esc(x.no)}|${esc(x.n)}"${x.song ? ` data-hs="1"` : ""}><span class="tno"><small class="num">${esc(x.no)}</small>${note}</span><i class="twm num" aria-hidden="true">${esc(x.no)}</i><b>${esc(sur)}</b><span class="tft"><em class="tpos">${gr.map(k => PLBL[k] || k).join("・")}</em>${note}</span>${off}</button>`; };
+    return `<button type="button" class="ptile ${TILEC[gr[0]] || POSC[x.p] || "pp"}${nmCls(sur)}${n >= 5 ? " lg" : ""}${off ? " ho" : ""}" style="${tileStyle(gr)};${tv(t)};--w:${w.toFixed(2)}" data-song="${esc(x.no)}|${esc(x.n)}"${x.song ? ` data-hs="1"` : ""}><span class="tno"><small class="num">${esc(x.no)}</small>${note}</span><i class="twm num" aria-hidden="true">${esc(x.no)}</i><b>${n >= 6 && !sur.includes("・") ? esc([...sur].slice(0, Math.ceil(n / 2)).join("")) + "<wbr>" + esc([...sur].slice(Math.ceil(n / 2)).join("")) : esc(sur)}</b><span class="tft"><em class="tpos">${gr.map(k => PLBL[k] || k).join("・")}</em>${note}</span>${off}</button>`; };
   let html = "";
   for (const [pos, dev] of groups) {
     const list = all.filter(x => x.dev === dev && (dev || x.p === pos) && hit(x)).sort((a, b) => Number(a.no) - Number(b.no) || a.no.length - b.no.length);

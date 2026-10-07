@@ -61,7 +61,7 @@ def build(css):
             sel = sel.strip()
             if not sel or sel.startswith(("from", "to")) or re.match(r"^\d", sel):
                 continue
-            parts = [s1.strip() for s1 in sel.split(",") if applies(s1.strip())]
+            parts = [s1.strip() for s1 in sel.split(",") if applies(s1.strip()) and not re.search(r"\.tb\b|\.tb-", s1)]   # .tb：トーナメント表（どの見た目でも夜空の舞台。色は手で決めている）
             if not parts:
                 continue
             decls = dict((d.split(":", 1)[0].strip(), d.split(":", 1)[1].strip()) for d in body.split(";") if ":" in d)

@@ -9,7 +9,7 @@ import colorsys
 import re
 
 COL = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b|\bwhite\b|\bblack\b", re.I)
-KEEP = re.compile(r"\.badge|ykb|offtag|\.stp|lamp|\.ldot|wxhi|\.hb\b|#splash|\.sp-icon|\.sp-ring|\.sp-dot|pressed|\.on\b")
+KEEP = re.compile(r"\.badge|ykb|offtag|\.stp|lamp|\.ldot|wxhi|\.hb\b|#splash|\.sp-icon|\.sp-ring|\.sp-dot|pressed|\.on\b|\.tb\b|\.tb-")   # .tb：CS・日本シリーズのトーナメント表（どの見た目でも夜空の舞台）
 
 
 def rgb(c):

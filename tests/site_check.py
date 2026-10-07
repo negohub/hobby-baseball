@@ -1818,7 +1818,7 @@ def datetime_month():
 
 
 async def song_list_check(browser):
-    """応援歌タブ：応援歌がある選手だけを出し、ほかの球団へ移籍した選手は出さない"""
+    """選手名鑑：その球団の全選手（応援歌がある選手には♪）。ほかの球団へ移籍した選手は出さない"""
     pg, errs = await open_page(browser, 390, "")
     r = await pg.evaluate("""() => {
       const ng = [], t = 'T', ro = DATA.rosters[t] || [];
@@ -1831,8 +1831,11 @@ async def song_list_check(browser):
       if (txt.includes(mv.n.replace(/\\s+/g, '')) || txt.includes(shortName(t, mv.n) + '内野') && false) ng.push(`移籍した選手（${mv.n}）が応援歌タブに出ている`);
       const tiles = [...document.querySelectorAll('#v-song [data-song]')].map(b => b.dataset.song.split('|')[1]);
       if (tiles.includes(mv.n)) ng.push(`移籍した選手（${mv.n}）が応援歌タブに出ている`);
-      const extra = tiles.filter(n => noSong.some(x => x.n === n));
-      if (extra.length) ng.push(`応援歌がない選手が出ている：${extra.slice(0, 3).join('、')}`);
+      const miss = ro.filter(x => x.n !== mv.n && !tiles.includes(x.n));
+      if (miss.length) ng.push(`選手名鑑に出ていない選手がいる：${miss.slice(0, 3).map(x => x.n).join('、')}`);
+      const note = [...document.querySelectorAll('#v-song [data-song]')].filter(b => !!b.querySelector('.tsong') !== !!(ro.find(x => x.n === b.dataset.song.split('|')[1]) || {}).song).map(b => b.dataset.song.split('|')[1]);
+      if (note.length) ng.push(`♪（応援歌あり）の印が合っていない：${note.slice(0, 3).join('、')}`);
+      if (noSong[0]) { const b = [...document.querySelectorAll('#v-song [data-song]')].find(x => x.dataset.song.split('|')[1] === noSong[0].n); if (b) { b.click(); if (document.getElementById('songSheet').hidden) ng.push('選手名鑑の選手を押しても選手の画面が出ない'); if (document.querySelector('#songPick .sgo')) ng.push(`応援歌がない選手（${noSong[0].n}）の画面に応援歌のボタンが出ている`); document.getElementById('songSheet').hidden = true; document.getElementById('songSheet').classList.remove('open'); } }
       // 応援歌ページの飛び先：名字から名前までの範囲（text=名字,名前）。ソフトバンクは転送されないURL（最後の「/」なし）
       for (const tt of ['H', 'F', 'DB']) {
         const x = (DATA.rosters[tt] || []).find(r => r.song && /\\s/.test(r.n));
@@ -2692,7 +2695,7 @@ async def tab_group_check(browser):
           const cols = () => getComputedStyle(document.querySelector('.tabbar nav')).gridTemplateColumns.split(' ').length;
           if (cols() !== 5) ng.push(`下のタブが5列でない（${cols()}）`);
           click('player'); const withOff = sub();
-          if (OFF_SHOWN && withOff !== '応援歌*,入退団') ng.push(`選手：${withOff}`);
+          if (OFF_SHOWN && withOff !== '名鑑*,入退団') ng.push(`選手：${withOff}`);
           if (!OFF_SHOWN && !document.getElementById('subNav').hidden) ng.push('入退団がない時期に上の切り替えが出ている');
           const tbb = [...document.querySelectorAll('.tabbar button')].map(b => b.getBoundingClientRect());
           if (tbb.some((b, i) => i && b.left < tbb[i - 1].right - 1) || tbb.some(b => b.right > innerWidth)) ng.push('下のタブが重なる・はみ出す');
@@ -3248,7 +3251,8 @@ async def num_cell_check(browser):
 
 async def ux_check(browser):
     """使いやすさ：①最初の画面（公式戦が終わったらCS・日本シリーズのあいだは勝ち上がり表、そのあとは入退団）②選手をさがす（12球団）
-    ③ページの中の目次 ④名前を押すと開く（球場別・歴代記録）⑤字は11px未満にしない（丸の中の球団の印は除く）"""
+    ③ページの中の目次 ④名前を押すと開く（球場別・歴代記録）⑤字は11px未満にしない（丸の中の球団の印は除く）
+    ⑥見出しと右上のボタン ⑦シーズンの最終結果 ⑧月度のボタン ⑨横にすべらせる並びがない ⑩戦況の試合速報"""
     for th in ["pawa", ""]:
         for w in [320, 390]:
             pg, errs = await open_page(browser, w, th)
@@ -3310,6 +3314,31 @@ async def ux_check(browser):
                 const ov = [...document.querySelectorAll('#v-' + tb + ' *')].filter(el => { if (!el.offsetParent) return false; const cs = getComputedStyle(el); return (cs.overflowX === 'auto' || cs.overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 1; }).map(el => (el.id ? '#' + el.id : '') + '.' + String(el.className).split(' ')[0]);
                 if (ov.length) ng.push(`${tb}：横にすべらせないと見えない並びがある（${ov.slice(0, 3)}）`);
               }
+              // ⑩ 戦況の試合速報：今日の試合が1画面目に（試合中は赤い枠と点、押すと試合タブのその試合へ）。過去の月度・シーズン後は出さない
+              { const so3 = seasonOver; seasonOver = () => false;
+                const day = jst().iso, gs = DATA.games.filter(g => g.d === day && inLg(g)), keep = gs.map(g => ({ ...g }));
+                if (gs[0]) Object.assign(gs[0], { st: 'live', hs: 12, as: 10, inn: '10回裏' });
+                if (gs[1]) Object.assign(gs[1], { st: 'sched', t: '18:00' });
+                S.period = defaultPeriod(periods()); TAB_DIRTY.add('magic'); setTab('magic');
+                const ts = document.getElementById('todayStrip'), cards = [...ts.querySelectorAll('.ts-g')];
+                const inCur = gs.length && S.period.months.includes(monthOf(day));
+                if (!gs.length) ng.push('試合速報の検査に使う日に試合がない');
+                else if (inCur) {
+                  if (ts.hidden || cards.length !== gs.length) ng.push(`試合速報が出ない・数が違う（${cards.length} / ${gs.length}）`);
+                  if (ts.querySelector('.ts-h')?.textContent !== '試合速報') ng.push('試合速報の見出しが違う');
+                  const lv = ts.querySelector('.ts-g.live'); if (!lv || !lv.querySelector('.ts-dot')) ng.push('試合中の試合に赤い印がない');
+                  if (cards.some(c => { const r = c.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth || r.height < 44 || [...c.querySelectorAll('.ts-st,.ts-r')].some(x => x.scrollWidth > x.clientWidth + 1); })) ng.push('試合速報のカードがはみ出す・切れる・小さい');
+                  if (cards.some(c => c.getBoundingClientRect().top > 844 * 1.6)) ng.push('試合速報が1画面目の近くにない');
+                  cards[0].click(); await new Promise(r => setTimeout(r, 400));
+                  const tg = document.querySelector(`#v-game [data-gk="${cards[0].dataset.gk}"]`);
+                  if (S.tab !== 'game' || !tg) ng.push('試合速報を押しても試合タブのその試合が出ない');
+                  else { const tp = tg.getBoundingClientRect().top; if (tp < -2 || tp > 220) ng.push(`試合速報を押した試合が画面の上の方に来ない（${Math.round(tp)}px）`); }
+                  setTab('magic');
+                  const past = periods().find(p => p.id !== S.period.id); if (past) { pickPeriod(past); if (!document.getElementById('todayStrip').hidden) ng.push('過去の月度でも試合速報が出る'); pickPeriod(defaultPeriod(periods())); }
+                }
+                gs.forEach((g, i) => { for (const k of Object.keys(g)) delete g[k]; Object.assign(g, keep[i]); });
+                seasonOver = () => true; TAB_DIRTY.add('magic'); renderMagic(); if (!document.getElementById('todayStrip').hidden) ng.push('シーズンが終わっても試合速報が出る');
+                seasonOver = so3; renderAll(); setTab('magic'); }
               // ⑤ 字の大きさ
               const small = [];
               for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {

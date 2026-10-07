@@ -892,26 +892,37 @@ async def rec_active_check(browser):
     for k, L in rec["lists"].items():
         for i, r in enumerate(L["rows"]):
             pid = (L.get("pid") or [""] * 999)[i]
-            a = k.startswith("ac") or (bool(L["act"][i]) if L.get("act") else bool(pid and pid in act))
+            a = k.startswith("lt") and (bool(L["act"][i]) if L.get("act") else bool(pid and pid in act))   # 「現役」の印は通算の記録だけ
             cur_ok = k.startswith("ac") or bool(pid and pid in act) or bool(L.get("act") and L["act"][i]) or ((L.get("last") or [0] * 999)[i] >= season - 1)
-            want[f"{k}|{i}"] = {"act": a and not k.startswith("ss"), "cur_ok": cur_ok, "lteam": (L.get("lteam") or [""] * 999)[i], "last": (L.get("last") or [0] * 999)[i], "pid": pid}
+            want[f"{k}|{i}"] = {"act": a, "cur_ok": cur_ok, "lteam": (L.get("lteam") or [""] * 999)[i], "last": (L.get("last") or [0] * 999)[i], "pid": pid}
     for theme in ["pawa", ""]:
         pg, errs = await open_page(browser, 390, theme)
         await pg.wait_for_timeout(800)
         got = await pg.evaluate("""(R) => { REC = R; REC_ACT = null; REC_TEAMS = null; const out = {};
           for (const k of Object.keys(R.lists)) { const [kind, sk] = [k.slice(0, 2), k.slice(4)]; S.recKind = kind; S.recSide = k[2]; S.recKey = sk; setTab('rec'); renderRec();
             const sel = document.getElementById('recCat'); if (sel.value !== sk) { out[k + '|-'] = { miss: true }; continue; }
-            [...document.querySelectorAll('#recTbl tbody tr')].forEach((tr, i) => { const td = tr.querySelector('td.pnm'), pl = td && td.dataset.pl;
+            const shown = new Set();
+            [...document.querySelectorAll('#recTbl tbody tr')].forEach((tr, i0) => { const i = +tr.dataset.ri; shown.add(i); const td = tr.querySelector('td.pnm'), pl = td && td.dataset.pl;
+              out[k + '|rank' + i] = { rank: tr.querySelector('td .rkm').textContent.trim() };
               const rt = !!tr.querySelector('.recact.rt'), h = pl ? { t: pl.split('|')[0], n: pl.split('|')[1] } : null, o = h ? offOf(h.t, h.n) : null;
               if (rt && !(o && o.kind === 'retire')) out[k + '|rt' + i] = { bad: '引退を発表していないのに「引退」の札' };
               if (!rt && o && o.kind === 'retire' && tr.querySelector('.recact')) out[k + '|rt' + i] = { bad: '引退を発表したのに「現役」の札' };
-              out[k + '|' + i] = { name: (td && td.textContent || '').replace(/現役|引退/, '').trim(), act: !!tr.querySelector('.recact'), t: pl ? pl.split('|')[0] : null, team: (tr.querySelectorAll('td')[2] || {}).textContent }; }); }
+              out[k + '|' + i] = { name: (td && td.textContent || '').replace(/現役|引退/, '').trim(), act: !!tr.querySelector('.recact'), t: pl ? pl.split('|')[0] : null, team: (tr.querySelectorAll('td')[2] || {}).textContent }; });
+            // 現役の記録：引退を発表した選手は出さない。ほかの選手は全員出す
+            R.lists[k].rows.forEach((r, i) => { if (shown.has(i)) return; if (kind !== 'ac') out[k + '|gone' + i] = { bad: `${r[1]} が出ていない` }; else out[k + '|gone' + i] = { goneOk: true, name: r[1] }; });
+            if (kind === 'ac') [...document.querySelectorAll('#recTbl tbody tr')].forEach(tr => { const pl = tr.querySelector('td.pnm').dataset.pl, h = pl ? { t: pl.split('|')[0], n: pl.split('|')[1] } : null, o = h ? offOf(h.t, h.n) : null;
+              if (o && o.kind === 'retire') out[k + '|rtac' + tr.dataset.ri] = { bad: `現役の記録に、引退を発表した ${h.n} が残っている` }; });
+            // 順位：残った選手で付け直し、同じ記録は同じ順位・飛ばしは同じ記録の人数分だけ
+            const rows = [...document.querySelectorAll('#recTbl tbody tr')], rk = rows.map(tr => +tr.querySelector('td .rkm').textContent), orig = rows.map(tr => +R.lists[k].rows[+tr.dataset.ri][0]);
+            rows.forEach((tr, j) => { const want = kind === 'ac' ? 1 + orig.filter(x => x < orig[j]).length : orig[j]; if (rk[j] !== want) out[k + '|rk' + j] = { bad: `順位が違う（${rk[j]}、正しくは ${want}）` }; }); }
           return { out, fn: Object.fromEntries(Object.keys(TEAM).map(t => [t, fn(t)])) }; }""", rec)
         out, FN = got["out"], got["fn"]
         ng = []
         for key, g in out.items():
             if g.get("bad"):
                 ng.append(f"{key.split('|')[0]}：{g['bad']}")
+                continue
+            if g.get("goneOk") or "rank" in g:
                 continue
             if g.get("miss"):
                 ng.append(f"{key.split('|')[0]} の部門が選べない")

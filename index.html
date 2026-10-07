@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007212428">
+<meta name="build" content="20261007215314">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -5111,7 +5111,7 @@ function resCls(x) {
   if (/本/.test(x)) return "hr";                       // 本塁打
   if (/犠/.test(x)) return "sac";                      // 犠打・犠飛
   if (/三振|振逃/.test(x)) return "k";                 // 三振
-  if (/四球|死球|打妨|敬遠/.test(x)) return "bb";       // 四死球
+  if (/四球|死球|故意?四|打妨|敬遠/.test(x)) return "bb";   // 四死球（故意四球は出場成績では「故意四」「故四」）
   if (/安$|安打|[23]$|二塁打|三塁打/.test(x)) return "h"; // ヒット（単打・二塁打・三塁打）
   if (/失|野選/.test(x)) return "e";                   // 失策・野選
   return "o";                                          // 凡打
@@ -5624,6 +5624,64 @@ function simRunners(p, d, g) {
   });
   return out;
 }
+// テキスト速報の打席ごとの状況（「一死一三塁」）と、打席の途中のできごと（代走・盗塁・けん制アウト）から、今の塁上の走者を順に追いかける。
+// 塁の埋まり方は、各打席の始まりの状況どおりにする。そのあいだに打者が塁に出た・走者が進んだ／かえった・アウトになった分は、
+// 「走者は追い越さない（前の走者ほど先の塁）」ことを使って並べ直す（盗塁・暴投・進塁打・タイムリーも、次の打席の状況で合う）。
+// 返り値：{ occ: ["1","3"], list: [{ name, base }]（前の走者から） }。読めないとき・打席がずれているときは null
+function textRunners(d, p) {
+  const L = d && d.live;
+  if (!L || !p || !p.half || L.half !== p.half || !(L.bats || []).length) return null;
+  const nz = x => String(x || "").normalize("NFKC").replace(/\s+/g, "").replace(/髙/g, "高").replace(/﨑/g, "崎");
+  const same = (a, b) => { const x = nz(a), y = nz(b); return !!x && !!y && (x === y || x.startsWith(y) || y.startsWith(x)); };
+  const occOf = sit => { const m = String(sit || "").normalize("NFKC").match(/(?:無死|一死|二死)(.*)$/), t = m ? m[1] : "";
+    return /満塁/.test(t) ? [1, 2, 3] : /走者なし/.test(t) ? [] : [["一", 1], ["二", 2], ["三", 3]].filter(([c]) => t.includes(c)).map(x => x[1]); };
+  const B = { 一: 1, 二: 2, 三: 3, 本: 4 };
+  // 打席の途中のできごと：代走（名前の入れ替え）・盗塁成功（1つ先へ）・盗塁死やけん制アウト（いなくなる）
+  const events = (rs, ev) => {
+    for (const raw of ev || []) {
+      const l = String(raw).normalize("NFKC").replace(/\s+/g, " ");
+      let m;
+      if ((m = l.match(/([一二三])塁走者\s*(\S+)\s*→\s*代走\s*:?\s*(\S+)/))) { const r = rs.find(x => x.base === B[m[1]]) || rs.find(x => same(x.name, m[2])); if (r) r.name = m[3]; continue; }
+      for (const s of l.matchAll(/([一二三])塁走者\s*(\S+?)\s*:?\s*盗塁成功\s*([二三本])/g)) { const r = rs.find(x => x.base === B[s[1]]) || rs.find(x => same(x.name, s[2])); if (r) r.base = B[s[3]]; }
+      if ((m = l.match(/([一二三])塁走者\s*(\S+?)\s*:?.*(?:盗塁|けん制|牽制|飛び出|走塁).*アウト/)) && !/セーフ|帰塁/.test(l)) { const i = rs.findIndex(x => x.base === B[m[1]] || same(x.name, m[2])); if (i >= 0) rs.splice(i, 1); }
+    }
+    return rs.filter(x => x.base <= 3);
+  };
+  // 打者が塁に出たか：出場成績のその打席の結果（あれば）、なければテキスト速報の文
+  const steps = (d.cur && d.cur.half === L.half && d.cur.steps) || [];
+  const reachedAt = k => {
+    const st = steps[k], b = L.bats[k];
+    if (st && st.res && same(st.name, b.name)) { const r = String(st.res).normalize("NFKC"), c = resCls(r); return c === "h" || c === "bb" || c === "e" || /振逃|野選/.test(r); }
+    const t = (b.ev || []).join(" ").normalize("NFKC");
+    return /ヒット|安打|二塁打|三塁打|ツーベース|スリーベース|フォアボール|四球|デッドボール|死球|敬遠|エラー|失策|野選|フィルダースチョイス|振り逃げ|打撃妨害|出塁/.test(t) && !/ホームラン|本塁打/.test(t);
+  };
+  // 前の走者から順に、塁の埋まり方（先の塁から）へ当てはめる。人が多ければ前の走者（かえった）から、併殺なら一塁の走者から外す。少なければ名前は出さない
+  const place = (cands, occ, dp) => {
+    let c = cands.slice();
+    if (dp && c.length > occ.length) { const i = c.findIndex(x => x.base === 1); if (i >= 0) c.splice(i, 1); }
+    while (c.length > occ.length) c.shift();
+    const bases = occ.slice().sort((a, b) => b - a);
+    return bases.map((b, i) => ({ name: c.length === bases.length && c[i] ? c[i].name : null, base: b }));
+  };
+  // 今の打者がテキスト速報のどの打席か（テキスト速報が一球速報より遅れている・進んでいるときに合わせる）
+  let ci = -1;
+  L.bats.forEach((b, k) => { if (p.batter && same(b.name, p.batter.name)) ci = k; });
+  if (ci < 0) return null;
+  let rs = occOf(L.bats[0].sit).map(b => ({ name: null, base: b }));
+  for (let k = 0; k <= ci; k++) {
+    const b = L.bats[k];
+    if (k > 0) {
+      const prev = L.bats[k - 1], cands = rs.slice().sort((x, y) => y.base - x.base);
+      if (reachedAt(k - 1)) cands.push({ name: prev.name, base: 0 });
+      rs = place(cands, occOf(b.sit), /併殺|ダブルプレー|ゲッツー/.test((prev.ev || []).join(" ")));
+    } else {
+      const o0 = occOf(b.sit); if (o0.length !== rs.length) rs = o0.map(x => ({ name: null, base: x }));
+    }
+    rs = events(rs, b.ev);   // 打席の途中のできごと（代走・盗塁・けん制アウト）。終わった打席の進み具合は、次の打席の状況で合わせ直す
+  }
+  rs.sort((x, y) => y.base - x.base);
+  return { occ: rs.map(x => String(x.base)).sort(), list: rs };
+}
 // ランナー名は「攻撃中の球団の選手名簿にいる」かつ「その塁に走者がいる」ときだけ表示（誤読み防止）
 function runnerOK(p, b, atk, on) {
   const name = p.runners && p.runners[b];
@@ -5663,10 +5721,11 @@ function pitchHTML(g) {
   const lamp = (n, max, cls) => Array.from({ length: max }, (_, i) => `<i class="${i < n ? cls : ""}"></i>`).join("");
   const sit = (d && d.now && d.now.sit) || "";
   const bmap = { "一": "1", "二": "2", "三": "3" };
-  const SIM = simRunners(p, d, g);
+  const SIM = simRunners(p, d, g), TR = textRunners(d, p);
   const hasBases = p.bases && Object.keys(p.bases).length;
-  // 塁の埋まり方：一球速報のページの見出し（いちばん新しい）→ 出場成績の状況 → 図の印 → 計算、の順に信じる
-  const on = k => Array.isArray(p.occ) ? p.occ.includes(bmap[k]) : sit ? (sit.includes("満塁") || sit.includes(k)) : hasBases ? !!p.bases[bmap[k]] : !!SIM[bmap[k]];
+  const sitB = String(sit).replace(/^(無死|一死|二死)/, "");   // 「一死二塁」の「一」を一塁と読まないように
+  // 塁の埋まり方：一球速報のページの見出し（いちばん新しい）→ テキスト速報で追いかけた走者 → テキスト速報の今の打席の状況 → 図の印 → 計算、の順に信じる
+  const on = k => Array.isArray(p.occ) ? p.occ.includes(bmap[k]) : TR ? TR.occ.includes(bmap[k]) : sitB ? (sitB.includes("満塁") || sitB.includes(k)) : hasBases ? !!p.bases[bmap[k]] : !!SIM[bmap[k]];
   const atk = YSHORT[p.attack] || (p.half && p.half.includes("表") ? g.a : g.h);
   const def = atk === g.h ? g.a : g.h;
   const hand = h => `<em class="hd ${/左/.test(h) ? "l" : "r"}">${esc(h)}</em>`;
@@ -5682,6 +5741,12 @@ function pitchHTML(g) {
     // そのときは打者を一塁に置き、残りの塁に、前からいた走者を下の塁から順に当てはめる（押し出し・進塁で1つずつ先の塁へ）
     const pl = p.pitches || [], lr2 = pl.length ? String(pl[pl.length - 1].res || "").normalize("NFKC") : "";
     const reached = p.batter && pl.length && (["h", "bb", "e"].includes(resCls(lr2)) || /振逃|野選|フィルダース/.test(lr2)) && !/本塁打|本$/.test(lr2);
+    // テキスト速報で追いかけた走者（名前がすべて分かっているとき）：前の走者から順に、今の塁の埋まり方（先の塁から）へ。打者が塁に出た直後は打者をいちばん後ろに足す
+    if (TR && TR.list.length && TR.list.every(x => x.name)) {
+      const cands = TR.list.slice();
+      if (occ.length === cands.length + 1 && reached && !cands.some(x => sq(x.name) === sq(p.batter.name))) cands.push({ name: p.batter.name });
+      if (cands.length === occ.length) { occ.slice().sort().reverse().forEach((b, i) => { o[b] = cands[i].name; }); return o; }
+    }
     if (reached && occ.includes("1") && page.length === occ.length - 1 && !page.some(n => sq(n) === sq(p.batter.name))) {
       o["1"] = p.batter.name;
       const rest = occ.filter(b => b !== "1");

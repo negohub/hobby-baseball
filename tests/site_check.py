@@ -1865,6 +1865,33 @@ async def song_list_check(browser):
     await pg.close()
 
 
+async def meikan_tile_check(browser):
+    """選手名鑑の札：12球団の全選手で、名前が枠からはみ出さない・背番号／♪／戦力外などの札と重ならない・字は11px以上（両テーマ×幅320/390、戦力外の札がたくさん付いた状態も）"""
+    JS = """async () => { const out = []; const X = (a, b) => a.right > b.left + .5 && a.left < b.right - .5 && a.bottom > b.top + .5 && a.top < b.bottom - .5;
+      const vis = e => e && e.getClientRects().length && getComputedStyle(e).display !== 'none';
+      const off0 = DATA.offseason;
+      DATA.offseason = { season: 2026, items: Object.entries(DATA.rosters).flatMap(([t, ro]) => ro.filter((x, i) => i % 3 === 0).map(x => ({ t, n: x.n, no: x.no, kind: 'cut', date: '2026-10-01' }))), teams: {}, seen: {} };
+      for (const lg of ['C', 'P']) { switchLeague(lg); for (const t of CL) { S.songTeam = t; S.songQ = ''; setTab('song'); renderSong();
+        document.querySelectorAll('#songList details').forEach(d => (d.open = true));
+        const tiles = [...document.querySelectorAll('#songList .ptile')];
+        for (const b of tiles) { const nb = b.querySelector('b'), T = b.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(nb); const ink = rg.getBoundingClientRect(), nm = nb.textContent;
+          if (ink.left < T.left + 1 || ink.right > T.right - 1 || ink.top < T.top || ink.bottom > T.bottom) out.push(`${t}：${nm} が枠からはみ出す`);
+          for (const sel of ['.tno small', '.offtag', '.tsong']) for (const e of b.querySelectorAll(sel)) if (vis(e) && X(ink, e.getBoundingClientRect())) out.push(`${t}：${nm} が${sel === '.offtag' ? '戦力外などの札' : sel === '.tsong' ? '♪' : '背番号'}と重なる`);
+          const o = b.querySelector('.offtag'); if (vis(o)) { const m = [...b.querySelectorAll('.tsong')].find(vis); if (m && X(o.getBoundingClientRect(), m.getBoundingClientRect())) out.push(`${t}：${nm} の札と♪が重なる`);
+            if (tiles.some(b2 => b2 !== b && X(o.getBoundingClientRect(), b2.getBoundingClientRect()))) out.push(`${t}：${nm} の札がほかの選手の札にかかる`); }
+          if (parseFloat(getComputedStyle(nb).fontSize) < 10.95) out.push(`${t}：${nm} の字が11px未満`);
+        } } }
+      DATA.offseason = off0; switchLeague('C'); return [...new Set(out)].slice(0, 8); }"""
+    for theme in ["pawa", ""]:
+        for width in [320, 390]:
+            pg, errs = await open_page(browser, width, theme)
+            for m in await pg.evaluate(JS):
+                bad(f"[選手名鑑の札 {'パワプロ風' if theme else 'スタイリッシュ'} 幅{width}] {m}")
+            for e in errs:
+                bad(f"[選手名鑑の札]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def consistency_check(browser):
     """言葉・書き方の統一：同じものを別の書き方で出していないか（全タブ・設定・選手の画面）"""
     NG = [(r"^(チーム内の成績|今オフの動き|.*のオフの動き|今日の試合|次の試合|直近の勝敗|順位の推移|担当者ごとの年間成績|月度ごとの支払い|首脳陣の配置転換)", "見出しに「〜の」が残っている"),
@@ -3900,6 +3927,7 @@ async def main():
         await post_bracket_check(browser)
         await archive_check(browser)
         await song_list_check(browser)
+        await meikan_tile_check(browser)
         await consistency_check(browser)
         await owner_pos_check(browser)
         await team_rank_menu_check(browser)

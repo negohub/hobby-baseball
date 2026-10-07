@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007231448">
+<meta name="build" content="20261007232552">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2530,6 +2530,9 @@ html.theme-pawa.pawa-dark .pbox.cmp .pc3 .pnx3.up:not(#z){background:rgba(255,21
 @media (max-width:374px){.stpit .stk:not(#z){grid-column:1/-1;grid-row:1;line-height:1.2}.stpit .stnm:not(#z),.stpit .sta:not(#z){grid-row:2}}
 /* 隠れている所も11px未満にしない：選手の画面の守備位置の札（スタイリッシュ）、上の「hobby baseball」（見出し・スクロール中の帯）、長押しの中（順位・残り・回避などの小見出し、閉じ方の一言）、次戦の日付 */
 html:not(.theme-pawa) .ps-pos:not(#z),html:not(.theme-pawa) #kicker:not(#z),.minibar .mk:not(#z),.pk-hint:not(#z),.pk-row small:not(#z),.ts-h small:not(#z){font-size:11px}
+/* 打順の守備位置：途中で変わった選手は札を1つずつ並べる（入りきらなければ折り返す。名前の札と打率の位置は変えない） */
+.lnm .lpis:not(#z){display:inline-flex;flex-wrap:wrap;gap:4px;flex:0 1 auto;min-width:0;align-self:center;overflow:visible;white-space:normal;font-weight:inherit}
+.lnm .lpis .posic:not(#z){flex:none}
 /* 名前の札（一球速報の投手・打者・次の打者・打順・投手の表・得点の流れ・走者）：字は11px未満にしない。入らない長い名前は2行に（行の長さをそろえる） */
 html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),html.theme-pawa .putab td.pnx .sptile b:not(#z),html.theme-pawa .flow .fb .sptile b:not(#z),html.theme-pawa .ptile.rtile b:not(#z),html.theme-pawa .pnx3 .ptile.sptile b:not(#z){
   font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))) !important;white-space:normal !important;text-wrap:balance;line-height:1.05;text-align:center;overflow-wrap:anywhere}
@@ -5123,7 +5126,7 @@ function resCls(x) {
 function rcChip(x) {
   return `<span class="rcw"><span class="rc ${resCls(x)}">${esc(x)}</span></span>`;
 }
-const RES_LEGEND = `<div class="rleg sty"><span class="h">安打</span><span class="hr">本塁打</span><span class="bb">四死球</span><span class="k">三振</span><span class="sac">犠打飛</span><span class="e">失策</span><span class="o">凡打</span><span class="sb">盗塁成功</span></div><div class="rleg pw"><span class="h">安打・本塁打</span><span class="bb">四死球・犠打飛</span><span class="o">凡打・三振</span><span class="e">失策</span><span class="sb">盗塁成功</span></div>`;
+const RES_LEGEND = `<div class="rleg sty"><span class="h">安打</span><span class="hr">本塁打</span><span class="bb">四死球</span><span class="k">三振</span><span class="sac">犠打飛</span><span class="e">失策</span><span class="o">凡打</span><span class="sb">盗塁</span></div><div class="rleg pw"><span class="h">安打・本塁打</span><span class="bb">四死球・犠打飛</span><span class="o">凡打・三振</span><span class="e">失策</span><span class="sb">盗塁</span></div>`;
 
 /* ---------- アイコン（線画・サイト共通） ---------- */
 const IC = {
@@ -5441,6 +5444,8 @@ const posIcon = (pos, extra) => {
   if (document.documentElement.classList.contains("theme-pawa")) return `<span class="ptile sptile posic ${k === "pn" ? "pnu" : k}${wide}${extra ? " " + extra : ""}"><b>${esc(p)}</b></span>`;
   return `<span class="posic pz-${k}${wide}${extra ? " " + extra : ""}">${esc(p)}</span>`;
 };
+// 途中で守備位置が変わった選手（「走一三一」＝代走→一塁→三塁→一塁）：1つずつ別の札にして、順に並べる
+const posIcons = (pos, extra) => { const l = [...String(pos || "").trim()]; return l.length > 1 ? `<span class="lpis">${l.map(c => posIcon(c, extra)).join("")}</span>` : posIcon(pos, extra); };
 const POS_GR = { "投": "投手", "捕": "捕手", "一": "内野手", "二": "内野手", "三": "内野手", "遊": "内野手", "左": "外野手", "中": "外野手", "右": "外野手", "指": "内野手" };
 // 放送予定（テレビ・ネット配信・ラジオ：試合が終わるまで）と、発表されたスタメン（試合が始まるまで）
 function preHTML(g) {
@@ -5615,7 +5620,7 @@ function simRunners(p, d, g) {
   // スコア表のその回の得点と合わせる（盗塁・暴投・タイムリーで多く返った分など）
   const inn = parseInt(p.half, 10), top = /表/.test(p.half);
   const L = d.line, cell = L && (top ? L.away : L.home) && (top ? L.away : L.home).inn[inn - 1];
-  const actual = /^\d+$/.test(cell || "") ? +cell : null;
+  const actual = /^\d+X?$/i.test(String(cell || "").normalize("NFKC").trim()) ? parseInt(cell, 10) : null;   // サヨナラの回は「1X」
   if (actual != null && actual > scored) { rs.sort((a, b) => b.base - a.base); rs.splice(0, Math.min(rs.length, actual - scored)); }
   // 代走が出ていれば、その選手に置き換える
   const side = top ? 0 : 1, lu = (d.lineups || [])[side] || [];
@@ -5940,14 +5945,14 @@ function lineupHTML(g, d) {
   const rows = t === g.h ? L[1] : L[0];
   const sq = x => (x || "").normalize("NFKC").replace(/\s+/g, "");
   const curName = g.st === "live" && p && p.batter && atk === t ? sq(p.batter.name) : null;
-  // 盗塁成功：出場成績の盗塁の数だけ、打席の結果のあとに「盗塁成功」の札を付ける（何回に走ったかは出場成績に載っていない）
+  // 盗塁：出場成績の盗塁の数だけ、打席の結果のあとに「盗塁」の札（ほかの札と同じ2〜3文字）を付ける（何回に走ったかは出場成績に載っていない）
   const sbN = r => Math.max(0, parseInt(r.sb, 10) || 0);
-  const res = r => r.results.map((x, i) => rcChip(x, (r.rbis || [])[i])).join("") + Array.from({ length: sbN(r) }, () => `<span class="rcw"><span class="rc sb">盗塁成功</span></span>`).join("");
+  const res = r => r.results.map((x, i) => rcChip(x, (r.rbis || [])[i])).join("") + Array.from({ length: sbN(r) }, () => `<span class="rcw"><span class="rc sb">盗塁</span></span>`).join("");
   let prev = 0;
   return `<div class="lu">
     <div class="lut">打順<div class="lutabs">${[g.h, g.a].map(x => `<button type="button" data-k="${key}" data-t="${x}" class="${x === t ? "on" : ""}" style="${tv(x)}">${fn(x)}</button>`).join("")}</div></div>
     <table class="lutab">${rows.map(r => { const first = r.order !== prev; prev = r.order;
-      return `<tr class="${r.starter ? "" : "sub"}${curName && sq(r.name) === curName ? " cur" : ""}"><td class="lo num">${first ? r.order : ""}</td><td class="ln"><div class="lnm" data-pl="${t}|${esc(r.name)}"><span>${pwName(t, r.name, r.pos === "投" ? "投手" : undefined)}</span>${posIcon(r.pos, "lpi")}<em class="la num">${esc(r.avg || "")}</em></div>${r.results.length || sbN(r) ? `<div class="lrw">${res(r)}</div>` : ""}</td></tr>`; }).join("")}</table>
+      return `<tr class="${r.starter ? "" : "sub"}${curName && sq(r.name) === curName ? " cur" : ""}"><td class="lo num">${first ? r.order : ""}</td><td class="ln"><div class="lnm" data-pl="${t}|${esc(r.name)}"><span>${pwName(t, r.name, r.pos === "投" ? "投手" : undefined)}</span>${posIcons(r.pos, "lpi")}<em class="la num">${esc(r.avg || "")}</em></div>${r.results.length || sbN(r) ? `<div class="lrw">${res(r)}</div>` : ""}</td></tr>`; }).join("")}</table>
   </div>`;
 }
 // 投手成績（その試合に投げた投手。登板順）
@@ -5989,7 +5994,7 @@ function detailHTML(g) {
   if (L && L.away && L.home) {
     const curInn = g.st === "live" && g.inn ? parseInt(g.inn) : 0;
     const fk = g.d + gkey(g), flows = d.flows || [];
-    const row = (x, t) => `<tr><th style="${tv(t)}"><span class="badge">${calSn(t)}</span></th>${x.inn.map((v, i) => { const half = `${i + 1}回${x === L.away ? "表" : "裏"}`, sc = /^[1-9]\d*$/.test(v) && flows.some(f => f.half === half); const now = g.st === "live" && curInn === i + 1 && ((x === L.away) === /表/.test(g.inn || "")), vv = now && !String(v || "").trim() ? "-" : v;
+    const row = (x, t) => `<tr><th style="${tv(t)}"><span class="badge">${calSn(t)}</span></th>${x.inn.map((v, i) => { const half = `${i + 1}回${x === L.away ? "表" : "裏"}`, sc = /^[1-9]\d*X?$/i.test(String(v || "").normalize("NFKC").trim()) && flows.some(f => f.half === half); const now = g.st === "live" && curInn === i + 1 && ((x === L.away) === /表/.test(g.inn || "")), vv = now && !String(v || "").trim() ? "-" : v;
       return `<td class="${now ? "now" : ""}${sc ? " scd" : ""}${sc && S.flow[fk] === half ? " on" : ""}"${sc ? ` data-flow="${fk}|${half}" data-at="line"` : ""}>${esc(vv)}</td>`; }).join("")}<td class="tot">${esc(x.r)}</td><td class="sub">${esc(x.h)}</td><td class="sub">${esc(x.e)}</td></tr>`;
     h += `<div class="lswrap"><table class="ls num"><thead><tr><th></th>${L.innings.map((c, i) => `<th>${esc(c)}</th>`).join("")}<th>計</th><th>安</th><th>失</th></tr></thead><tbody>${row(L.away, g.a)}${row(L.home, g.h)}</tbody></table></div>`;
     if (S.flowAt[fk] === "line" && S.flow[fk]) {

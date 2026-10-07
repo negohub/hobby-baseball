@@ -777,6 +777,22 @@ for (const [nm, f] of [["1行", one], ["別々の行", split]]) {
   ok(nm + "：できごと", ((L.bats || [])[1] || {}).ev, R[1][3]);
   ok(nm + "：今の打者", (d.now || {}).name, "梅野 隆太郎");
 }
+// 本文より前に、ほかの試合の「7回表」「試合終了」が並ぶ日程の欄があっても、この試合を終わりにしない（見出し「テキスト速報」がある形・ない形）
+for (const head of ["<h2>テキスト速報</h2>", ""]) {
+  const html = `<div>10月7日（水）の日程・結果</div><ul><li>巨人 3-1 中日</li><li>試合終了</li><li>DeNA 2-2 広島</li><li>7回表</li><li>試合終了</li></ul>${head}<h1>11回裏</h1><ol>${R.slice().reverse().map(one).join("")}</ol><h1>11回表</h1><ol><li><p>1番 秋山 翔吾 無死走者なし</p><p>ライトフライ 1アウト</p></li></ol><div>10月7日（水）の日程・結果</div><div>試合終了</div>`;
+  const d = parseGame(html);
+  ok("日程の欄" + (head ? "（見出しあり）" : "（見出しなし）") + "：試合中のまま", [d.over, (d.live || {}).half, ((d.live || {}).bats || []).length], [false, "11回裏", 4]);
+}
+// 1つの回だけ（1回表）で、新しい打席が上：古い順に直す。アウトの数が同じ（四球が続く）ときは打順で
+{ const h = `<h2>テキスト速報</h2><h1>1回表</h1><ol><li><p>3番 森下 翔太 一死一塁</p><p>レフトフライ 2アウト</p></li><li><p>2番 中野 拓夢 無死一塁</p><p>送りバント失敗 1アウト一塁</p></li><li><p>1番 近本 光司 無死走者なし</p><p>ヒット 一塁</p></li></ol>`;
+  ok("1つの回：古い順", (parseGame(h).live.bats || []).map(b => b.order), ["1番", "2番", "3番"]);
+  const h2 = `<h2>テキスト速報</h2><h1>1回表</h1><ol><li><p>3番 森下 翔太 無死一二塁</p><p>x</p></li><li><p>2番 中野 拓夢 無死一塁</p><p>フォアボール</p></li><li><p>1番 近本 光司 無死走者なし</p><p>フォアボール</p></li></ol>`;
+  ok("1つの回・アウトが同じ：打順で古い順", (parseGame(h2).live.bats || []).map(b => b.order), ["1番", "2番", "3番"]);
+  const h3 = `<h2>テキスト速報</h2><h1>1回表</h1><ol><li><p>1番 近本 光司 無死走者なし</p><p>フォアボール</p></li><li><p>2番 中野 拓夢 無死一塁</p><p>フォアボール</p></li></ol>`;
+  ok("1つの回・古い順のページはそのまま", (parseGame(h3).live.bats || []).map(b => b.order), ["1番", "2番"]); }
+// 「代打:松山」のようなできごとの行を、次の打席の見出しとつながない
+{ const h = `<h2>テキスト速報</h2><h1>8回裏</h1><ol><li><p>3番 小園 海斗 無死走者なし</p><p>フォアボール 一塁</p><p>代打:松山</p></li><li><p>4番 末包 昇大 無死一塁</p><p>ライトフライ 1アウト</p></li></ol>`;
+  ok("代打の行", (parseGame(h).live.bats || []).map(b => [b.order, b.name, b.sit]), [["3番", "小園 海斗", "無死走者なし"], ["4番", "末包 昇大", "無死一塁"]]); }
 """ % rows
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "w.mjs").write_text(src, encoding="utf-8")
@@ -828,12 +844,142 @@ for (const [nm, f] of [["1行", one], ["別々の行", split]]) {
           want('7回裏・小幡の打席・盗塁死', seq('7回裏', R7, 4, R7[4][3], res7), '');
           const R10 = [['9番', '元山 飛優', '無死走者なし', ['センターフライ 1アウト']], ['1番', '近本 光司', '一死走者なし', ['フォアボールを選ぶ 一塁']], ['2番', '木浪 聖也', '一死一塁', ['セカンドゴロ 2アウト二塁']], ['代打', '伏見 寅威', '二死二塁', []]];
           want('10回裏・伏見の打席（近本が二塁）', seq('10回裏', R10, 3, [], ['中飛', '四球', '二ゴロ']), '2:近本');
+          // フォースアウト：A がヒット → B が遊ゴロ（一塁走者が二塁でアウト、B は一塁）→ C の打席。一塁は B
+          { const RF = [['1番', 'A 太郎', '無死走者なし', ['センター前ヒット 一塁']], ['2番', 'B 次郎', '無死一塁', ['ショートゴロ 1アウト一塁']], ['3番', 'C 三郎', '一死一塁', []]];
+            want('フォースアウトのあと', seq('1回表', RF, 2, [], ['中安', '遊ゴロ']), '1:B'); }
+          // 盗塁成功の文にアウトの数があっても、走者を消さない
+          { const RS = [['1番', 'A 太郎', '無死走者なし', ['ヒット 一塁']], ['2番', 'B 次郎', '無死一塁', []]];
+            want('盗塁成功（アウトの数つき）', seq('1回表', RS, 1, ['一塁走者 A :盗塁成功 二塁 0アウト二塁'], ['中安']), '2:A'); }
+          // 一球速報のページに走者の名前があれば、そちらを使う（テキスト速報で追いかけた名前より本物）
+          { scene(3, [], { occ: ['1', '3'], rnames: ['植田', '髙寺'] }); GD[k].live.bats[1].ev = []; const w = document.createElement('div'); w.innerHTML = pitchHTML(g);
+            const names = isPawa() ? [...w.querySelectorAll('.fldw .rtile')].map(e => e.textContent.replace(/\\s+/g, '')).sort().join(',') : [...w.querySelectorAll('.fld g[data-pl] text')].map(e => e.textContent.replace(/\\s+/g, '')).sort().join(',');
+            if (names !== '植田,髙寺') ng.push(`ページの走者の名前が使われない：${names}`); }
           DATA.games.pop(); delete GD[k]; delete PD[k]; return ng; }""", RUN_11)
         for m in r:
             bad(f"[走者 {'パワプロ風' if theme else 'スタイリッシュ'}] {m}")
         for e in errs:
             bad(f"[走者]: 画面のエラー {e}")
         await pg.close()
+
+
+async def rec_active_check(browser):
+    """歴代記録（本物の data/records.json の全部門・全行）：「現役」の印と、今の選手としての色・押した先・所属は、名前ではなくNPBの選手番号で決まっているか。
+    答えは画面とは別に、ここで records.json から作る（NPBの現役の印「*」・現役の一覧の番号、在籍者名簿の最後の年と球団）。
+    10/7 の誤り：引退したラミレス（2001-2013）に、今の広島のラミレスと名前が同じだったため「現役」が付いていた"""
+    try:
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "scripts"))
+        import update_data as ud
+        reg = {"people": {"秋広 優人": [{"h": [["巨人", [2021, 2022, 2023, 2024, 2025]], ["ソフトバンク", [2025]]], "id": "1"}]}}
+        p_ = ud.record_person("秋広 優人", "(2025)", reg)
+        if not p_ or p_[3] != "ソフトバンク":
+            bad(f"[歴代記録] 最後の年の途中で移った選手の最後の球団が違う：{p_}")
+    except ImportError:
+        pass
+    rp = ROOT / "data" / "records.json"
+    if not rp.exists():
+        return
+    rec = json.loads(rp.read_text(encoding="utf-8"))
+    lat = json.loads((ROOT / "data" / "latest.json").read_text(encoding="utf-8"))
+    act = set()
+    for k, L in rec["lists"].items():
+        for i, r in enumerate(L["rows"]):
+            pid = (L.get("pid") or [""] * 999)[i]
+            if pid and (k.startswith("ac") or (L.get("act") and L["act"][i])):
+                act.add(pid)
+    season = int(lat.get("season") or 2026)
+    want = {}
+    for k, L in rec["lists"].items():
+        for i, r in enumerate(L["rows"]):
+            pid = (L.get("pid") or [""] * 999)[i]
+            a = k.startswith("ac") or (bool(L["act"][i]) if L.get("act") else bool(pid and pid in act))
+            cur_ok = k.startswith("ac") or bool(pid and pid in act) or bool(L.get("act") and L["act"][i]) or ((L.get("last") or [0] * 999)[i] >= season - 1)
+            want[f"{k}|{i}"] = {"act": a and not k.startswith("ss"), "cur_ok": cur_ok, "lteam": (L.get("lteam") or [""] * 999)[i], "last": (L.get("last") or [0] * 999)[i], "pid": pid}
+    for theme in ["pawa", ""]:
+        pg, errs = await open_page(browser, 390, theme)
+        await pg.wait_for_timeout(800)
+        got = await pg.evaluate("""(R) => { REC = R; REC_ACT = null; REC_TEAMS = null; const out = {};
+          for (const k of Object.keys(R.lists)) { const [kind, sk] = [k.slice(0, 2), k.slice(4)]; S.recKind = kind; S.recSide = k[2]; S.recKey = sk; setTab('rec'); renderRec();
+            const sel = document.getElementById('recCat'); if (sel.value !== sk) { out[k + '|-'] = { miss: true }; continue; }
+            [...document.querySelectorAll('#recTbl tbody tr')].forEach((tr, i) => { const td = tr.querySelector('td.pnm'), pl = td && td.dataset.pl;
+              const rt = !!tr.querySelector('.recact.rt'), h = pl ? { t: pl.split('|')[0], n: pl.split('|')[1] } : null, o = h ? offOf(h.t, h.n) : null;
+              if (rt && !(o && o.kind === 'retire')) out[k + '|rt' + i] = { bad: '引退を発表していないのに「引退」の札' };
+              if (!rt && o && o.kind === 'retire' && tr.querySelector('.recact')) out[k + '|rt' + i] = { bad: '引退を発表したのに「現役」の札' };
+              out[k + '|' + i] = { name: (td && td.textContent || '').replace(/現役|引退/, '').trim(), act: !!tr.querySelector('.recact'), t: pl ? pl.split('|')[0] : null, team: (tr.querySelectorAll('td')[2] || {}).textContent }; }); }
+          return { out, fn: Object.fromEntries(Object.keys(TEAM).map(t => [t, fn(t)])) }; }""", rec)
+        out, FN = got["out"], got["fn"]
+        ng = []
+        for key, g in out.items():
+            if g.get("bad"):
+                ng.append(f"{key.split('|')[0]}：{g['bad']}")
+                continue
+            if g.get("miss"):
+                ng.append(f"{key.split('|')[0]} の部門が選べない")
+                continue
+            w = want.get(key)
+            if not w:
+                continue
+            if g["act"] != w["act"]:   # 「現役」または「引退」（今季で引退を発表）の札
+                ng.append(f"{key.split('|')[0]} {g['name']}：「現役」の印が{'付いている' if g['act'] else '付いていない'}（NPBの現役の印は{'あり' if w['act'] else 'なし'}）")
+            if g["t"]:
+                if not w["cur_ok"]:
+                    ng.append(f"{key.split('|')[0]} {g['name']}：引退した選手（{w['last']}年まで）が今の{FN.get(g['t'], g['t'])}の選手として出ている")
+                elif not (w["pid"] in act or key.startswith("ac") or w["lteam"] == FN.get(g["t"])):
+                    ng.append(f"{key.split('|')[0]} {g['name']}：在籍者名簿の最後の球団（{w['lteam']}）と今の球団（{FN.get(g['t'])}）が違うのに、今の選手として出ている")
+        uniq = list(dict.fromkeys(ng))
+        for m in uniq[:15]:
+            bad(f"[歴代記録の現役・今の選手 {'パワプロ風' if theme else 'スタイリッシュ'}] {m}")
+        if len(uniq) > 15:
+            bad(f"[歴代記録の現役・今の選手] ほか {len(uniq) - 15} 件")
+        for e in errs:
+            bad(f"[歴代記録の現役・今の選手]: 画面のエラー {e}")
+        await pg.close()
+
+
+async def same_name_check(browser):
+    """同じ名前・似た名前の別の選手を取り違えない（10/7 の見直し）：
+    選手の画面の「今季の対○○」（オスナ＝ヤクルトとソフトバンク、マルテとマルティネス）、名字だけのときの成績の行（同じ名字が2人）、
+    中継プログラムの今日の成績（両チームに同じ名前）"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [], d = jst().iso;
+      const g = { d, h: 'S', a: 'H', st: 'live', hs: 1, as: 0, inn: '3回表', v: '神宮' }; DATA.games.push(g); const k = d + gkey(g);
+      const keep = JSON.stringify(DATA.rosters); DATA.rosters.S = (DATA.rosters.S || []).concat([{ no: '13', n: 'オスナ', p: '内野手' }]); DATA.rosters.H = (DATA.rosters.H || []).concat([{ no: '54', n: 'オスナ', p: '投手' }, { no: '2', n: 'マルティネス', p: '外野手' }]);
+      DATA.rosters.S.push({ no: '23', n: 'マルテ', p: '内野手' });
+      PD[k] = { half: '3回表', attack: 'ソフトバンク', batter: { name: 'マルティネス', hand: '右打' }, pitcher: { name: 'オスナ', hand: '右投' }, ids: { 'オスナ': '111', 'マルテ': '222', 'マルティネス': '333' }, pitches: [] };
+      if (matchupLine('S', 'オスナ')) ng.push('両チームにいるオスナで「今季の対○○」が出ている（どちらの選手か分からない）');
+      const m1 = matchupLine('S', 'マルテ'); if (/打席中/.test(m1)) ng.push('マルテを開いたのに、打席中のマルティネスと取り違えている');
+      const m2 = matchupLine('H', 'マルティネス'); if (!/打席中/.test(m2)) ng.push('打席中のマルティネスに「打席中」が付かない');
+      // 名字だけ（ランキング）：同じ名字が2人のとき、呼び名がその名字の選手に絞る。絞れなければ出さない
+      const tbl = { '佐藤輝明': { a: 1 }, '佐藤蓮': { a: 2 } };
+      DATA.rosters.T = (DATA.rosters.T || []).filter(x => !/^佐藤/.test(x.n)).concat([{ no: '8', n: '佐藤 輝明', p: '内野手' }, { no: '38', n: '佐藤 蓮', p: '投手' }]);
+      const f1 = findRow(tbl, '佐藤', 'T'); if (f1) ng.push(`同じ名字が2人で呼び名も決まらないのに、${f1.n} の成績を出している`);
+      const f2 = findRow(tbl, '佐藤輝', 'T'); if (!f2 || f2.n !== '佐藤輝明') ng.push(`「佐藤輝」で佐藤輝明の成績にならない：${JSON.stringify(f2)}`);
+      DATA.rosters = JSON.parse(keep); DATA.games.pop(); delete PD[k]; return ng; }""")
+    for m in r:
+        bad(f"[同じ名前の選手] {m}")
+    for e in errs:
+        bad(f"[同じ名前の選手]: 画面のエラー {e}")
+    await pg.close()
+    wk = ROOT / "worker" / "worker.js"
+    if wk.exists():
+        import subprocess, tempfile
+        src = wk.read_text(encoding="utf-8") + "\nexport { parseBox };\n"
+        test = r"""
+import { parseBox } from "./w.mjs";
+const tb = rows => `<table><tr><th>位置</th><th>選手名</th><th>打率</th><th>打数</th><th>得点</th><th>安打</th><th>打点</th><th>三振</th><th>四球</th><th>死球</th><th>犠打</th><th>盗塁</th><th>失策</th><th>本塁打</th><th>1回</th></tr>${rows}</table>`;
+const row = (n, res) => `<tr><td>(投)</td><td>${n}</td><td>.200</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>${res}</td></tr>`;
+const b = parseBox(tb(row("オスナ", "三振")) + tb(row("オスナ", "左安")));
+const ok = (n, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) console.log("NG " + n + " " + JSON.stringify(got)); };
+ok("両チームのオスナ（ビジター）", ((b.batS || [])[0] || {})["オスナ"]?.results, ["三振"]);
+ok("両チームのオスナ（ホーム）", ((b.batS || [])[1] || {})["オスナ"]?.results, ["左安"]);
+"""
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "w.mjs").write_text(src, encoding="utf-8")
+            (Path(d) / "t.mjs").write_text(test, encoding="utf-8")
+            out = subprocess.run(["node", str(Path(d) / "t.mjs")], capture_output=True, text=True, timeout=60)
+            for line in (out.stdout + out.stderr).splitlines():
+                if line.strip():
+                    bad(f"[同じ名前の選手・中継プログラム] {line.strip()[:200]}")
 
 
 async def tap_target_check(browser):
@@ -4259,6 +4405,8 @@ async def main():
         await pane_check(browser)
         await quiet_outs_check(browser)
         await runner_text_check(browser)
+        await rec_active_check(browser)
+        await same_name_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

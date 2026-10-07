@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007215314">
+<meta name="build" content="20261007224649">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2154,6 +2154,7 @@ html.theme-pawa .ventab .sptile.n7 b:not(#z){white-space:normal;line-height:1.1;
 .rectab .recmsg{text-align:center;padding:24px 8px;font-weight:600;white-space:normal}
 .rectab td.tnm{white-space:normal;line-height:1.25}
 .recact{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:5px;font-size:9.5px;font-weight:800;vertical-align:1px;background:#17703D;color:#fff;letter-spacing:0}
+.recact.rt{background:#5E6470}
 .recnote{margin:4px 2px 8px;font-size:11.5px;color:var(--muted)}
 .srcnote{margin:8px 2px 0;font-size:10.5px;color:var(--muted);text-align:right}
 html.theme-pawa .srcnote:not(#z){display:table;margin:8px 0 0 auto;padding:3px 9px;border-radius:8px;background:rgba(255,255,255,.9);color:#13264A !important}
@@ -3374,6 +3375,7 @@ html.sty-light:not(.theme-pawa) .find{background:rgba(242,243,247,.55)}
 html.sty-light:not(.theme-pawa) .find-in{background:var(--card,#F2F2F2)}
 html.sty-light:not(.theme-pawa) .find-bar input{background:rgba(20,24,40,0.054)}
 html.sty-light:not(.theme-pawa) .recact{background:#17703D;color:#fff}
+html.sty-light:not(.theme-pawa) .recact.rt{background:#5E6470}
 html.sty-light:not(.theme-pawa):not(#y) .htab .hfix:not(#z){background:#C62828 !important;color:#fff !important}
 html.sty-light:not(.theme-pawa) .ptmore{border:1px solid var(--soft-line,#E4E4E4);background:rgba(20,24,40,0.036)}
 html.sty-light:not(.theme-pawa) .ptr{background:rgba(248,248,250,0.94);color:#1C1C21}
@@ -5643,12 +5645,18 @@ function textRunners(d, p) {
       let m;
       if ((m = l.match(/([一二三])塁走者\s*(\S+)\s*→\s*代走\s*:?\s*(\S+)/))) { const r = rs.find(x => x.base === B[m[1]]) || rs.find(x => same(x.name, m[2])); if (r) r.name = m[3]; continue; }
       for (const s of l.matchAll(/([一二三])塁走者\s*(\S+?)\s*:?\s*盗塁成功\s*([二三本])/g)) { const r = rs.find(x => x.base === B[s[1]]) || rs.find(x => same(x.name, s[2])); if (r) r.base = B[s[3]]; }
-      if ((m = l.match(/([一二三])塁走者\s*(\S+?)\s*:?.*(?:盗塁|けん制|牽制|飛び出|走塁).*アウト/)) && !/セーフ|帰塁/.test(l)) { const i = rs.findIndex(x => x.base === B[m[1]] || same(x.name, m[2])); if (i >= 0) rs.splice(i, 1); }
+      if ((m = l.match(/([一二三])塁走者\s*(\S+?)\s*:?.*(?:盗塁|けん制|牽制|飛び出|走塁).*アウト/)) && !/セーフ|帰塁|盗塁成功/.test(l)) { const i = rs.findIndex(x => x.base === B[m[1]] || same(x.name, m[2])); if (i >= 0) rs.splice(i, 1); }
     }
     return rs.filter(x => x.base <= 3);
   };
   // 打者が塁に出たか：出場成績のその打席の結果（あれば）、なければテキスト速報の文
   const steps = (d.cur && d.cur.half === L.half && d.cur.steps) || [];
+  const outN = b => ({ 無死: 0, 一死: 1, 二死: 2 })[String(b.sit || "").normalize("NFKC").slice(0, 2)] ?? 0;
+  // フォースアウト（ゴロで前の走者がアウト・打者は一塁に残る）：アウトが1つだけ増え、前も後も一塁に走者がいて、走者の数が減っていない
+  const forceAt = k => { const b = L.bats[k], n = L.bats[k + 1]; if (!n) return false;
+    const t = (b.ev || []).join(" ").normalize("NFKC"), st = steps[k], r = st && same(st.name, b.name) ? String(st.res || "").normalize("NFKC") : "";
+    const o0 = occOf(b.sit), o1 = occOf(n.sit);
+    return (/ゴロ|フォース|封殺|野選|フィルダース/.test(r + " " + t)) && !/併殺|ダブルプレー|ゲッツー/.test(t) && outN(n) === outN(b) + 1 && o0.includes(1) && o1.includes(1) && o1.length >= o0.length; };
   const reachedAt = k => {
     const st = steps[k], b = L.bats[k];
     if (st && st.res && same(st.name, b.name)) { const r = String(st.res).normalize("NFKC"), c = resCls(r); return c === "h" || c === "bb" || c === "e" || /振逃|野選/.test(r); }
@@ -5672,7 +5680,8 @@ function textRunners(d, p) {
     const b = L.bats[k];
     if (k > 0) {
       const prev = L.bats[k - 1], cands = rs.slice().sort((x, y) => y.base - x.base);
-      if (reachedAt(k - 1)) cands.push({ name: prev.name, base: 0 });
+      if (forceAt(k - 1)) { const i1 = cands.findIndex(x => x.base === 1); if (i1 >= 0) cands.splice(i1, 1); cands.push({ name: prev.name, base: 0 }); }   // ふつうは一塁の走者が二塁でアウト
+      else if (reachedAt(k - 1)) cands.push({ name: prev.name, base: 0 });
       rs = place(cands, occOf(b.sit), /併殺|ダブルプレー|ゲッツー/.test((prev.ev || []).join(" ")));
     } else {
       const o0 = occOf(b.sit); if (o0.length !== rs.length) rs = o0.map(x => ({ name: null, base: x }));
@@ -5741,12 +5750,6 @@ function pitchHTML(g) {
     // そのときは打者を一塁に置き、残りの塁に、前からいた走者を下の塁から順に当てはめる（押し出し・進塁で1つずつ先の塁へ）
     const pl = p.pitches || [], lr2 = pl.length ? String(pl[pl.length - 1].res || "").normalize("NFKC") : "";
     const reached = p.batter && pl.length && (["h", "bb", "e"].includes(resCls(lr2)) || /振逃|野選|フィルダース/.test(lr2)) && !/本塁打|本$/.test(lr2);
-    // テキスト速報で追いかけた走者（名前がすべて分かっているとき）：前の走者から順に、今の塁の埋まり方（先の塁から）へ。打者が塁に出た直後は打者をいちばん後ろに足す
-    if (TR && TR.list.length && TR.list.every(x => x.name)) {
-      const cands = TR.list.slice();
-      if (occ.length === cands.length + 1 && reached && !cands.some(x => sq(x.name) === sq(p.batter.name))) cands.push({ name: p.batter.name });
-      if (cands.length === occ.length) { occ.slice().sort().reverse().forEach((b, i) => { o[b] = cands[i].name; }); return o; }
-    }
     if (reached && occ.includes("1") && page.length === occ.length - 1 && !page.some(n => sq(n) === sq(p.batter.name))) {
       o["1"] = p.batter.name;
       const rest = occ.filter(b => b !== "1");
@@ -5755,11 +5758,19 @@ function pitchHTML(g) {
       rest.filter(b => !o[b]).forEach(b => { if (left.length) o[b] = left.shift(); });
       return o;
     }
-    if (page.length && page.length === occ.length) {
+    // 位置の手がかり：テキスト速報で追いかけた走者（名前が分かる塁）→ 計算の走者
+    const HINT = {}; if (TR) TR.list.forEach(x => { if (x.name) HINT[String(x.base)] = x.name; }); ["1", "2", "3"].forEach(b => { if (!HINT[b] && SIM[b]) HINT[b] = SIM[b]; });
+    if (page.length && page.length === occ.length) {   // ①一球速報のページのダイヤモンドの走者（本物の名前）を、手がかりの位置に
       const left = page.slice();
-      occ.forEach(b => { const i = left.findIndex(n => SIM[b] && (sq(n) === sq(SIM[b]) || sq(SIM[b]).startsWith(sq(n)) || sq(n).startsWith(sq(SIM[b])))); if (i >= 0) { o[b] = left[i]; left.splice(i, 1); } });
+      occ.forEach(b => { const i = left.findIndex(n => HINT[b] && (sq(n) === sq(HINT[b]) || sq(HINT[b]).startsWith(sq(n)) || sq(n).startsWith(sq(HINT[b])))); if (i >= 0) { o[b] = left[i]; left.splice(i, 1); } });
       occ.filter(b => !o[b]).forEach(b => { if (left.length) o[b] = left.shift(); });
       return o;
+    }
+    // ②ページに走者の名前がないとき：テキスト速報で追いかけた走者（全員の名前が分かるとき）。前の走者から順に、先の塁から。打者が塁に出た直後は打者をいちばん後ろに足す
+    if (TR && TR.list.length && TR.list.every(x => x.name)) {
+      const cands = TR.list.slice();
+      if (occ.length === cands.length + 1 && reached && !cands.some(x => sq(x.name) === sq(p.batter.name))) cands.push({ name: p.batter.name });
+      if (cands.length === occ.length) { occ.slice().sort().reverse().forEach((b, i) => { o[b] = cands[i].name; }); return o; }
     }
     const names = ["1", "2", "3"].map(b => SIM[b]).filter(Boolean);
     if (names.length === occ.length) occ.forEach((b, i) => { o[b] = names[i]; });
@@ -5991,7 +6002,7 @@ function detailHTML(g) {
   if (panes.length < 2 || S.gpaneAll) return h + panes.map(x => x[2]).join("");   // gpaneAll：検査用（全部を縦に並べる）
   const cur = panes.find(x => x[0] === S.gpane[k]) || panes[0];
   h += `<div class="seg gseg" role="tablist" style="--n:${panes.length}">${panes.map(([id, l]) => `<button type="button" role="tab" data-gk2="${k}" data-gp="${id}" aria-pressed="${id === cur[0]}" aria-selected="${id === cur[0]}">${l}</button>`).join("")}</div>`;
-  h += `<div class="gpane" data-gk2="${k}" data-gp="${cur[0]}">${cur[2]}</div>`;
+  h += `<div class="gpane" data-gk2="${k}" data-gp="${cur[0]}" data-gps="${panes.map(x => x[0]).join(",")}">${cur[2]}</div>`;
   // 得点シーンの一覧は出さない（スコア表の得点マスをタップすると、その回の流れが開く）
   return h;
 }
@@ -6002,7 +6013,8 @@ function gamePanes(g, d) {
   [["lu", "打順", lineupHTML(g, d)], ["pu", "投手", pitchingHTML(g, d)], ["bench", "ベンチ", benchHTML(g)]].forEach(x => { if (x[2]) out.push(x); });
   return out;
 }
-const paneList = k => { const g = [...DATA.games, ...postToday()].find(x => x.d + gkey(x) === k), d = g && GD[k]; return g && d ? gamePanes(g, d).map(x => x[0]) : []; };
+// 切り替えの並び：画面に書いた順（スワイプ中に毎コマ作り直さない）
+const paneList = k => { const e = document.querySelector(`.gpane[data-gk2="${k}"]`); return e && e.dataset.gps ? e.dataset.gps.split(",") : []; };
 function pickPane(k, id) { S.gpane[k] = id; renderGame(); }
 document.addEventListener("click", e => {
   const b = e.target.closest(".gseg button[data-gp]");
@@ -7087,7 +7099,10 @@ function findRow(tbl, name, t) {
   // 名字だけ（ランキング）のとき：その名字の選手が1人ならその人、複数なら名簿から絞る
   const hits = Object.keys(tbl).filter(x => x.startsWith(k));
   if (hits.length === 1) return { n: hits[0], r: tbl[hits[0]] };
-  return hits.length ? { n: hits[0], r: tbl[hits[0]], many: hits } : null;
+  // 同じ名字が何人もいるとき：名簿で呼び名がその名字になる選手（「佐藤」と呼ばれる1人）に絞る。絞れなければ出さない（別の選手の成績を出さない）
+  const ro = t && (DATA.rosters || {})[t] ? DATA.rosters[t].filter(x => nk(callName(t, x.n)) === k).map(x => nk(x.n)) : [];
+  const one = hits.filter(x => ro.includes(x));
+  return one.length === 1 ? { n: one[0], r: tbl[one[0]] } : null;
 }
 const f3 = v => { const x = Number(v); return isFinite(x) ? x.toFixed(3).replace(/^0/, "") : "-"; };
 function ipNum(v) { const [a, b] = String(v || "0").split("."); return Number(a) + (Number(b || 0) / 3); }
@@ -7122,11 +7137,16 @@ function matchupLine(t, full) {
   const g = DATA.games.find(x => x.d === today && (x.h === t || x.a === t) && (x.st === "live" || x.st === "final"));
   const p = g && PD[g.d + gkey(g)];
   if (!p || !p.ids || !CONFIG.liveApi) return "";
-  const same = n => { const a = nk(n); return a === k0 || (a.length >= 2 && k0.startsWith(a)) || (k0.length >= 2 && a.startsWith(k0)); };
+  // 名前はぴったり同じときだけ（「マルテ」と「マルティネス」を取り違えない）。ページの選手番号は両チームまとめての名前の表なので、
+  // 相手のチームにも同じ名前の選手がいる（オスナ・ロドリゲス・マルティネスなど）ときは、どちらの番号か分からないので出さない
+  const same = n => { const a = nk(n), b = nkOff(n); return a === k0 || (!!b && b === nkOff(full)); };
+  const opp = g.h === t ? g.a : g.h;
+  if (((DATA.rosters || {})[opp] || []).some(x => same(x.n))) return "";
   const idKey = Object.keys(p.ids).find(same);
   if (!idKey) return "";
-  const id = p.ids[idKey], opp = g.h === t ? g.a : g.h;
-  const isBat = p.batter && same(p.batter.name), isPit = p.pitcher && same(p.pitcher.name);
+  const id = p.ids[idKey];
+  const a0 = YSHORT[p.attack], atk = a0 === g.h || a0 === g.a ? a0 : (p.half && p.half.includes("表") ? g.a : g.h), def = atk === g.h ? g.a : g.h;
+  const isBat = t === atk && p.batter && same(p.batter.name), isPit = t === def && p.pitcher && same(p.pitcher.name);
   const render = d => {
     if (!d || (!d.team && !d.lr)) return `<p class="ps-load">今季の対${esc(fn(opp))}の成績を読み込めませんでした</p>`;
     const r = (d.team || {})[opp];
@@ -7211,7 +7231,7 @@ async function openPlayer(t, name, opt = {}) {
   if (b && Number(b.r["打席"] || 0) > 0) parts.push(batGrid(b.r));
   if (!pitcherFirst && pi) parts.push(pitGrid(pi.r));
   body.innerHTML = parts.length
-    ? parts.join("") + `<p class="ps-note">${d.src === "sponavi" ? `今季の成績：スポーツナビ（${esc(d.at || "")} 確認）` : `NPB公式 ${d.asof ? d.asof + " 時点" : ""}の成績`}${(b && b.many) || (pi && pi.many) ? "（同じ名字の選手がいるため、名簿で一番近い選手を表示しています）" : ""}</p>`
+    ? parts.join("") + `<p class="ps-note">${d.src === "sponavi" ? `今季の成績：スポーツナビ（${esc(d.at || "")} 確認）` : `NPB公式 ${d.asof ? d.asof + " 時点" : ""}の成績`}</p>`
     : `<div class="ps-load">今季の一軍の出場記録はまだありません。</div>`;
 }
 // 監督としての通算成績（NPB公式の球団の年度別成績から、データ更新で集めたもの）
@@ -8328,9 +8348,10 @@ function recTeams() {
     if (!/^ss/.test(k)) continue;
     const ni = L.cols.findIndex(c => /選手|投手|打者/.test(c)), ti = L.cols.findIndex(c => /所属/.test(c));
     if (ni < 0 || ti < 0) continue;
-    for (const r of L.rows) {
-      const n = nk(r[ni]), t = String(r[ti] || "").replace(/^\((.*)\)$/, "$1").replace(/\s+/g, "");
-      if (!n || !t) continue;
+    for (const [i, r] of L.rows.entries()) {
+      // 同じ名前の別人を混ぜないよう、NPBの選手番号ごとに数える（番号がないときだけ名前で）
+      const n = (L.pid && L.pid[i]) || "n:" + nk(r[ni]), t = String(r[ti] || "").replace(/^\((.*)\)$/, "$1").replace(/\s+/g, "");
+      if (!r[ni] || !t) continue;
       const m = cnt.get(n) || new Map(); m.set(t, (m.get(t) || 0) + 1); cnt.set(n, m);
     }
   }
@@ -8383,6 +8404,14 @@ function renderStdh() {
     std[y][lg].map((r, i) => { const sh = histShort(r[0]); return `<tr style="${histStyle(r[0])}"><td class="num">${i + 1}</td><td class="tnm${[...sh].length >= 6 ? " lnm6" : ""}"><a title="${esc(r[0])}">${esc(sh)}</a></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${esc(r[5])}</td><td class="num">${i === 0 ? "優勝" : esc(r[6] || "-")}</td></tr>`; }).join("") + `</tbody>`;
 }
 document.getElementById("stdhYear").addEventListener("change", e => { S.stdhYear = e.target.value; renderStdh(); });
+// NPBが今季の現役としている選手の番号（現役の記録の一覧と、通算の記録の現役の印「*」から）
+let REC_ACT = null, REC_ACT_OF = null;
+function recActPids() {
+  if (REC_ACT && REC_ACT_OF === REC) return REC_ACT;
+  const set = new Set();
+  for (const [k, L] of Object.entries((REC && REC.lists) || {})) (L.rows || []).forEach((r, i) => { const pid = L.pid && L.pid[i]; if (pid && (k.startsWith("ac") || (L.act && L.act[i]))) set.add(pid); });
+  REC_ACT = set; REC_ACT_OF = REC; return set;
+}
 function renderRec() {
   recRestore();
   const kind = S.recKind || "lt", side = S.recSide || "b";
@@ -8412,15 +8441,21 @@ function renderRec() {
   // 名簿（12球団）：名前 → 球団・守備位置。同じ名前が2人いるときは使わない（取り違えないように）
   const byName = new Map();
   for (const [t, ro] of Object.entries(DATA.rosters || {})) for (const r of ro) { const k = nk(r.n); byName.set(k, byName.has(k) ? null : { t, n: r.n, p: r.p }); }
-  const nowNames = new Set([...byName.keys()]);
   const curY = (DATA && DATA.season) || jst().y, yi = L.cols.findIndex(c => /年度/.test(c));
-  // 今の選手（名簿の守備位置の色の札）：通算・現役はNPBの現役の印（*）か現役の一覧、シーズンは名簿にいて年度が近いもの
+  // 今の選手かどうかは、名前だけでは決めない（引退したラミレスと今の広島のラミレス のような同じ名前の別人がいる）。
+  // NPBの選手番号で：NPBの現役の印（*）・現役の記録の一覧に載っている番号、または在籍者名簿で去年までいて、その最後の球団が今の名簿の球団と同じ人
+  const pidOf = ri => (L.pid && L.pid[ri]) || "";
+  const isAct = ri => kind === "ac" || (L.act ? !!L.act[ri] : !!pidOf(ri) && recActPids().has(pidOf(ri)));
   const nowHit = (r, ri) => {
     const h = ni >= 0 ? byName.get(nk(r[ni])) : null;
     if (!h) return null;
-    if (kind === "ss") { const y = parseInt(String(r[yi] || "").replace(/\D/g, "").slice(0, 4), 10); return y && y >= curY - 25 ? h : null; }
-    return (L.act && L.act[ri]) || kind === "ac" ? h : null;
+    const pid = pidOf(ri);
+    if (kind === "ac" || (L.act && L.act[ri]) || (pid && recActPids().has(pid))) return h;
+    const last = L.last && L.last[ri], lt = L.lteam && L.lteam[ri];
+    return last && last >= curY - 1 && lt && lt === fn(h.t) ? h : null;
   };
+  // 今季で引退を発表した選手：「現役」ではなく「引退」の札（選手名鑑の「引退」の札と同じ見分け方 offOf）
+  const retired = h => { if (!h) return false; const o = typeof offOf === "function" ? offOf(h.t, h.n) : null; return !!o && o.kind === "retire"; };
   // パワプロ風の名前の札：今の選手は名簿の守備位置の色、投手の記録はピンク、引退した打者はNPBの選手のページの守備位置の色（分からないときだけ白）
   const POS1 = { "投手": "投", "捕手": "捕", "内野手": "内", "外野手": "外" };
   // 投手の記録：今の投手は名簿の先発・中継ぎの色、引退した投手はNPBの通算成績（1登板あたりの投球回）から先発・中継ぎの色
@@ -8443,17 +8478,17 @@ function renderRec() {
     const h = nowHit(r, ri); if (h) return esc(fn(h.t));                 // 今の選手：今の所属
     const tm = L.team && L.team[ri];                                      // 引退した選手：NPBの在籍者名簿でいちばん長くいた球団
     if (tm && tm.length) return esc(tm[0]);
-    const m = recTeams().get(nk(r[ni]));                                  // 名簿で見つからないとき：シーズン記録にいちばん多く出てくる球団
+    const m = recTeams().get(pidOf(ri) || "n:" + nk(r[ni]));                                  // 名簿で見つからないとき：シーズン記録にいちばん多く出てくる球団
     return m ? esc(m.main) : `<span class="muted">—</span>`;
   };
   const head = `<th>順位</th><th class="tnm">選手名</th><th class="tnm">チーム</th><th>${esc(label)}</th><th class="rp">${kind === "ss" ? "年度" : "実働期間"}</th>`;
   const body = L.rows.map((r, ri) => {
-    const act = (L.act && L.act[ri]) || (kind !== "ss" && ni >= 0 && nowNames.has(nk(r[ni])));
-    const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
     const rk = parseInt(r[0], 10) || 0, h0 = nowHit(r, ri);
+    const rt = kind !== "ss" && isAct(ri) && retired(h0), act = kind !== "ss" && isAct(ri) && !rt;   // 「現役」の印：NPBの現役の印（選手番号）だけで決める。引退を発表した選手は「引退」
+    const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
     // 名前を押すと：今の選手は選手の画面、引退した選手はNPBの選手のページ（ほかのタブと同じく、名前はどれも押せる）
     const tapA = h0 ? ` data-pl="${h0.t}|${esc(h0.n)}|${side === "p" ? "pit" : "bat"}"` : (L.pid && L.pid[ri] ? ` data-npb="${esc(L.pid[ri])}"` : "");
-    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm"${tapA}>${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
+    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm"${tapA}>${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : rt ? `<span class="recact rt">引退</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";

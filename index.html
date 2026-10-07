@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007131451">
+<meta name="build" content="20261007161755">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -89,7 +89,9 @@ h2 small{font-size:12.5px;color:var(--muted);font-weight:600;font-style:normal;m
 /* ほかのページの、横にすべらせていた並びも、画面に収まるように折り返す */
 .jump:not(#z){display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}
 .jump button:not(#z){min-width:0;padding:0 4px;text-align:center}
-#v-std .jump:not(#z),html.lg-p #v-std .jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}
+#v-std .jump:not(#z){grid-template-columns:repeat(3,minmax(0,1fr))}
+html.lg-p #v-std .jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:374px){#v-std .jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}#v-std .jump button:nth-child(3):not(#z){grid-column:1 / -1}}
 @media (max-width:374px){.jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}}
 #venKey:not(#z){display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;width:100% !important}
 #venKey button:not(#z){width:100%;min-width:0;justify-content:center}
@@ -409,7 +411,7 @@ a.tl{color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255
 .songq{width:100%;background:#111;border:1px solid #262626;color:#fff;font:inherit;font-size:16px;padding:11px 12px;margin-bottom:6px;border-radius:0;-webkit-appearance:none}
 .songq::placeholder{color:#666}
 .sgrp{margin-top:12px}
-.sgt,.sgrp summary{font-size:13px;font-weight:900;color:var(--muted);padding:6px 2px;display:flex;align-items:baseline;gap:8px}
+.sgt,.sgrp summary{font-size:13px;font-weight:800;color:var(--muted);padding:6px 2px;display:flex;align-items:baseline;gap:8px}
 .sgrp summary{cursor:pointer;list-style:none}
 .sgrp summary::-webkit-details-marker{display:none}
 .sgrp summary::after{content:"＋";margin-left:auto;font-weight:400}
@@ -587,7 +589,7 @@ h2{font-weight:700;margin-top:30px}
 @media (max-width:374px){.h2h td b{font-size:11.5px}.h2h td small{font-size:10px}}
 
 /* ===== 統一：余白と見出し ===== */
-.view > h2,.blk > h2{margin:36px 0 12px;font-size:18px;font-weight:700;display:flex;align-items:baseline}
+.view > h2,.blk > h2,#bracketBox > h2{margin:36px 0 12px;font-size:18px;font-weight:700;display:flex;align-items:baseline}
 .view > h2:first-child{margin-top:22px}
 .blk{margin-top:0}
 .ywrap{margin-top:0}
@@ -698,6 +700,25 @@ html.theme-pawa.pawa-dark .se-m{background:#13213F;border-color:#3D64B0;color:#D
 html.theme-pawa.pawa-dark .se-mp,html.theme-pawa.pawa-dark .se-m small{color:#B8C6E0}
 .se-foot span{font-size:12.5px;padding:4px 8px;border-left:3px solid var(--tc);background:#111}
 .se-foot em{font-style:normal;color:var(--muted);margin-right:6px;font-size:11.5px}
+/* 試合タブ：試合がない日のCS・日本シリーズの次戦 */
+.pnext{margin-top:6px}
+.pnext .ts-h small{margin-left:8px;font-weight:700}
+.pn-g{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;padding:12px 14px;border-radius:var(--r-lg,20px);background:#111;border:1px solid #262626}
+.pn-st{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--muted)}
+.pn-st em{font-style:normal;margin-left:auto}
+.pn-tm{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.pn-tm > i{font-style:normal;font-size:12px;font-weight:800;color:var(--muted)}
+.pn-t{display:flex;align-items:center;gap:7px;min-width:0}
+.pn-tm .pn-t:last-child{justify-content:flex-end}
+.pn-t b{font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.pn-tbd{color:var(--muted)}
+.pn-go{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:4px;border-radius:999px;border:1px solid var(--line);background:transparent;color:#fff;font:inherit;font-size:14px;font-weight:800;cursor:pointer}
+html.theme-pawa .pn-g{background:#fff;border:3px solid #1D3E7C;border-radius:16px;color:#13264A;box-shadow:0 3px 0 rgba(29,62,124,.18)}
+html.theme-pawa .pn-st,html.theme-pawa .pn-tm > i,html.theme-pawa .pn-tbd{color:#3B5480}
+html.theme-pawa .pn-go{background:linear-gradient(180deg,#FFFFFF,#D9EBFF);color:#1D3E7C;border:2px solid #1D3E7C}
+html.theme-pawa.pawa-dark .pn-g{background:#13213F;border-color:#3D64B0;color:#DEE5F2}
+html.theme-pawa.pawa-dark .pn-st,html.theme-pawa.pawa-dark .pn-tm > i,html.theme-pawa.pawa-dark .pn-tbd{color:#B8C6E0}
+html.theme-pawa.pawa-dark .pn-go{background:rgba(16,30,62,.92);color:#DEE5F2;border-color:#3D64B0}
 /* 戦況の試合速報：今日の試合を1画面目で（押すと試合タブのその試合へ） */
 .tstrip{margin-top:12px}
 .ts-h{margin:0 0 8px;font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em}
@@ -1841,6 +1862,22 @@ html.theme-pawa .minibar{background:linear-gradient(180deg,rgba(255,255,255,.62)
   -webkit-backdrop-filter:blur(24px) saturate(190%);backdrop-filter:blur(24px) saturate(190%);
   box-shadow:0 10px 26px rgba(19,38,74,.28),inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1.5px rgba(255,255,255,.55)}
 html.theme-pawa .minibar *{color:#13264A}
+/* 小さいヘッダーの中のページの切り替え（今季｜歴代など） */
+.minibar.hasseg{padding:4px 4px 4px 16px}
+.minibar.hasseg .mk{display:none}
+.minibar.hasseg b{min-width:0;flex:0 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.minibar.hasseg .ml{flex:none;white-space:nowrap}
+.minibar.hasseg .ml{margin-left:0}
+.minibar .mseg{display:flex;flex:none;width:auto;margin:0 0 0 auto;padding:2px;gap:2px}
+.minibar .mseg[hidden]{display:none}
+.minibar .mseg button:not(#z){position:relative;min-height:36px;height:36px;padding:0 13px;font-size:13px;white-space:nowrap}
+.minibar .mseg button::after{content:"";position:absolute;left:0;right:0;top:-4px;bottom:-4px}
+html.theme-pawa .minibar .mseg button:not(#z){min-height:34px;height:34px;padding:0 12px}
+html:not(.theme-pawa) .minibar .mseg:not(#z){background:rgba(0,0,0,.35)}
+html:not(.theme-pawa) .minibar .mseg button[aria-pressed="false"]:not(#z){color:#E6E6EA}
+html:not(.theme-pawa).sty-light .minibar .mseg:not(#z){background:rgba(255,255,255,.55)}
+html:not(.theme-pawa).sty-light .minibar .mseg button[aria-pressed="false"]:not(#z){color:#2A2A30}
+@media (max-width:374px){.minibar.hasseg:not(#z){padding-left:12px;gap:6px}.minibar .mseg button:not(#z){padding:0 9px}}
 html.theme-pawa .gear{color:#13264A;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,.3)),rgba(200,230,255,.2);
   -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
   box-shadow:0 6px 14px rgba(19,38,74,.25),inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1.5px rgba(255,255,255,.6)}
@@ -2032,7 +2069,7 @@ html.theme-pawa{background:#CDEBFF}
 .jump button{flex:0 0 auto;white-space:nowrap;font:inherit;font-size:12px;font-weight:800;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
 html.theme-pawa .jump button{background:rgba(255,255,255,.92);border:2px solid #1D3E7C;color:#13264A}
 html.theme-pawa.pawa-dark .jump button{background:rgba(16,30,62,.92);border-color:#3D64B0;color:#DEE5F2}
-#cards,#mh2hBlk,#trendBlk,#formBlk,#stdTop,#bracketBox,#h2hTop,#histTop,#v-game .tg[data-gk]{scroll-margin-top:84px}
+#cards,#mh2hBlk,#trendBlk,#formBlk,#stdTop,#bracketBox,#histTop,#v-game .tg[data-gk],#v-game .tg[data-pk]{scroll-margin-top:84px}
 /* 選手をさがす（右上の虫めがね）：12球団の今の選手から、名前・呼び名・背番号で */
 .gear.sbtn{right:66px}
 .hwarn{width:calc(100% - 104px) !important}
@@ -2499,6 +2536,16 @@ html.theme-pawa .wxd{color:#13264A}
 html.theme-pawa .wxd span.wxhi{color:#1E6FD9}
 html.theme-pawa .wxd em{color:#4A6390;border-color:#C9D8EC;border-radius:6px}
 
+/* ===== 見た目の数値の統一（角の丸み・数字の幅） =====
+   角の丸み：画面幅いっぱいのカード＝大（--r-lg）、カードの中の箱・入力欄・小さいカード＝中（--r-md）、札・印＝小（--r-sm）
+   パワプロ風は、カード16px（太い枠）、中の箱14px のまま */
+html:not(.theme-pawa) :is(.ywrap,.trend,#detail,.bk-st,#offList .ofteam,.songhead .sh,.rules,.conds):not(#z){border-radius:var(--r-lg)}
+html:not(.theme-pawa) :is(.se-m,.ts-g,.bk-rule,.catsel select):not(#z){border-radius:var(--r-md)}
+html.theme-pawa :is(.se-m,.ts-g,.bk-rule,.catsel select):not(#z){border-radius:14px}
+/* 最終結果のカードの説明：「・」のところで折り返す（「位」だけが次の行に行かないように） */
+.se-box small:not(#z){word-break:keep-all;overflow-wrap:anywhere}
+/* 数字は桁の幅をそろえる（日付・月・試合日も） */
+.day .dn,.bk-g,#v-std td.mo,#v-std th,#v-stdh th{font-variant-numeric:tabular-nums}
 
 /* ===== パワプロ風（夜）：自動で作った色の置き換え（pawa_night.py） ===== */
 html.theme-pawa.pawa-dark .pnbox .pnm{color:#DDA6BC !important}
@@ -2506,6 +2553,9 @@ html.theme-pawa.pawa-dark .tgo li.vic{color:#DDA6BC !important}
 html.theme-pawa.pawa-dark .se-h{color:#DEE5F2}
 html.theme-pawa.pawa-dark .se-m{background:#172338;border:2px solid #3F65AE;color:#DEE5F2}
 html.theme-pawa.pawa-dark .se-mp,html.theme-pawa.pawa-dark .se-m small{color:#ABBCD8}
+html.theme-pawa.pawa-dark .pn-g{background:#172338;border:3px solid #3F65AE;color:#DEE5F2}
+html.theme-pawa.pawa-dark .pn-st,html.theme-pawa.pawa-dark .pn-tm > i,html.theme-pawa.pawa-dark .pn-tbd{color:#ABBCD8}
+html.theme-pawa.pawa-dark .pn-go{background:linear-gradient(180deg,#172338,#1B2942);color:#DEE5F2;border:2px solid #3F65AE}
 html.theme-pawa.pawa-dark .ts-h{color:#DEE5F2}
 html.theme-pawa.pawa-dark .ts-g{background:#172338;border:2px solid #3F65AE;color:#DEE5F2}
 html.theme-pawa.pawa-dark .ts-st{color:#ABBCD8}
@@ -2961,6 +3011,8 @@ html.sty-light:not(.theme-pawa) .tgo li.vic{color:#AA8A0E}
 html.sty-light:not(.theme-pawa):not(#y) .op-b.op-b[aria-pressed="true"]:not(#z) i{background:#13264A !important}
 html.sty-light:not(.theme-pawa) .se-m{background:#F4F4F4;border:1px solid #E3E3E3}
 html.sty-light:not(.theme-pawa) .se-foot span{background:#F4F4F4}
+html.sty-light:not(.theme-pawa) .pn-g{background:#F4F4F4;border:1px solid #E3E3E3}
+html.sty-light:not(.theme-pawa) .pn-go{color:#171717}
 html.sty-light:not(.theme-pawa) .ts-g{background:#F4F4F4;border:1px solid #E3E3E3;color:#171717}
 html.sty-light:not(.theme-pawa) .ts-g.live .ts-st{color:#AA0E0E}
 html.sty-light:not(.theme-pawa) .ts-dot{background:#FF3B3B}
@@ -3213,6 +3265,7 @@ html.sty-light:not(.theme-pawa) .posic.stp.pz-pi{background:#F9D564}
 html.sty-light:not(.theme-pawa) .posic.stp.pz-po{background:#84D877}
 html.sty-light:not(.theme-pawa) .posic.stp.pz-pn{background:#C9CED8}
 html.sty-light:not(.theme-pawa) .stnm{color:#1C1C21}
+html.sty-light:not(.theme-pawa) .minibar .mseg:not(#z){background:rgba(242,243,247,.35)}
 html.sty-light:not(.theme-pawa) .ptile.pp{background:linear-gradient(180deg,#FFD3DF,#F7A9BE)}
 html.sty-light:not(.theme-pawa) .ptile.pc{background:linear-gradient(180deg,#A6ECFB,#4FC8EC)}
 html.sty-light:not(.theme-pawa) .ptile.pi{background:linear-gradient(180deg,#FFEB9A,#F7C948)}
@@ -3744,6 +3797,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <button class="shot cl-only" id="shotBtn" type="button">画像にしてLINEで送る</button>
     <section class="blk" id="mh2hBlk">
       <h2>対戦成績<small id="mh2hNote"></small></h2>
+      <div class="seg" id="mh2hSeg" role="tablist" aria-label="対戦成績の期間"></div>
       <div id="mh2h"></div>
     </section>
     <section class="blk" id="trendBlk">
@@ -3780,13 +3834,11 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   </section>
 
   <section class="view" id="v-std" aria-label="順位" hidden>
-    <nav class="jump" aria-label="このページの中へ移動"><button type="button" data-to="stdTop">順位表</button><button type="button" data-to="bracketBox">CS・日本シリーズ</button><button type="button" data-to="h2hTop">対戦成績</button><button type="button" data-to="histTop" class="cl-only">月度別 支払い</button></nav>
+    <nav class="jump" aria-label="このページの中へ移動"><button type="button" data-to="stdTop">順位表</button><button type="button" data-to="bracketBox">CS・日本シリーズ</button><button type="button" data-to="histTop" class="cl-only">月度別 支払い</button></nav>
     <h2 id="stdTop"><span id="stdTtl">セ・リーグ順位表</span><small id="stdNote"></small></h2>
     <div id="std"></div>
     <div id="raceBox"></div>
     <div id="bracketBox"></div>
-    <h2 id="h2hTop">対戦成績<small>勝-敗（引分）</small></h2>
-    <div id="h2h"></div>
     <h2 class="cl-only" id="histTop">月度別 支払い</h2>
     <div class="hist cl-only" id="hist"></div>
     <h2 class="cl-only">担当者別 年間成績</h2>
@@ -3799,6 +3851,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <div id="today"></div>
     </section>
     <div class="rempty" id="noGame" hidden>対象の球団の試合はしばらくありません。</div>
+    <section class="pnext" id="postNext" hidden aria-label="次戦"></section>
   </section>
 
   <section class="view" id="v-song" aria-label="選手名鑑" hidden>
@@ -3924,7 +3977,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   </div>
 </div>
 
-<div class="minibar" id="minibar" aria-hidden="true"><span class="mk">hobby baseball</span><b id="miniTtl"></b><span class="ml" id="miniLive"></span></div>
+<div class="minibar" id="minibar" aria-hidden="true"><span class="mk">hobby baseball</span><b id="miniTtl"></b><span class="ml" id="miniLive"></span><div class="seg mseg" id="miniSeg" role="tablist" aria-label="ページの切り替え" hidden></div></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
   <span id="toastMsg">最新の結果が届きました</span>
@@ -4576,14 +4629,17 @@ const pageShown = p => p !== "off" || OFF_SHOWN;
 const groupPages = g => ((TAB_GROUPS.find(x => x.g === g) || {}).pages || []).filter(([p]) => pageShown(p));
 // グループごとに最後に開いていたページ（次にそのタブを押したらそこへ）
 const SUB_LAST = (() => { try { return JSON.parse(localStorage.getItem("sub-v1") || "{}") || {}; } catch { return {}; } })();
+// ページの切り替え（今季｜歴代など）は、下にスクロールしても上の小さいヘッダーに出す（戻らなくても切り替えられる）
 function renderSubNav() {
-  const nav = $("subNav"), list = groupPages(PAGE_GROUP[S.tab]);
-  if (list.length < 2) { nav.hidden = true; if (nav.innerHTML) nav.innerHTML = ""; return; }
+  const nav = $("subNav"), mini = $("miniSeg"), list = groupPages(PAGE_GROUP[S.tab]);
+  const has = list.length >= 2;
+  $("minibar").classList.toggle("hasseg", has);
+  if (!has) { nav.hidden = mini.hidden = true; if (nav.innerHTML) nav.innerHTML = mini.innerHTML = ""; return; }
   const html = list.map(([p, l]) => `<button type="button" role="tab" data-p="${p}" aria-pressed="${p === S.tab}" aria-selected="${p === S.tab}">${l}</button>`).join("");
-  if (nav.innerHTML !== html) { nav.innerHTML = html; nav.style.setProperty("--n", String(list.length)); }
-  nav.hidden = false;
+  if (nav.innerHTML !== html) { nav.innerHTML = mini.innerHTML = html; nav.style.setProperty("--n", String(list.length)); }
+  nav.hidden = mini.hidden = false;
 }
-$("subNav").addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b || b.dataset.p === S.tab) return; autoGame = false; setTab(b.dataset.p); });
+["subNav", "miniSeg"].forEach(id => $(id).addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b || b.dataset.p === S.tab) return; autoGame = false; setTab(b.dataset.p); }));
 // スワイプ：ページの順（グループの中のページも1つずつ）
 const tabOrder = () => TAB_GROUPS.flatMap(x => x.pages.map(([p]) => p)).filter(pageShown);
 const tabSwiper = makeSwiper({
@@ -4712,25 +4768,38 @@ function renderSeasonEnd() {
 // 両方とも最下位争いが決まっていない（回避・支払いが確定していない）球団どうしは「直接対決」
 function renderTodayStrip(a) {
   const el = $("todayStrip"); if (!el) return;
-  const today = jst().iso, cur = defaultPeriod(periods());
-  const gs = S.period && S.period.id === cur.id && !seasonOver() ? DATA.games.filter(g => g.d === today && inLg(g)) : [];
+  const today = jst().iso, cur = defaultPeriod(periods()), over = seasonOver(), isCur = S.period && S.period.id === cur.id;
+  // 公式戦が終わったら、今日のCS・日本シリーズ（このリーグと日本シリーズ）
+  const post = over && isCur ? postToday() : [];
+  const gs = post.length ? post : isCur && !over ? DATA.games.filter(g => g.d === today && inLg(g)) : [];
   el.hidden = !gs.length;
+  // CS・日本シリーズの日は、最終結果より上（その日いちばん見たいもの）に。公式戦の日は自分の状況の下
+  const at = post.length ? $("seasonEnd") : $("meCard").nextElementSibling;
+  if (at && at !== el && el.nextElementSibling !== at) at.parentNode.insertBefore(el, at);
   if (!gs.length) { el.innerHTML = ""; return; }
   const byT = {}; ((a && a.rows) || []).forEach(r => (byT[r.t] = r));
   const open = t => byT[t] && !byT[t].safe && !byT[t].eliminated;
   const rk = g => ({ live: 0, sched: 1, final: 2, canc: 3 }[g.st] ?? 1);
   const list = gs.slice().sort((x, y) => rk(x) - rk(y) || ((x.t || "") < (y.t || "") ? -1 : (x.t || "") > (y.t || "") ? 1 : 0));
-  el.innerHTML = `<h3 class="ts-h">試合速報</h3><div class="ts-grid">${list.map(g => {
+  el.innerHTML = `<h3 class="ts-h">${post.length ? STAGE[post[0].stage][1] : "試合速報"}</h3><div class="ts-grid">${list.map(g => {
     const live = g.st === "live", fin = g.st === "final", canc = g.st === "canc", on = live || fin;
     const st = live ? `<i class="ts-dot"></i>${esc(g.inn || "試合中")}` : fin ? "試合終了" : canc ? ((GSTOP[g.d + g.h + g.a] || {}).kind === "ノーゲーム" ? "ノーゲーム" : "中止") : `${esc(g.t || "")} 開始`;
     const row = (t, me, op) => `<span class="ts-r${fin && me < op ? " lo" : ""}" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b class="num">${on ? me : ""}</b></span>`;
-    const race = !fin && !canc && open(g.h) && open(g.a);
-    return `<button type="button" class="ts-g${live ? " live" : ""}${canc ? " canc" : ""}${race ? " race" : ""}" data-gk="${g.d}|${g.h}|${g.a}" aria-label="${fn(g.a)}対${fn(g.h)}">
-      <span class="ts-st">${st}</span>${row(g.a, g.as, g.hs)}${row(g.h, g.hs, g.as)}${race ? `<em class="ts-tag">直接対決</em>` : ""}</button>`;
+    const race = !post.length && !fin && !canc && open(g.h) && open(g.a);
+    return `<button type="button" class="ts-g${live ? " live" : ""}${canc ? " canc" : ""}${race ? " race" : ""}" ${post.length ? "data-pk" : "data-gk"}="${g.d}|${g.h}|${g.a}" aria-label="${fn(g.a)}対${fn(g.h)}">
+      <span class="ts-st">${st}</span>${row(g.a, g.as, g.hs)}${row(g.h, g.hs, g.as)}${race ? `<em class="ts-tag">直接対決</em>` : post.length ? `<em class="ts-tag">第${g.no}戦</em>` : ""}</button>`;
   }).join("")}</div>`;
 }
 $("todayStrip").addEventListener("click", e => {
   const c = e.target.closest(".ts-g"); if (!c) return;
+  if (c.dataset.pk) {   // CS・日本シリーズ：試合タブのその試合へ（開いた状態で）
+    const [d, h, a] = c.dataset.pk.split("|"), g = postToday().find(x => x.d === d && x.h === h && x.a === a);
+    autoGame = false;
+    if (g && (g.st === "live" || g.st === "final") && CONFIG.liveApi) S.open[d + gkey(g)] = true;
+    TAB_DIRTY.add("game"); setTab("game");
+    requestAnimationFrame(() => { const t = document.querySelector(`#v-game [data-pk="${c.dataset.pk}"]`); if (t) t.scrollIntoView({ block: "start" }); });
+    return;
+  }
   const [d, h, a] = c.dataset.gk.split("|"), g = DATA.games.find(x => x.d === d && x.h === h && x.a === a);
   autoGame = false;
   if (g && (g.st === "live" || g.st === "final") && CONFIG.liveApi) S.open[d + gkey(g)] = true;   // 試合中・終わった試合は、開いた状態で（一球速報・スコアがすぐ見える）
@@ -4825,9 +4894,7 @@ function renderMagic() {
 
   const isCur = S.period.id === defaultPeriod(periods()).id;
   $("cards").insertAdjacentHTML("beforeend", isCur && !a.finished ? pendingHTML(a.rows.map(r => r.t)) : "");
-  const tOrder = calOrder(); // 前年の順位順（広島も参考として含む）
-  $("mh2h").innerHTML = h2hTable(tOrder, tOrder, g => S.period.months.includes(monthOf(g.d)));
-  $("mh2hNote").textContent = `${S.period.label}　勝数-負数（引分数）`;
+  renderMH2H();
   renderTrend(a); renderForm();
   // 確定の条件（まとめて1か所）
   const open = a.rows.filter(r => !r.safe && !r.eliminated);
@@ -4935,7 +5002,16 @@ function h2hTable(rowsT, colsT, filter) {
   return `<div class="ywrap"><table class="ytab h2h"><thead><tr><th class="rh"></th>${colsT.map(t => `<th>${calSn(t)}</th>`).join("")}</tr></thead><tbody>` +
     rowsT.map(t => `<tr class="${CONFIG.excluded.includes(t) ? "ex" : ""}" style="${tv(t)}"><th class="rh">${calSn(t)}</th>${colsT.map(o => cell(t, o)).join("")}</tr>`).join("") + `</tbody></table></div>`;
 }
-function renderH2H(order) { $("h2h").innerHTML = h2hTable(order, order); }
+// 対戦成績は戦況の1か所に：この月度（前年の順位順・広島も参考として含む）｜今季（今の順位順）を切り替える
+S.h2hSpan = "m";
+function renderMH2H() {
+  const season = S.h2hSpan === "s";
+  $("mh2hSeg").innerHTML = [["m", S.period.label], ["s", "今季"]].map(([k, l]) => `<button type="button" role="tab" data-k="${k}" aria-pressed="${(k === "s") === season}">${esc(l)}</button>`).join("");
+  const order = season ? seasonTable(DATA.games, calOrder(), pendingMakeups()).map(r => r.t) : calOrder();
+  $("mh2h").innerHTML = h2hTable(order, order, season ? null : g => S.period.months.includes(monthOf(g.d)));
+  $("mh2hNote").textContent = `${season ? "今季" : S.period.label}　勝数-負数（引分数）`;
+}
+$("mh2hSeg").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (!b || (b.dataset.k === "s") === (S.h2hSpan === "s")) return; S.h2hSpan = b.dataset.k; renderMH2H(); });
 
 /* ---------- 振替待ち（中止になって、まだ振替日が決まっていない試合） ---------- */
 // セ・リーグは同一カード25試合・交流戦18試合。日程に入っている試合（中止を除く）が足りない分が振替待ち
@@ -5116,8 +5192,24 @@ function renderGame() {
     $("today").insertAdjacentHTML("afterbegin", ptActive.map(postCard).join(""));
     $("today").insertAdjacentHTML("beforeend", ptDone.map(postCard).join(""));
   }
-  $("noGame").hidden = !$("todayBlk").hidden;
+  // 試合がない日：CS・日本シリーズの時期は次戦（日にち・ステージ・対戦）、全部終わったらそう書く
+  const none = !$("todayBlk").hidden ? null : postNextHTML();
+  $("postNext").hidden = !none || !none.post;
+  if (none && none.post) $("postNext").innerHTML = none.html;
+  $("noGame").hidden = !none || none.post;
+  if (none && !none.post) $("noGame").textContent = none.html;
 }
+function postNextHTML() {
+  const today = jst().iso, over = seasonOver();
+  const up = over ? postGames().filter(g => g.d >= today && g.st !== "final" && g.st !== "canc").sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0)) : [];
+  if (!up.length) return { post: false, html: over && (DATA.post || []).length ? "今季の試合はすべて終わりました。" : "対象の球団の試合はしばらくありません。" };
+  const d = up[0].d, [y, m, dd] = d.split("-").map(Number);
+  const team = t => t ? `<span class="pn-t" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b>${fn(t)}</b></span>` : `<span class="pn-t"><b class="pn-tbd">未定</b></span>`;
+  return { post: true, html: `<h3 class="ts-h">次戦<small>${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）</small></h3>
+    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.a)}<i>vs</i>${team(g.h)}</div></div>`).join("")}
+    <button type="button" class="pn-go" data-gobk>勝ち上がり表を見る</button>` };
+}
+document.addEventListener("click", e => { if (!e.target.closest("[data-gobk]")) return; setTab("std"); requestAnimationFrame(() => { const b = $("bracketBox"); if (b) b.scrollIntoView({ block: "start" }); }); });
 // ===== 予告先発 =====
 const todayKey = () => { const j = jst(); return j.iso; };
 function keepLive(k, v) { try { localStorage.setItem(k, JSON.stringify({ d: todayKey(), v })); } catch {} }
@@ -5375,7 +5467,7 @@ function postCard(g) {
   const k = g.d + gkey(g), canOpen = (live || fin) && CONFIG.liveApi, open = canOpen && S.open[k];
   const state = live ? `<span class="lv">● LIVE ${esc(g.inn || "")}</span>` : fin ? `<span class="fin">試合終了</span>` : `<span class="num">${esc(g.t || "")}</span>`;
   const mid = live || fin ? `<b class="sc num">${g.hs}<i>-</i>${g.as}</b>` : `<i>vs</i>`;
-  return `<div class="tg post${live ? " islive" : ""}${canOpen ? " can" : ""}${open ? " open" : ""}"${canOpen ? ` data-open="${k}"` : ""}>
+  return `<div class="tg post${live ? " islive" : ""}${canOpen ? " can" : ""}${open ? " open" : ""}" data-pk="${g.d}|${g.h}|${g.a}"${canOpen ? ` data-open="${k}"` : ""}>
     ${bugHTML(g, `<span class="stg">${STAGE[g.stage][1]} 第${g.no}戦</span>`)}
     ${canOpen ? `<div class="tgx">${open ? "閉じる" : live ? "タップで一球速報・スコア・打順" : "タップでスコア・打順"}<i></i></div>` : ""}
     ${open ? `<div class="tgd">${detailHTML(g)}</div>` : ""}
@@ -6578,7 +6670,6 @@ function renderStd() {
   // 残試合：日程に入っている試合＋振替待ち（中止になって振替日がまだ決まっていない試合）
   const remS = {};
   rows.forEach(r => (remS[r.t] = r.rem));
-  renderH2H(rows.map(r => r.t));
   $("std").innerHTML = pendingHTML() + yTable(rows.map((r, i) => ({ t: r.t, g: r.g, w: r.w, l: r.l, d: r.d, gb: i === 0 ? null : r.gb, rem: remS[r.t] || 0,
     first: r.magic === 0 ? "優勝" : r.magic != null ? `M${r.magic}` : "-" })));
   $("stdNote").textContent = "全試合";
@@ -6672,7 +6763,7 @@ const okUrl = u => typeof u === "string" && /^https:\/\/[^"'<>\s]+$/.test(u);
 const movedOut = (t, n) => { const o = typeof offOf === "function" ? offOf(t, n) : null; return !!(o && o.kind === "out"); };
 const songLink = (t, x) => movedOut(t, x.n) ? null : okUrl(x.su) ? x.su : SONG_ONE[t] ? SONG_ONE[t](x) : SONG_PAGE[t] ? jump(t, SONG_PAGE[t][0], x.n) : null;
 const songLabel = () => "応援歌";   // 応援歌のページを開くボタン：どの球団も「応援歌」にそろえる
-S.songTeam = store("songTeam") || "T"; S.songQ = "";
+S.songTeam = store("songTeam") || ME() || "T"; S.songQ = "";   // 初めて開いたときは自分の担当の球団
 // 選んだ球団（日程・応援歌・チーム別成績）はリーグごとに覚える。起動したとき、今のリーグで前に選んだ球団に戻す
 const lgNow = () => (isPL() ? "P" : "C");
 function keepTeam(key, v) { store(key, v); if (v) store(`${key}_${lgNow()}`, v); }
@@ -7598,7 +7689,7 @@ function renderStats(fromLive) {
     raf = 0;
     const h = document.querySelector(".top").offsetHeight;
     const want = window.scrollY > h - 10;
-    if (want !== on) { on = want; $("minibar").classList.toggle("show", on); }
+    if (want !== on) { on = want; $("minibar").classList.toggle("show", on); $("minibar").setAttribute("aria-hidden", String(!on)); }
     const tt = $("ttl").textContent, lv = $("upd").querySelector(".lvh") ? "● LIVE" : "";
     if ($("miniTtl").textContent !== tt) $("miniTtl").textContent = tt;
     if ($("miniLive").textContent !== lv) $("miniLive").textContent = lv;

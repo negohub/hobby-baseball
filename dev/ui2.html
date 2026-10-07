@@ -2562,9 +2562,10 @@ html:not(.theme-pawa) .ps-pos:not(#z),html:not(.theme-pawa) #kicker:not(#z),.min
 .tb-js,.tb-m{position:relative;border-radius:16px;background:var(--box);border:1px solid var(--boxb);padding:8px;display:grid;gap:5px;min-width:0;backdrop-filter:blur(2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
 .tb-js{border:1.5px solid rgba(245,197,66,.55);box-shadow:0 0 0 1px rgba(245,197,66,.15),0 0 26px rgba(245,197,66,.18),0 8px 18px rgba(0,0,0,.35)}
 .tb-jsr{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.tb-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tb-cols{display:grid;grid-template-columns:1fr 1fr;column-gap:8px;align-items:stretch}
+.tb-cols > .tb-m{align-content:start}
 .tb-col{display:flex;flex-direction:column;min-width:0}
-.tb-ln.v{align-self:center;width:3px;height:16px;background:var(--ln);border-radius:2px}
+.tb-ln.v{align-self:center;justify-self:center;width:3px;height:16px;background:var(--ln);border-radius:2px}
 .tb-ln.v.on{background:var(--tc);box-shadow:0 0 10px var(--tc)}
 .tb-mh{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 5px;font-size:12px;font-weight:900;color:#fff;letter-spacing:.1em;margin:0 0 2px}
 .tb-mh small{font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--mut)}
@@ -3560,8 +3561,8 @@ function renderSeasonEnd() {
   if (!on) return;
   const list = periods(), cur = defaultPeriod(list);
   const paid = {}, amt = {}, hist = [];
-  list.forEach(p => { const a = analyze(DATA.games, p, CONFIG); if (!a.finished) return; const low = a.rows[a.rows.length - 1]; paid[low.t] = (paid[low.t] || 0) + 1; amt[low.t] = (amt[low.t] || 0) + feeOf(p); hist.push([p, low.t]); });
-  const per = list.map(p => analyze(DATA.games, p, CONFIG)).filter(a => a.finished);
+  list.forEach(p => { const a = analyze(DATA.games, p, CONFIG); if (!monthDone(a)) return; const low = a.rows[a.rows.length - 1]; paid[low.t] = (paid[low.t] || 0) + 1; amt[low.t] = (amt[low.t] || 0) + feeOf(p); hist.push([p, low.t]); });
+  const per = list.map(p => analyze(DATA.games, p, CONFIG)).filter(a => monthDone(a));
   const people = Object.keys(CONFIG.owners).map(t => {
     const rs = per.map(a => a.rows.findIndex(r => r.t === t) + 1);
     return { t, n: paid[t] || 0, yen: amt[t] || 0, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : 9 };
@@ -3647,7 +3648,7 @@ function renderMagic() {
   const results = {};
   list.forEach(p => (results[p.id] = analyze(DATA.games, p, CONFIG)));
   // 月度：全部の月度が画面に収まるボタン（3つずつ並べる。横にすべらせない）。集計中の月度は赤い印
-  $("chips").innerHTML = list.map(p => `<button class="chip" role="tab" type="button" data-id="${p.id}" aria-pressed="${p.id === S.period.id}">${p.label}${results[p.id].finished ? "" : `<span class="dot" title="集計中"></span>`}</button>`).join("");
+  $("chips").innerHTML = list.map(p => `<button class="chip" role="tab" type="button" data-id="${p.id}" aria-pressed="${p.id === S.period.id}">${p.label}${monthDone(results[p.id]) ? "" : `<span class="dot" title="集計中"></span>`}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => (b.onclick = () => { pickPeriod(CONFIG.periods.find(p => p.id === b.dataset.id)); }));
   const a = results[S.period.id];
   renderTodayStrip(a);
@@ -3666,7 +3667,7 @@ function renderMagic() {
     $("alert").innerHTML = `<div class="hero none${hs}"${hd ? ` style="${hd.slice(1)}"` : ""}><div class="hm"><div class="hl">${S.period.label}</div><div class="hn"><span>まだ試合がありません</span></div></div></div>`;
   } else {
     const low = a.rows[a.rows.length - 1];
-    if (a.finished) {
+    if (monthDone(a)) {
       $("alert").innerHTML = hero(low.t, `${S.period.label}の${isPL() ? "最下位" : "支払い"}`, `${low.w}勝${low.l}敗${low.d}分　勝率${pctOf(low.w, low.l)}`, "done");
     } else if (low.eliminated) {
       $("alert").innerHTML = hero(low.t, isPL() ? "最下位が確定" : "支払いが確定", `${low.w}勝${low.l}敗${low.d}分　勝率${pctOf(low.w, low.l)}`, "done");
@@ -3682,7 +3683,7 @@ function renderMagic() {
   if (!me) $("meCard").innerHTML = S.me === "none" || isPL() ? "" : `<button type="button" class="mecard pick" data-mepick>あなたの担当を選ぶと、自分の状況がここに出ます<i></i></button>`;
   else {
     const i = a.rows.findIndex(r => r.t === me), r = a.rows[i];
-    const paid = r.eliminated || (a.finished && i === lastIdx);
+    const paid = r.eliminated || (monthDone(a) && i === lastIdx);
     const st = paid ? `<b class="ng">支払いが確定</b>` : r.safe ? `<b class="ok">★ 最下位回避が確定</b>`
       : r.self != null ? `<b>M${r.self}</b><span>あと${r.self}勝で回避確定</span>` : `<b class="ng">自力脱出消滅</b><span>ほかの球団の結果しだい</span>`;
     const low = a.rows[lastIdx], gapLow = ((r.w - low.w) + (low.l - r.l)) / 2;
@@ -3693,7 +3694,7 @@ function renderMagic() {
       <button type="button" class="me-ch" data-mepick>変更</button></div>`;
   }
   const tRows = a.rows.map((r, i) => {
-    const paid = r.eliminated || (a.finished && i === lastIdx);
+    const paid = r.eliminated || (monthDone(a) && i === lastIdx);
     const extra = paid ? `<span class="mt ng">${isPL() ? "最下位" : "支払い"}</span>` : r.safe ? `<span class="mt">${IC.safe}</span>` : r.self === null ? `<span class="mt mx">自力脱出<br>消滅</span>` : `<span class="mt">M${r.self}</span>`;
     return { t: r.t, g: r.w + r.l + r.d, w: r.w, l: r.l, d: r.d, gb: r.gb, rem: r.rem, extra };
   });
@@ -3714,12 +3715,12 @@ function renderMagic() {
   $("cards").innerHTML = yTable(tRows, "マジック");
 
   const isCur = S.period.id === defaultPeriod(periods()).id;
-  $("cards").insertAdjacentHTML("beforeend", isCur && !a.finished ? pendingHTML(a.rows.map(r => r.t)) : "");
+  $("cards").insertAdjacentHTML("beforeend", isCur && !monthDone(a) ? pendingHTML(a.rows.map(r => r.t)) : "");
   renderMH2H();
   renderTrend(a); renderForm();
   // 確定の条件（まとめて1か所）
   const open = a.rows.filter(r => !r.safe && !r.eliminated);
-  $("conds").hidden = a.finished || !open.length;
+  $("conds").hidden = monthDone(a) || !open.length;
   const md2 = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
   $("condBody").innerHTML = open.map(r => {
     const name = fn(r.t);
@@ -4027,8 +4028,7 @@ function postNextHTML() {
   const d = up[0].d, [y, m, dd] = d.split("-").map(Number);
   const team = t => t ? `<span class="pn-t" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b>${fn(t)}</b></span>` : `<span class="pn-t"><b class="pn-tbd">未定</b></span>`;
   return { post: true, html: `<h3 class="ts-h">次戦<small>${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）</small></h3>
-    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.a)}<i>vs</i>${team(g.h)}</div></div>`).join("")}
-    <button type="button" class="pn-go" data-gobk>勝ち上がり表を見る</button>` };
+    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.a)}<i>vs</i>${team(g.h)}</div></div>`).join("")}` };   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
 }
 document.addEventListener("click", e => { if (!e.target.closest("[data-gobk]")) return; setTab("post"); requestAnimationFrame(() => { const b = $("bracketBox"); if (b) b.scrollIntoView({ block: "start" }); }); });
 // ===== 予告先発 =====
@@ -4941,7 +4941,7 @@ function drawCardPawa(a) {
   const lg = rows.map(r => r.t), sw = (W - 2 * P) / lg.length;
   lg.forEach((t, i) => { x.fillStyle = tc(t); rr(P + i * sw + 4, 214, sw - 8, 12, 6); x.fill(); });
   // このままだと支払い
-  const low = rows[rows.length - 1], done = a.finished || low.eliminated;
+  const low = rows[rows.length - 1], done = monthDone(a) || low.eliminated;
   const bY = 262, bH = 214;
   panel(P, bY, W - 2 * P, bH);
   x.fillStyle = done ? K.banDone : K.ban; rr(P + 14, bY + 14, W - 2 * P - 28, bH - 28, 20); x.fill();
@@ -4949,7 +4949,7 @@ function drawCardPawa(a) {
   // パ・リーグは担当者・支払いがないので「最下位」とチーム名だけ
   const pl = isPL(), hasOwn = !pl && own(low.t) && own(low.t) !== fn(low.t);
   x.fillStyle = RED; x.font = F(900, 30);
-  x.fillText(pl ? (a.finished ? `${S.period.label}の最下位` : done ? "最下位が確定" : "このままだと最下位") : a.finished ? `${S.period.label}の支払い` : done ? "支払いが確定" : "このままだと支払い", P + 170, bY + 66);
+  x.fillText(pl ? (monthDone(a) ? `${S.period.label}の最下位` : done ? "最下位が確定" : "このままだと最下位") : monthDone(a) ? `${S.period.label}の支払い` : done ? "支払いが確定" : "このままだと支払い", P + 170, bY + 66);
   if (hasOwn) { tile(P + 170, bY + 88, 196, 72, tileOf(low.t), own(low.t), 40); x.fillStyle = NAVY; x.font = F(800, 30); x.fillText(fn(low.t), P + 386, bY + 136); }
   else { x.fillStyle = NAVY; x.font = F(900, 52); x.fillText(fn(low.t), P + 170, bY + 142); }
   if (!done) { const up = rows[rows.length - 2], gg = ((up.w - low.w) + (low.l - up.l)) / 2;
@@ -4970,7 +4970,7 @@ function drawCardPawa(a) {
     const y = hy + headH + i * rowH, t = r.t;
     x.fillStyle = i % 2 ? K.rowB : K.rowA; x.fillRect(P + 16, y, tW, rowH);
     x.fillStyle = tc(t); x.fillRect(colX[1], y + 10, 10, rowH - 20);
-    const paid = r.eliminated || (a.finished && i === rows.length - 1);
+    const paid = r.eliminated || (monthDone(a) && i === rows.length - 1);
     const mg = paid ? (isPL() ? "最下位" : "支払い") : r.safe ? "★" : r.self === null ? "自力脱出消滅" : "M" + r.self;
     const t0 = rows[0], gbv = ((t0.w - r.w) + (r.l - t0.l)) / 2;
     const vals = [String(i + 1), "", String(r.w + r.l + r.d), String(r.w), String(r.l), String(r.d), pctOf(r.w, r.l), i === 0 ? "-" : gbv.toFixed(1), String(r.rem)];
@@ -5036,7 +5036,7 @@ function drawCard(a) {
   stripe(214, 10);
   // このままだと支払い（帯）
   const low = rows[rows.length - 1], lc = tc(low.t), li = TEAM[low.t].i || "#000";
-  const done = a.finished || low.eliminated;
+  const done = monthDone(a) || low.eliminated;
   const bY = 262, bH = 176;
   const g = x.createLinearGradient(P, 0, W - P, 0);
   g.addColorStop(0, mix(lc, light ? .26 : .42)); g.addColorStop(.55, mix(lc, light ? .08 : .12)); g.addColorStop(1, K.banEnd);
@@ -5045,7 +5045,7 @@ function drawCard(a) {
   x.strokeStyle = done ? K.border[0] : K.border[1]; x.lineWidth = 2; x.strokeRect(P + 1, bY + 1, W - 2 * P - 2, bH - 2);
   x.fillStyle = lc; x.beginPath(); x.moveTo(P + 40, bY + 40); x.lineTo(P + 140, bY + 40); x.lineTo(P + 128, bY + 136); x.lineTo(P + 40, bY + 136); x.fill();
   x.fillStyle = li; x.font = F(700, 52); x.textAlign = "center"; x.fillText(sn(low.t), P + 88, bY + 107); x.textAlign = "left";
-  x.fillStyle = K.red; x.font = F(700, 26); x.fillText(a.finished ? `${S.period.label}の支払い` : done ? "支払いが確定" : "このままだと支払い", P + 172, bY + 56);
+  x.fillStyle = K.red; x.font = F(700, 26); x.fillText(monthDone(a) ? `${S.period.label}の支払い` : done ? "支払いが確定" : "このままだと支払い", P + 172, bY + 56);
   x.fillStyle = K.own; x.font = F(700, 60); x.fillText(own(low.t), P + 168, bY + 116);
   const ow = x.measureText(own(low.t)).width;
   x.fillStyle = K.sub; x.font = F(400, 30); x.fillText(fn(low.t), P + 168 + ow + 18, bY + 116);
@@ -5065,7 +5065,7 @@ function drawCard(a) {
     const y = tableY + headH + i * rowH, t = r.t, col = tc(t);
     if (!light) { const rg = x.createLinearGradient(P, 0, P + tW, 0); rg.addColorStop(0, mix(col, .16)); rg.addColorStop(.45, "rgba(0,0,0,0)"); x.fillStyle = rg; x.fillRect(P, y, tW, rowH); }   // 白い画像は行に球団の色を混ぜない（左の帯だけ）
     x.fillStyle = col; x.fillRect(colX[1], y, 8, rowH);
-    const paid = r.eliminated || (a.finished && i === rows.length - 1);
+    const paid = r.eliminated || (monthDone(a) && i === rows.length - 1);
     const mg = paid ? (isPL() ? "最下位" : "支払い") : r.safe ? "★" : r.self === null ? "自力脱出消滅" : "M" + r.self;
     const t0 = rows[0], gbv = ((t0.w - r.w) + (r.l - t0.l)) / 2;
     const gb = i === 0 ? "-" : gbv.toFixed(1);
@@ -5603,11 +5603,10 @@ function renderBracket() {
   const adv = (t, n) => t && n ? `<div class="tb-adv" style="${tv(t)}"><span>アドバンテージ</span><b class="num">${n}勝</b></div>` : "";
   const done1 = (w, to) => w ? `<div class="tb-go" style="${tv(w)}"><b>${fn(w)}</b>${to}</div>` : "";
   const line = (win, cls) => `<div class="tb-ln ${cls}${win ? " on" : ""}"${win ? ` style="${tv(win)}"` : ""}></div>`;
-  const col = (X, lab) => `<div class="tb-col">
-      ${line(X.sf.win, "v")}
-      <div class="tb-m"><div class="tb-mh"><span class="tb-lg">${lab}</span><span>ファイナル</span><small>先に${X.R.need}勝</small></div>${plate(X.rk[0], "1位", X.sf.wh, X.sf.win)}${plate(X.s1.win, "勝者", X.sf.wl, X.sf.win)}${adv(X.rk[0], X.R.adv)}${gtiles(X.csf)}${done1(X.sf.win, "突破")}</div>
-      ${line(X.s1.win, "v")}
-      <div class="tb-m"><div class="tb-mh"><span class="tb-lg">${lab}</span><span>ファースト</span><small>先に2勝</small></div>${plate(X.rk[1], "2位", X.s1.wh, X.s1.win)}${plate(X.rk[2], "3位", X.s1.wl, X.s1.win)}${gtiles(X.cs1)}${done1(X.s1.win, "突破")}</div></div>`;
+  // セ・パの2列は、ファイナル・ファーストを同じ段にそろえる（7試合制で札が1段多い方に合わせて、両方の箱の高さを同じに）
+  const fin1 = (X, lab) => `<div class="tb-m"><div class="tb-mh"><span class="tb-lg">${lab}</span><span>ファイナル</span><small>先に${X.R.need}勝</small></div>${plate(X.rk[0], "1位", X.sf.wh, X.sf.win)}${plate(X.s1.win, "勝者", X.sf.wl, X.sf.win)}${adv(X.rk[0], X.R.adv)}${gtiles(X.csf)}${done1(X.sf.win, "突破")}</div>`;
+  const fst1 = (X, lab) => `<div class="tb-m"><div class="tb-mh"><span class="tb-lg">${lab}</span><span>ファースト</span><small>先に2勝</small></div>${plate(X.rk[1], "2位", X.s1.wh, X.s1.win)}${plate(X.rk[2], "3位", X.s1.wl, X.s1.win)}${gtiles(X.cs1)}${done1(X.s1.win, "突破")}</div>`;
+  const cols = `<div class="tb-cols">${line(C.sf.win, "v")}${line(P2.sf.win, "v")}${fin1(C, "セ")}${fin1(P2, "パ")}${line(C.s1.win, "v")}${line(P2.s1.win, "v")}${fst1(C, "セ")}${fst1(P2, "パ")}</div>`;
   const champ = js.win;
   const trophy = `<svg class="tb-cup" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="tbgold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4C2"/><stop offset=".45" stop-color="#F5C542"/><stop offset="1" stop-color="#B8860B"/></linearGradient></defs>
       <path d="M18 8h28v10c0 9-6 16-14 16S18 27 18 18z" fill="url(#tbgold)"/><path d="M18 12H9c0 8 4 12 10 13M46 12h9c0 8-4 12-10 13" fill="none" stroke="url(#tbgold)" stroke-width="3.5" stroke-linecap="round"/>
@@ -5616,16 +5615,40 @@ function renderBracket() {
     <div class="tb-top">${trophy}<div class="tb-champ${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}>${champ ? `<b>${fn(champ)}</b><span class="tb-cs">日本一</span>` : `<b>日本一</b>`}</div></div>
     <div class="tb-join${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}><i class="l${js.win && js.win === seW ? " on" : ""}"${seW && js.win === seW ? ` style="${tv(seW)}"` : ""}></i><i class="r${js.win && js.win === paW ? " on" : ""}"${paW && js.win === paW ? ` style="${tv(paW)}"` : ""}></i></div>
     <div class="tb-js"><div class="tb-mh tb-jsh"><span>日本シリーズ</span><small>先に4勝</small></div><div class="tb-jsr">${plate(seW, "セ", js.wh, js.win)}${plate(paW, "パ", js.wl, js.win)}</div>${seW && paW ? gtiles(jsg) : ""}</div>
-    <div class="tb-cols">${col(C, "セ")}${col(P2, "パ")}</div></div>`;
+    ${cols}</div>`;
   // 2026年からの決まり：ファイナルの相手が決まっていなければ、どちらの形になるかを1行だけ
   const ruleLine = (() => { const r = me.rule, two = x => x.two ? "先に5勝（2勝のアドバンテージ）" : "先に4勝（1勝のアドバンテージ）";
     return r ? "" : `<p class="bk-rule">ファイナル：${esc(fn(me.rk[1]))}が勝ち上がれば${two(me.rule2)}、${esc(fn(me.rk[2]))}なら${two(me.rule3)}</p>`; })();
   box.innerHTML = `${pro ? `<p class="bk-note">${pro}</p>` : ""}${tree}${ruleLine}`;
 }
+// 月度の順位がもう動かないか：試合が残っていても、残りの試合（対象の球団が出る試合・4試合まで）の勝ち・負け・引き分けをすべて試して、
+// 対象の5球団の並びが1つも変わらなければ「確定」（10/7 の9・10月度：残りは広島－ヤクルトだけで、ヤクルトは最下位のまま・ほかの球団は試合がない）
+const _analyze = analyze;
+analyze = (games, p, cfg) => { const a = _analyze(games, p, cfg); if (a && typeof a === "object") { a.__p = p; a.__g = games; } return a; };
+const FIX_MEMO = new Map();
+function ranksFixed(a) {
+  if (!a || !a.played || !a.__p || a.__g !== DATA.games) return false;
+  const rem = a.remaining || [];
+  if (!rem.length) return true;
+  if (rem.length > 4 || rem.some(g => g.virt)) return false;
+  const base = a.rows.map(r => r.t).join(), key = a.__p.id + "|" + base + "|" + rem.map(g => g.d + g.h + g.a + (g.t || "")).join(",") + "|" + DATA.games.length;
+  if (FIX_MEMO.has(key)) return FIX_MEMO.get(key);
+  const same = (x, g) => x.d === g.d && x.h === g.h && x.a === g.a && (x.t || "") === (g.t || "") && x.st !== "final" && x.st !== "canc";
+  let ok = true;
+  for (let m = 0; ok && m < 3 ** rem.length; m++) {
+    let k = m; const res = rem.map(() => { const r = k % 3; k = Math.floor(k / 3); return r; });
+    const g2 = DATA.games.map(x => { const i = rem.findIndex(g => same(x, g)); return i < 0 ? x : { ...x, st: "final", hs: res[i] === 0 ? 1 : 0, as: res[i] === 1 ? 1 : 0 }; });
+    if (_analyze(g2, a.__p, CONFIG).rows.map(r => r.t).join() !== base) ok = false;
+  }
+  FIX_MEMO.set(key, ok);
+  return ok;
+}
+// 月度が決まったか（全試合が終わった、または順位がもう動かない）
+const monthDone = a => !!a && (a.finished || ranksFixed(a));
 // その月度の支払い（最下位）の球団：終わっていればその月の最下位、終わっていなくても支払いが確定していればその球団。まだなら null
 function monthPayer(a) {
   if (!a || !a.played) return null;
-  if (a.finished) return a.rows[a.rows.length - 1].t;
+  if (monthDone(a)) return a.rows[a.rows.length - 1].t;
   const e = a.rows.find(r => r.eliminated);
   return e ? e.t : null;
 }
@@ -5642,19 +5665,19 @@ function renderPay() {
     // 支払い：月度が終わっていればその月の最下位。まだ試合が残っていても、最下位（支払い）が確定していればその球団
     const payT = monthPayer(a);
     if (payT) { paid[payT] = (paid[payT] || 0) + 1; amt[payT] = (amt[payT] || 0) + feeOf(p); }
-    const ranks = a.played ? a.rows.map(r => `<span class="badge${r.t === payT ? " last" : ""}" style="${tv(r.t)}">${sn(r.t)}</span>`).join("") + (payT && !a.finished ? `<small class="hzan">順位は暫定</small>` : "") : "";
+    const ranks = a.played ? a.rows.map(r => `<span class="badge${r.t === payT ? " last" : ""}" style="${tv(r.t)}">${sn(r.t)}</span>`).join("") + (payT && !monthDone(a) ? `<small class="hzan">順位は暫定</small>` : "") : "";
     return `<tr${payT ? ` style="${tv(payT)}"` : ""}><td class="mo">${p.label.replace("月度", "")}</td><td class="rk5">${ranks}</td>
-      <td class="tnm">${!a.played ? "—" : payT ? `${ownT(payT)}${a.finished ? "" : `<small class="hfix">確定</small>`}` : `<span class="muted">集計中</span>`}</td><td class="num">${payT ? yen(feeOf(p)) : "-"}</td></tr>`;
+      <td class="tnm">${!a.played ? "—" : payT ? `${ownT(payT)}${monthDone(a) ? "" : `<small class="hfix">確定</small>`}` : `<span class="muted">集計中</span>`}</td><td class="num">${payT ? yen(feeOf(p)) : "-"}</td></tr>`;
   }).join("") + `</tbody></table></div>`;
   const per = list.map(p => ({ p, a: analyze(DATA.games, p, CONFIG) })).filter(x => x.a.played);
   const people = Object.keys(CONFIG.owners).map(t => {
-    const ranks = per.map(({ p, a }) => ({ p, r: a.rows.findIndex(x => x.t === t) + 1, done: a.finished, pay: monthPayer(a) === t }));
+    const ranks = per.map(({ p, a }) => ({ p, r: a.rows.findIndex(x => x.t === t) + 1, done: monthDone(a), pay: monthPayer(a) === t }));
     const fin = ranks.filter(x => x.done);
     return { t, n: paid[t] || 0, yen: amt[t] || 0, ranks, avg: fin.length ? fin.reduce((s, x) => s + x.r, 0) / fin.length : 9, tops: fin.filter(x => x.r === 1).length };
   }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
   const best = people[0], maxN = Math.max(...people.map(x => x.n));
   const short = lbl => lbl.replace("月度", "");
-  $("tot").innerHTML = `<div class="ywrap"><table class="ytbl ytab"><colgroup><col class="cn">${per.map(() => `<col class="cm">`).join("")}<col class="cp"></colgroup><thead><tr><th class="yn">担当</th>${per.map(({ p, a }) => `<th class="${a.finished ? "" : "cur"}">${short(p.label)}</th>`).join("")}<th class="ya">支払い</th></tr></thead><tbody>` +
+  $("tot").innerHTML = `<div class="ywrap"><table class="ytbl ytab"><colgroup><col class="cn">${per.map(() => `<col class="cm">`).join("")}<col class="cp"></colgroup><thead><tr><th class="yn">担当</th>${per.map(({ p, a }) => `<th class="${monthDone(a) ? "" : "cur"}">${short(p.label)}</th>`).join("")}<th class="ya">支払い</th></tr></thead><tbody>` +
     people.map(x => `<tr style="${tv(x.t)}" data-tm="${x.t}">
       <td class="yn"><span class="badge">${sn(x.t)}</span><span class="ynm"><b>${ownT(x.t)}${x === best ? `<span class="ytag mvp">MVP</span>` : ""}</b><small class="num">平均${x.avg < 9 ? x.avg.toFixed(1) : "-"}位</small></span></td>
       ${x.ranks.map(v => `<td class="yc2${v.done && v.r === 1 ? " first" : ""}${(v.done && v.r === 5) || v.pay ? " last" : ""}${v.done ? "" : " now"}"><b class="num">${v.r}</b></td>`).join("")}

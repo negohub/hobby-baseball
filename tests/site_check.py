@@ -1094,9 +1094,14 @@ async def tournament_check(browser):
                 await pg.evaluate(TB_SETUP, done)
                 await pg.wait_for_timeout(300)
                 r = await pg.evaluate("""(done) => { const ng = [], tb = document.querySelector('#bracketBox .tb'); if (!tb) return ['トーナメント表がない'];
-                  const C = lgPost('C'), P = lgPost('P'), cols = tb.querySelectorAll('.tb-col');
-                  if (cols.length !== 2) ng.push('セ・パの2列になっていない');
-                  const chk = (col, X, lg) => { const ms = col.querySelectorAll('.tb-m'); if (ms.length !== 2) { ng.push(`${lg}：ファイナル・ファーストの2つがない`); return; }
+                  const C = lgPost('C'), P = lgPost('P'), M = [...tb.querySelectorAll('.tb-cols > .tb-m')], LN = [...tb.querySelectorAll('.tb-cols > .tb-ln')];
+                  // 並び：左の列がセ・右の列がパ。ファイナル・ファーストはセ・パで同じ段（上の辺と高さがそろう）
+                  const cols = [{ ms: [M[0], M[2]], lns: [LN[0], LN[2]] }, { ms: [M[1], M[3]], lns: [LN[1], LN[3]] }];
+                  if (M.length !== 4 || LN.length !== 4) ng.push('セ・パの2列（ファイナル・ファースト）になっていない');
+                  [[M[0], M[1], 'ファイナル'], [M[2], M[3], 'ファースト']].forEach(([a, b, n]) => { if (!a || !b) return; const x = a.getBoundingClientRect(), y = b.getBoundingClientRect();
+                    if (Math.abs(x.top - y.top) > 1 || Math.abs(x.height - y.height) > 1) ng.push(`セ・パの${n}の箱がそろっていない（上 ${x.top.toFixed(0)}/${y.top.toFixed(0)}・高さ ${x.height.toFixed(0)}/${y.height.toFixed(0)}）`);
+                    if (x.right > y.left) ng.push(`セ・パの${n}の箱が重なる`); });
+                  const chk = (col, X, lg) => { const ms = col.ms; if (!ms[0] || !ms[1]) { ng.push(`${lg}：ファイナル・ファーストの2つがない`); return; }
                     const [fin, fst] = ms, nm = p => (p.querySelector('.tb-n') || {}).textContent;
                     if (!fst.textContent.includes('ファースト') || !fin.textContent.includes('ファイナル')) ng.push(`${lg}：下がファースト・上がファイナルの順になっていない`);
                     const fp = fst.querySelectorAll('.tb-p'); if (nm(fp[0]) !== fn(X.rk[1]) || nm(fp[1]) !== fn(X.rk[2])) ng.push(`${lg}：ファーストの2位・3位が違う`);
@@ -1105,7 +1110,7 @@ async def tournament_check(browser):
                     if (!X.s1.win && nm(gp[1]) !== '未定') ng.push(`${lg}：ファーストが終わっていないのに勝者が入っている`);
                     [[fst, X.s1], [fin, X.sf]].forEach(([m, s]) => { m.querySelectorAll('.tb-p').forEach(p => { const n = nm(p), isW = !!s.win && n === fn(s.win);
                       if (isW !== p.classList.contains('win')) ng.push(`${lg}：${n} の勝ち上がりの色が違う`); if (s.win && !isW && n !== '未定' && !p.classList.contains('lose')) ng.push(`${lg}：負けた ${n} が薄くなっていない`); }); });
-                    const lns = col.querySelectorAll('.tb-ln'); if (!!X.sf.win !== lns[0].classList.contains('on') || !!X.s1.win !== lns[1].classList.contains('on')) ng.push(`${lg}：勝ち上がりの線の色が違う`);
+                    const lns = col.lns; if (!!X.sf.win !== lns[0].classList.contains('on') || !!X.s1.win !== lns[1].classList.contains('on')) ng.push(`${lg}：勝ち上がりの線の色が違う`);
                     // 1試合ずつの札：試合の数だけ。勝った試合は勝ったチームの色で「勝ったチーム・勝った方の点-負けた方の点」
                     if (fst.querySelectorAll('.tb-g').length !== X.cs1.length || fin.querySelectorAll('.tb-g').length !== X.csf.length) ng.push(`${lg}：1試合ずつの札の数が試合の数と違う`);
                     const fw = fst.querySelectorAll('.tb-g.w').length, want = X.cs1.filter(g => g.st === 'final' && g.hs !== g.as).length; if (fw !== want) ng.push(`${lg}：勝ちの札の数が違う（${fw}・${want}）`);
@@ -1142,6 +1147,44 @@ async def tournament_check(browser):
                 for e in errs:
                     bad(f"{label}: 画面のエラー {e}")
                 await pg.close()
+
+
+async def month_done_check(browser):
+    """月度の順位がもう動かないときは、試合が残っていても「確定」として扱う（10/7 の9・10月度：残りは広島－ヤクルトの1試合だけ）。
+    戦況の帯は「9・10月度の支払い」、月度のボタンに集計中の印なし、月度別 支払いに「順位は暫定」「確定」の小さい札なし、担当者別の9・10月度は点線でない。
+    まだ順位が動く月度は今までどおり集計中"""
+    pg, errs = await open_page(browser, 390, "pawa", me="T")
+    r = await pg.evaluate("""() => { const ng = [], P = periods(), p = P.find(x => x.id === '9-10');
+      const keep = JSON.stringify(DATA.games), d0 = '2026-10-06';
+      jst = () => ({ y: 2026, m: 10, d: 7, iso: '2026-10-07' });
+      // 対象の5球団の試合はすべて終わり、残りは広島（対象外）－ヤクルト（最下位が確定）の1試合だけ、の形にする
+      const ms = g => p.months.includes(+g.d.slice(5, 7));
+      DATA.games.filter(ms).forEach(g => { if (g.st !== 'final' && g.st !== 'canc') { g.st = 'final'; g.hs = 3; g.as = 2; } });
+      const a0 = analyze(DATA.games, p, CONFIG), last = a0.rows[a0.rows.length - 1].t, ex = CONFIG.excluded[0];
+      DATA.games.push({ d: '2026-10-08', h: ex, a: last, v: 'マツダ', st: 'sched', t: '18:00' });
+      FIX_MEMO.clear(); PAY_KEY = ''; S.period = p; renderAll(); setTab('magic');
+      const a = analyze(DATA.games, p, CONFIG);
+      if (a.finished) ng.push('試しのデータで月度が終わってしまっている（検査になっていない）');
+      if (!monthDone(a)) ng.push('残りが最下位の球団と対象外の球団の1試合だけなのに、月度の順位が確定にならない');
+      const hl = document.querySelector('#alert .hl'); if (!hl || !/9・10月度の(支払い|最下位)/.test(hl.textContent)) ng.push(`戦況の帯が「9・10月度の支払い」にならない（${hl && hl.textContent}）`);
+      const chip = document.querySelector('#chips .chip[data-id="9-10"]'); if (chip && chip.querySelector('.dot')) ng.push('9・10月度のボタンに集計中の印が残っている');
+      const row = [...document.querySelectorAll('#hist tbody tr')].find(r => r.querySelector('td.mo')?.textContent === '9・10');
+      if (!row) ng.push('月度別 支払いに9・10月度がない'); else { if (row.querySelector('.hzan')) ng.push('9・10月度に「順位は暫定」が残っている'); if (row.querySelector('.hfix')) ng.push('9・10月度に「確定」の小さい札が残っている'); }
+      const cols = [...document.querySelectorAll('#tot thead th')].map(th => th.className); if (cols.some((c, i) => i && /cur/.test(c) && document.querySelectorAll('#tot thead th')[i].textContent === '9・10')) ng.push('担当者別の9・10月度の列が集計中のまま');
+      if (document.querySelector('#tot td.now')) ng.push('担当者別に集計中（点線）のマスが残っている');
+      // まだ動く形：対象の球団どうしの試合を1つ残すと、確定にならない
+      DATA.games = JSON.parse(keep); DATA._normOf = null; normGames(DATA);
+      const g2 = DATA.games.filter(ms).filter(g => g.st === 'final' && !CONFIG.excluded.includes(g.h) && !CONFIG.excluded.includes(g.a)).slice(-1)[0];
+      if (g2) { DATA.games.filter(ms).forEach(g => { if (g.st !== 'final' && g.st !== 'canc') { g.st = 'final'; g.hs = 3; g.as = 2; } }); const rk = analyze(DATA.games, p, CONFIG).rows.map(r => r.t);
+        const lo = rk[rk.length - 1], up = rk[rk.length - 2]; for (let i = 0; i < 3; i++) DATA.games.push({ d: '2026-10-08', h: lo, a: up, v: '', st: 'sched', t: '18:00' });
+        FIX_MEMO.clear(); const a2 = analyze(DATA.games, p, CONFIG); if (!a2.rows[a2.rows.length - 1].eliminated && monthDone(a2)) ng.push('最下位争いの直接対決が3試合残っているのに、順位が確定になっている'); }
+      DATA.games = JSON.parse(keep); DATA._normOf = null; FIX_MEMO.clear(); PAY_KEY = ''; renderAll();
+      return ng; }""")
+    for m in r:
+        bad(f"[月度の順位の確定] {m}")
+    for e in errs:
+        bad(f"[月度の順位の確定]: 画面のエラー {e}")
+    await pg.close()
 
 
 async def tap_target_check(browser):
@@ -2284,7 +2327,7 @@ async def post_bracket_check(browser):
               const box = document.getElementById('bracketBox'); box.style.contentVisibility = 'visible';   // 画面の外は並べるのを後回しにしているので、読む前に並べる
               const txt = box.innerText;
               // トーナメント表：このリーグの列（左がセ・右がパ）のファースト・ファイナルに「○○突破」、1試合ずつの札（勝ったチーム・スコア、引き分けは「分」）
-              const col = box.querySelectorAll('.tb-col')[lg === 'C' ? 0 : 1], [fin, fst] = col ? col.querySelectorAll('.tb-m') : [];
+              const ms = [...box.querySelectorAll('.tb-cols > .tb-m')], k = lg === 'C' ? 0 : 1, fin = ms[k], fst = ms[k + 2];
               if (!fst || !(fst.querySelector('.tb-go') || {}).textContent?.includes(fn(rk[1]) + '突破')) ng.push('ファーストステージの勝ち上がり（突破）が出ない');
               if (!fin || !(fin.querySelector('.tb-go') || {}).textContent?.includes(fn(rk[0]) + '突破')) ng.push('ファイナルステージの勝ち上がり（突破）が出ない');
               const tl = fst ? [...fst.querySelectorAll('.tb-g')].map(e => e.querySelector('i').textContent + ' ' + e.querySelector('b').textContent) : [];
@@ -4012,7 +4055,8 @@ async def ux_check(browser):
                   jst = () => ({ y: prev.getFullYear(), m: prev.getMonth() + 1, d: prev.getDate(), iso: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${String(prev.getDate()).padStart(2, '0')}` });
                   TAB_DIRTY.add('game'); setTab('game');
                   const pn = document.getElementById('postNext');
-                  if (pn.hidden || !pn.textContent.includes(STAGE[first.stage][1]) || !pn.querySelector('[data-gobk]')) ng.push('CS・日本シリーズの前の日に、試合タブに次戦が出ない');
+                  if (pn.hidden || !pn.textContent.includes(STAGE[first.stage][1]) ) ng.push('CS・日本シリーズの前の日に、試合タブに次戦が出ない');
+                  if (pn.querySelector('[data-gobk], .pn-go')) ng.push('次戦の箱に「勝ち上がり表を見る」が残っている（隣のタブにあるのでいらない）');
                   jst = () => ({ y: y0, m: m0, d: d0, iso: first.d }); LIVEPOST[first.d + first.h + first.a] = { st: 'live', hs: 1, as: 0, inn: '3回裏' };
                   S.period = defaultPeriod(periods()); renderAll(); setTab('magic');
                   const ts = document.getElementById('todayStrip'), c = ts.querySelector('.ts-g[data-pk]');
@@ -4578,6 +4622,7 @@ async def main():
         await walkoff_check(browser)
         await multi_pos_check(browser)
         await tournament_check(browser)
+        await month_done_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

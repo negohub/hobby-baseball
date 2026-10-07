@@ -1892,6 +1892,40 @@ async def meikan_tile_check(browser):
             await pg.close()
 
 
+async def fpos_check(browser):
+    """データ更新側：守備位置は、NPBの成績ページ（○月○日現在）が最後の試合の日に追いつくまで読み直す（翌朝の更新前に読んで、外野を守った分を取りこぼさない）"""
+    try:
+        import sys as _s, datetime as _dt
+        _s.path.insert(0, str(ROOT / "scripts"))
+        import update_data as ud
+    except ImportError:
+        return
+    page = ('<html><body><p>2026年10月6日現在</p><h4>一塁手</h4><table><tr><th>選手</th><th>試合</th></tr><tr><td>林 晃汰</td><td>1</td></tr></table>'
+            '<h4>外野手</h4><table><tr><th>選手</th><th>試合</th></tr><tr><td>林 晃汰</td><td>1</td></tr></table></body></html>')
+    calls = []
+    keep = (ud.fetch, ud.datetime, ud.time.sleep)
+    class FD(_dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return _dt.datetime(2026, 10, 7, 9, 5, tzinfo=tz)
+    try:
+        ud.fetch = lambda u, *a, **k: (calls.append(u), page if "idf1" in u else None)[1]
+        ud.datetime = FD
+        ud.time.sleep = lambda s: None
+        old = {"fpos": {"season": 2026, "date": "2026-10-07", "asof": "2026-10-05", "teams": {t: {"林晃汰": {"内": 1}} for t in ud.ROSTER_CODE}, "roles": {"C": {"x": ["中"]}}}}
+        r = ud.fetch_fpos(2026, old, "2026-10-06")
+        if r.get("asof") != "2026-10-06" or r["teams"]["C"].get("林晃汰") != {"内": 1, "外": 1}:
+            bad(f"[守備位置] 成績ページが更新されたのに読み直していない（{r.get('asof')}・{r['teams']['C'].get('林晃汰')}）")
+        if r.get("roles", {}).get("C") != {"x": ["中"]}:
+            bad("[守備位置] 投手の役割が読めなかったとき、前の値が消える")
+        calls.clear()
+        ud.fetch_fpos(2026, {"fpos": r}, "2026-10-06")
+        if calls:
+            bad(f"[守備位置] 追いついているのに読み直している（{len(calls)}回）")
+    finally:
+        ud.fetch, ud.datetime, ud.time.sleep = keep
+
+
 async def consistency_check(browser):
     """言葉・書き方の統一：同じものを別の書き方で出していないか（全タブ・設定・選手の画面）"""
     NG = [(r"^(チーム内の成績|今オフの動き|.*のオフの動き|今日の試合|次の試合|直近の勝敗|順位の推移|担当者ごとの年間成績|月度ごとの支払い|首脳陣の配置転換)", "見出しに「〜の」が残っている"),
@@ -3941,6 +3975,7 @@ async def main():
         await archive_check(browser)
         await song_list_check(browser)
         await meikan_tile_check(browser)
+        await fpos_check(browser)
         await consistency_check(browser)
         await owner_pos_check(browser)
         await team_rank_menu_check(browser)

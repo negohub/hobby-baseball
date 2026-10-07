@@ -2138,8 +2138,9 @@ def record_person(name, period, reg):
         cnt = {t: len(v) for t, v in cnt.items()}
         order = [t for t in sorted(cnt, key=lambda t: (-cnt[t], first[t])) if cnt[t] > 0]   # 長くいた球団から（同じなら先にいた球団）。期間に重ならない球団は入れない
         if best is None or sum(cnt.values()) > best[2]:
-            best = (order, (e.get("id") if isinstance(e, dict) else "") or "", sum(cnt.values()), (min(yrs), max(yrs)))
-    return (best[0], best[1], best[3]) if best else None   # (所属, 選手のページの番号, (在籍の最初の年, 最後の年))
+            lastt = next((t for t, ys in reversed(hist) if max(yrs) in ys), "")   # 最後の年にいた球団（その年の途中で移った選手は、移った先）
+            best = (order, (e.get("id") if isinstance(e, dict) else "") or "", sum(cnt.values()), (min(yrs), max(yrs)), lastt)
+    return (best[0], best[1], best[3], best[4]) if best else None   # (所属, 選手のページの番号, (在籍の最初の年, 最後の年), 最後の年の球団)
 
 
 def record_teams(name, period, reg):
@@ -2495,6 +2496,12 @@ def update_records(force=False):
         new_pid = [(p_[1] if p_ else "") for p_ in persons]   # NPBの選手のページの番号（画面で名前を押すと開く）
         if new_pid != L.get("pid"):
             L["pid"] = new_pid
+            got = got or 1
+        # 在籍者名簿で最後にいた年と球団（画面で「今の選手か」を名前だけで決めないため。同じ名前の別人＝引退したラミレスと今の広島のラミレス を見分ける）
+        new_last = [(p_[2][1] if p_ and p_[2] else 0) for p_ in persons]
+        new_lteam = [(p_[3] if p_ and len(p_) > 3 else "") for p_ in persons]
+        if new_last != L.get("last") or new_lteam != L.get("lteam"):
+            L["last"], L["lteam"] = new_last, new_lteam
             got = got or 1
         if not k.startswith("ss"):
             new_team = [(p_[0] if p_ else []) for p_ in persons]

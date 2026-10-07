@@ -181,7 +181,7 @@ CHECK_JS = r"""
 }
 """
 
-TABS = ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]   # off：戦力外・引退（オフだけ出るタブ）
+TABS = ["magic", "game", "cal", "post", "std", "stdh", "stats", "rec", "ven", "song", "off"]   # off：戦力外・引退（オフだけ出るタブ）
 
 
 async def open_page(browser, width, theme, me="S", touch=False):
@@ -1078,7 +1078,7 @@ TB_SETUP = """(done) => {
       if (done) { Object.assign(c1[2], { h: rk[1], a: rk[2], hs: 0, as: 2, st: 'final' }); for (let i = 0; i < 4; i++) Object.assign(cf[i], { h: rk[0], a: rk[2], hs: 5, as: 1, st: 'final' }); } }
   }
   if (done) { const js = P.filter(g => g.stage === 'JS').sort((a, b) => a.no - b.no), se = lgPost('C').sf.win, pa = lgPost('P').sf.win; [[se, 3, 1], [pa, 2, 0], [se, 4, 2], [se, 5, 4], [pa, 1, 6], [se, 3, 2]].forEach(([w, a, b], i) => Object.assign(js[i], { h: se, a: pa, hs: w === se ? a : b, as: w === se ? b : a, st: 'final' })); }
-  Object.keys(LGPOST_MEMO).forEach(k => delete LGPOST_MEMO[k]); renderAll(); setTab('std');
+  Object.keys(LGPOST_MEMO).forEach(k => delete LGPOST_MEMO[k]); POST_SHOWN = true; renderAll(); TAB_DIRTY.add('post'); setTab('post');
   const box = document.getElementById('bracketBox'); box.style.contentVisibility = 'visible'; window.scrollTo(0, box.getBoundingClientRect().top + scrollY - 70); }"""
 
 
@@ -1126,6 +1126,9 @@ async def tournament_check(browser):
                   const ps = [...tb.querySelectorAll('.tb-p, .tb-mh, .tb-champ')]; ps.forEach((a, i) => ps.slice(i + 1).forEach(b => { if (!a.contains(b) && !b.contains(a) && X2(a.getBoundingClientRect(), b.getBoundingClientRect())) ng.push(`重なり：${a.className} と ${b.className}`); }));
                   tb.querySelectorAll('.tb-p').forEach(p => { const n = p.querySelector('.tb-n'); if (n && n.scrollWidth > n.clientWidth + 1) ng.push(`名前が札に入りきらない：${n.textContent}`); });
                   // 見出し・札の中の言葉は途中で折り返さない（「ファイナ／ル」にしない）。勝ち抜けの札も1行に収める
+                  // 1試合ずつの札の字（日付「10/10」・スコア）は、iPhoneの字の幅（ここより1〜2割広い）でも切れないよう、札の幅に余裕を持って入る
+                  tb.querySelectorAll('.tb-g i, .tb-g b').forEach(e => { const r = document.createRange(); r.selectNodeContents(e); const w = r.getBoundingClientRect().width, tw = e.closest('.tb-g').clientWidth;
+                    if (w * 1.2 > tw - 4) ng.push(`1試合ずつの札の字に余裕がない（iPhoneで切れる）：${e.textContent}（字${w.toFixed(0)}px・札${tw}px）`); });
                   tb.querySelectorAll('.tb-go').forEach(e => { const r = document.createRange(); r.selectNodeContents(e); const tops = [...r.getClientRects()].map(x => x.top); if (Math.max(...tops) - Math.min(...tops) > 6) ng.push(`突破の札が2行になっている：${e.textContent}`); if (e.scrollWidth > e.clientWidth + 1) ng.push(`入りきらない：${e.textContent}`); });
                   tb.querySelectorAll('.tb-mh > *, .tb-g i, .tb-g b, .tb-adv span').forEach(e => { if (e.getClientRects().length > 1 || (e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 1.9)) ng.push(`言葉が途中で折り返している：${e.textContent}`); if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow === 'hidden') ng.push(`入りきらない：${e.textContent}`); });
                   const wk = document.createTreeWalker(tb, NodeFilter.SHOW_TEXT); let x; while ((x = wk.nextNode())) { const el = x.parentElement; if (x.textContent.trim() && el.offsetParent && parseFloat(getComputedStyle(el).fontSize) < 10.95) ng.push(`11px未満の字：${x.textContent.trim()}`); }
@@ -2273,7 +2276,7 @@ async def post_bracket_check(browser):
               Object.assign(c1[0], { h: rk[1], a: rk[2], hs: 3, as: 1, st: 'final' }); Object.assign(c1[1], { h: rk[1], a: rk[2], hs: 2, as: 5, st: 'final' }); Object.assign(c1[2], { h: rk[1], a: rk[2], hs: 4, as: 4, st: 'final' });
               // ファイナル：1位が3勝（＋アドバンテージ1＝4）で勝ち上がり
               for (let i = 0; i < 3; i++) Object.assign(cf[i], { h: rk[0], a: rk[1], hs: 5, as: 1, st: 'final' });
-              renderAll(); setTab('std');
+              renderAll(); TAB_DIRTY.add('post'); setTab('post');   // トーナメント表は試合タブの「CS・日本S」（10/8〜）
               const s = lgPost(lg);
               if (s.s1.win !== rk[1]) ng.push(`ファーストステージで並んだのに2位が勝ち上がらない（${s.s1.win}）`);
               // 2026年からの新ルール：アドバンテージは1勝か2勝（ファースト勝者が1位と10ゲーム差以上か勝率5割未満なら2勝）
@@ -3310,8 +3313,10 @@ async def tab_group_check(browser):
           if (names !== '戦況,試合,順位,データ,選手') ng.push(`下のタブの並び・名前が違う（${names}）`);
           const click = g => document.querySelector(`.tabbar button[data-grp="${g}"]`).click();
           const sub = () => [...document.querySelectorAll('#subNav:not([hidden]) button')].map(b => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join();
-          click('game'); if (S.tab !== 'game' || sub() !== '今日*,日程') ng.push(`試合：${S.tab} ${sub()}`);
-          document.querySelector('#subNav button[data-p="cal"]').click(); if (S.tab !== 'cal' || sub() !== '今日,日程*') ng.push(`日程に切り替わらない（${S.tab} ${sub()}）`);
+          const ps = POST_SHOWN ? ',CS・日本S' : '';   // CS・日本Sは、CSの3週間前から日本シリーズの1か月後まで
+          click('game'); if (S.tab !== 'game' || sub() !== '今日*,日程' + ps) ng.push(`試合：${S.tab} ${sub()}`);
+          document.querySelector('#subNav button[data-p="cal"]').click(); if (S.tab !== 'cal' || sub() !== '今日,日程*' + ps) ng.push(`日程に切り替わらない（${S.tab} ${sub()}）`);
+          if (POST_SHOWN) { document.querySelector('#subNav button[data-p="post"]').click(); if (S.tab !== 'post' || !document.querySelector('#v-post .tb')) ng.push('CS・日本Sに切り替わらない・トーナメント表がない'); document.querySelector('#subNav button[data-p="cal"]').click(); }
           if (document.querySelector('.tabbar button[aria-selected="true"]').dataset.grp !== 'game') ng.push('日程のときに「試合」のタブが選ばれていない');
           click('data'); if (S.tab !== 'stats' || sub() !== '今季*,球場別,歴代') ng.push(`データ：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="rec"]').click(); if (S.tab !== 'rec') ng.push('歴代に切り替わらない');
@@ -3321,7 +3326,7 @@ async def tab_group_check(browser):
           window.scrollTo(0, 400); click('data'); await new Promise(r => setTimeout(r, 700));
           if (S.tab !== 'rec' || scrollY > 5) ng.push(`今のタブをもう一度押してもいちばん上に戻らない（${S.tab} ${scrollY}）`);
           if (JSON.parse(localStorage.getItem('sub-v1') || '{}').game !== 'cal') ng.push('最後に開いていたページを端末に覚えていない');
-          const ord = tabOrder().join(); if (!/^magic,game,cal,std,stdh,stats,ven,rec,song/.test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
+          const ord = tabOrder().join(); if (!new RegExp('^magic,game,cal,' + (POST_SHOWN ? 'post,' : '') + 'std,stdh,stats,ven,rec,song').test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
           // 季節で下のタブの数が変わらない
           const cols = () => getComputedStyle(document.querySelector('.tabbar nav')).gridTemplateColumns.split(' ').length;
           if (cols() !== 5) ng.push(`下のタブが5列でない（${cols()}）`);
@@ -3340,7 +3345,7 @@ async def tab_group_check(browser):
 
 
 async def pennant_check(browser):
-    """リーグ優勝：試合タブのいちばん上に優勝マジックと「今日決まる条件」。各試合の「勝ったら」に優勝決定・マジックの動き。
+    """リーグ優勝：順位タブのいちばん上に優勝マジックと「今日決まる条件」。各試合の「勝ったら」に優勝決定・マジックの動き。
     決まったら「リーグ優勝」と決まった日。直接対決の札は、最下位争いが動く試合だけ"""
     for th in ["pawa", ""]:
         pg, errs = await open_page(browser, 390, th, me="T")
@@ -3350,8 +3355,8 @@ async def pennant_check(browser):
           const next = DATA.games.filter(g => g.st !== 'final' && g.st !== 'canc' && (g.h === X.t || g.a === X.t)).map(g => g.d).sort()[0];
           if (X.magic == null || X.magic === 0 || !next) return ['skip'];
           const [y, m, d] = next.split('-').map(Number); jst = () => ({ y, m, d, iso: next });
-          renderAll(); setTab('game');
-          const box = document.getElementById('pennantBox').innerText;
+          renderAll(); setTab('std');   // リーグ優勝の札は順位タブのいちばん上（10/8〜）
+          const box = document.getElementById('pennantBox').innerText; setTab('game');
           if (!box.includes('M' + X.magic)) ng.push(`優勝マジックが出ない（${box}）`);
           const st = pennantState();
           const decides = [...document.querySelectorAll('#today .tgo')].some(o => /リーグ優勝が決定/.test(o.innerText));
@@ -3372,7 +3377,7 @@ async def pennant_check(browser):
           // 優勝が決まったあと：首位の残りを全部勝ちにして、決まった日が出る
           const keep = DATA.games;
           DATA = { ...DATA, games: DATA.games.map(g => g.st !== 'final' && g.st !== 'canc' && (g.h === X.t || g.a === X.t) ? { ...g, st: 'final', hs: g.h === X.t ? 5 : 0, as: g.a === X.t ? 5 : 0 } : g) };
-          renderAll(); setTab('game');
+          renderAll(); setTab('std');
           const st2 = pennantState(), box2 = document.getElementById('pennantBox').innerText;
           if (!st2.done || !/リーグ優勝/.test(box2) || !/\\d+\\/\\d+ に決定/.test(box2)) ng.push(`優勝が決まったあとの表示が違う（${box2}）`);
           DATA = { ...DATA, games: keep }; renderAll();
@@ -3611,7 +3616,7 @@ async def cs_cal_check(browser):
           }
           // 支払い：確定していれば、試合が残っていても順位タブの月度別と担当者別に出る
           if (lg === 'C') {
-            renderStd(); const trs = [...document.querySelectorAll('#hist tbody tr')]; let n = 0;
+            PAY_KEY = ''; renderPay(); const trs = [...document.querySelectorAll('#hist tbody tr')]; let n = 0;
             periods().forEach((p, i) => { const a = analyze(DATA.games, p, CONFIG), pay = monthPayer(a), tx = trs[i] ? trs[i].textContent : '';
               if (pay) { n++; if (!tx.includes(own(pay)) || /集計中/.test(tx)) ng.push(`${p.label}：確定した支払い（${own(pay)}）が出ない（${tx}）`); if (!a.finished && !/確定/.test(tx)) ng.push(`${p.label}：試合が残っているのに「確定」の印がない`); }
               else if (a.played && !/集計中/.test(tx)) ng.push(`${p.label}：まだ決まっていないのに支払いが出ている`); });
@@ -3897,7 +3902,7 @@ async def ux_check(browser):
               jst = () => ({ y: 2026, m: 11, d: 5, iso: '2026-11-05' }); const a2 = landingTab();
               seasonOver = () => false; const a3 = landingTab();
               seasonOver = so; jst = jj; DATA.post = post0;
-              if (!a1 || a1.tab !== 'std' || a1.to !== 'bracketBox') ng.push(`CS・日本シリーズのあいだの最初の画面が勝ち上がり表でない（${JSON.stringify(a1)}）`);
+              if (!a1 || a1.tab !== 'post') ng.push(`CS・日本シリーズのあいだの最初の画面が勝ち上がり表でない（${JSON.stringify(a1)}）`);
               if (!a2 || a2.tab !== 'off') ng.push(`日本シリーズのあとの最初の画面が入退団でない（${JSON.stringify(a2)}）`);
               if (a3) ng.push('シーズン中なのに最初の画面が戦況でない');
               // ② 選手をさがす：名前・背番号。押すと選手の画面
@@ -4025,7 +4030,7 @@ async def ux_check(browser):
                 if (!isPL()) {
                   pickPeriod(p910); setTab('magic'); const hp = document.querySelector('#alert .hp b'); if (hp && hp.textContent !== '5,160円') ng.push(`9・10月度の戦況の支払い額が ${hp.textContent}`);
                   pickPeriod(p34); const hp2 = document.querySelector('#alert .hp b'); if (hp2 && hp2.textContent !== '2,580円') ng.push(`3・4月度の戦況の支払い額が ${hp2.textContent}`);
-                  pickPeriod(defaultPeriod(P)); TAB_DIRTY.add('std'); setTab('std');
+                  pickPeriod(defaultPeriod(P)); PAY_KEY = ''; TAB_DIRTY.add('magic'); setTab('magic');   // 支払いの表は戦況タブのいちばん下（10/8〜）
                   const row = [...document.querySelectorAll('#hist tbody tr')].find(r => r.querySelector('td.mo')?.textContent === '9・10'), cell = row && row.querySelectorAll('td')[3];
                   if (cell && cell.textContent !== '-' && cell.textContent !== '5,160円') ng.push(`月度別 支払いの9・10月度が ${cell.textContent}`);
                   const sum = [...document.querySelectorAll('#hist tbody tr')].reduce((n, r) => n + (parseInt((r.querySelectorAll('td')[3]?.textContent || '').replace(/[^\d]/g, ''), 10) || 0), 0);
@@ -4462,7 +4467,7 @@ async def csf_rule_check(browser):
       const s = seriesOf([{ st: 'final', h: 'A', a: 'C', hs: 3, as: 1 }, { st: 'final', h: 'A', a: 'C', hs: 3, as: 1 }, { st: 'final', h: 'A', a: 'C', hs: 3, as: 1 }], 'A', 'C', 5, 2, 7);
       if (s.win !== 'A' || s.wh !== 5) ng.push(`2勝のアドバンテージで3勝しても勝ち抜けにならない：${JSON.stringify(s)}`);
       // パ・リーグ（今のデータでは1位が独走）：勝ち上がり表に新ルールの説明、日程に第7戦（10/20）
-      switchLeague('P'); setTab('std'); renderAll();
+      switchLeague('P'); renderAll(); renderBracket();
       // 相手が決まっていないときだけ、1行で「勝ち上がれば先に4勝／5勝」。決まっていればステージの見出しに出るので、説明の行は出さない
       { const lp0 = lgPost('P'), br = document.querySelector('.bk-rule');
         if (!lp0.rule && (!br || !/勝ち上がれば先に[45]勝/.test(br.textContent))) ng.push(`勝ち上がり表にファイナルの形（先に4勝／5勝）が出ない（${br && br.textContent}）`);

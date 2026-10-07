@@ -993,6 +993,78 @@ ok("両チームのオスナ（ホーム）", ((b.batS || [])[1] || {})["オス�
                     bad(f"[同じ名前の選手・中継プログラム] {line.strip()[:200]}")
 
 
+async def walkoff_check(browser):
+    """サヨナラの回（スコア表の「1X」）も、押すとその回の得点の流れが開く。中継プログラムも「1X」を得点の回として数える"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [], d = jst().iso;
+      const g = { d, h: 'T', a: 'C', st: 'final', hs: 2, as: 1, v: '甲子園' }; DATA.games.push(g); const k = d + gkey(g);
+      GD[k] = { line: { innings: ['1','2','3','4','5','6','7','8','9','10','11'], away: { name: '広島', inn: ['0','0','0','1','0','0','0','0','0','0','0'], r: '1', h: '6', e: '0' }, home: { name: '阪神', inn: ['0','0','0','0','0','0','1','0','0','0','1X'], r: '2', h: '8', e: '0' } },
+        flows: [{ half: '11回裏', steps: [{ order: '7番', name: '梅野 隆太郎', res: '遊安', score: '神 2-1 広' }] }, { half: '7回裏', steps: [{ order: '6番', name: '髙寺 望夢', res: '中安', score: '神 1-1 広' }] }], plays: [], lineups: [[], []], pitchers: [[], []] };
+      S.open[k] = true; setTab('game'); renderGame();
+      const card = [...document.querySelectorAll('#today .tg')].find(c => c.dataset.gk === `${d}|T|C`);
+      const td = card && [...card.querySelectorAll('.ls td')].find(x => x.textContent.trim() === '1X');
+      if (!td) ng.push('スコア表に「1X」がない');
+      else if (!td.dataset.flow) ng.push('サヨナラの回「1X」を押しても得点の流れが開かない（押せるマスになっていない）');
+      else { td.click(); const c2 = [...document.querySelectorAll('#today .tg')].find(c => c.dataset.gk === `${d}|T|C`); if (!c2.querySelector('.flow') || !c2.querySelector('.flow').textContent.includes('11回裏')) ng.push('「1X」を押しても11回裏の流れが出ない'); }
+      DATA.games.pop(); delete GD[k]; delete S.open[k]; return ng; }""")
+    for m in r:
+        bad(f"[サヨナラ] {m}")
+    for e in errs:
+        bad(f"[サヨナラ]: 画面のエラー {e}")
+    await pg.close()
+    wk = ROOT / "worker" / "worker.js"
+    if wk.exists():
+        import subprocess, tempfile
+        src = wk.read_text(encoding="utf-8") + "\nexport { flowsFromBox };\n"
+        test = r"""
+import { flowsFromBox } from "./w.mjs";
+const line = { innings: ["1","2","3"], away: { name: "広島", inn: ["0","0","0"] }, home: { name: "阪神", inn: ["0","0","1X"] } };
+const lu = [[{ order: 1, name: "a", inn: ["遊ゴロ","",""] }], [{ order: 1, name: "b", inn: ["","","中安"] }]];
+const f = flowsFromBox(line, lu);
+if (!f.flows.some(x => x.half === "3回裏" && x.runs === 1)) console.log("NG サヨナラの回（1X）が得点の回にならない " + JSON.stringify(f.flows));
+"""
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "w.mjs").write_text(src, encoding="utf-8")
+            (Path(d) / "t.mjs").write_text(test, encoding="utf-8")
+            out = subprocess.run(["node", str(Path(d) / "t.mjs")], capture_output=True, text=True, timeout=60)
+            for line in (out.stdout + out.stderr).splitlines():
+                if line.strip():
+                    bad(f"[サヨナラ・中継プログラム] {line.strip()[:200]}")
+
+
+async def multi_pos_check(browser):
+    """打順の守備位置：途中で変わった選手（「走一三一」）は、札を1つずつ順に並べる（1つの札に詰めない）。字は11px以上・はみ出し／重なりなし（両テーマ×幅390/320）"""
+    for theme in ["pawa", ""]:
+        for width in [390, 320]:
+            pg, errs = await open_page(browser, width, theme)
+            r = await pg.evaluate("""() => { const ng = [], d = jst().iso;
+              const g = { d, h: 'T', a: 'C', st: 'final', hs: 2, as: 1, v: '甲子園' }; DATA.games.push(g); const k = d + gkey(g);
+              const row = (o, pos, name, st) => ({ order: o, pos, starter: st, name, avg: '.211', results: ['右飛', '投犠打'] });
+              GD[k] = { line: null, flows: [], plays: [], pitchers: [[], []], lineups: [[row(1, '中', '秋山 翔吾', true)], [row(5, '一', '大山 悠輔', true), row(5, '走一三一', '熊谷 敬宥', false), row(4, '一右', '小野寺 暖', false), row(9, '投', '木下 里都', false), row(3, '打左中右', 'テスト 長い名前の選手', false)]] };
+              S.open[k] = true; S.lu = S.lu || {}; S.lu[k] = 'T'; S.gpane = S.gpane || {}; S.gpane[k] = 'lu'; setTab('game'); renderGame();
+              const card = [...document.querySelectorAll('#today .tg')].find(c => c.dataset.gk === `${d}|T|C`);
+              const want = { '熊谷': ['走', '一', '三', '一'], '小野寺': ['一', '右'], '木下': ['投'], 'テスト': ['打', '左', '中', '右'] };
+              for (const tr of card.querySelectorAll('.lutab tr')) {
+                const m = tr.querySelector('.lnm'); if (!m) continue; const nm = Object.keys(want).find(x => m.textContent.includes(x)); if (!nm) continue;
+                const ics = [...m.querySelectorAll('.posic')], got = ics.map(e => e.textContent.trim());
+                if (JSON.stringify(got) !== JSON.stringify(want[nm])) ng.push(`${nm}の守備位置の札：${JSON.stringify(got)}（正しくは ${JSON.stringify(want[nm])}）`);
+                const ws = new Set(ics.map(e => Math.round(e.getBoundingClientRect().width))); if (ws.size > 1) ng.push(`${nm}の守備位置の札の大きさがそろっていない：${[...ws]}`);
+                const X = (a, b) => a.right > b.left + .5 && a.left < b.right - .5 && a.bottom > b.top + .5 && a.top < b.bottom - .5;
+                ics.forEach((e, i) => { const r1 = e.getBoundingClientRect(); if (parseFloat(getComputedStyle(e.querySelector('b') || e).fontSize) < 10.95) ng.push(`${nm}の守備位置の字が11px未満`);
+                  if (r1.right > card.getBoundingClientRect().right) ng.push(`${nm}の守備位置の札がはみ出す`);
+                  ics.slice(i + 1).forEach(f => { if (X(r1, f.getBoundingClientRect())) ng.push(`${nm}の守備位置の札が重なる`); });
+                  const la = m.querySelector('.la'); if (la && X(r1, la.getBoundingClientRect())) ng.push(`${nm}の守備位置の札が打率に重なる`);
+                  const nt = m.querySelector('.ptile:not(.posic), span:first-child'); if (nt && !nt.contains(e) && X(r1, nt.getBoundingClientRect())) ng.push(`${nm}の守備位置の札が名前に重なる`);
+                  const b = e.querySelector('b'); if (b) { const rg = document.createRange(); rg.selectNodeContents(b); const ri = rg.getBoundingClientRect(); if (ri.left < r1.left - .5 || ri.right > r1.right + .5 || ri.top < r1.top - .5 || ri.bottom > r1.bottom + .5) ng.push(`${nm}の守備位置の字が札からはみ出す`); } });
+              }
+              DATA.games.pop(); delete GD[k]; delete S.open[k]; return [...new Set(ng)]; }""")
+            for m in r:
+                bad(f"[打順の守備位置 {'パワプロ風' if theme else 'スタイリッシュ'} 幅{width}] {m}")
+            for e in errs:
+                bad(f"[打順の守備位置]: 画面のエラー {e}")
+            await pg.close()
+
+
 async def tap_target_check(browser):
     """指で押す部品が縦横44px以上あるか（表の球団名はマス全体が押せるか）。両テーマ×幅390/320×両リーグ・全タブ"""
     for theme in ["", "pawa"]:
@@ -2981,7 +3053,7 @@ async def pos_icon_check(browser):
         await pg.route(LIVE + "**", route_live)
         await pg.goto(URL); await pg.wait_for_timeout(800)
         r = await pg.evaluate("""() => { const ng = [];
-          const want = { '投': 'pp', '捕': 'pc', '一': 'pi', '二': 'pi', '三': 'pi', '遊': 'pi', '左': 'po', '中': 'po', '右': 'po', '打': 'pnu', '走': 'pnu', '打左': 'po' };
+          const want = { '投': 'pp', '捕': 'pc', '一': 'pi', '二': 'pi', '三': 'pi', '遊': 'pi', '左': 'po', '中': 'po', '右': 'po', '打': 'pnu', '走': 'pnu', '打左': 'pnu' };   // 「打左」は「打」「左」の2つの札（最初の札は「打」）
           const g = { d: '2026-10-02', h: 'S', a: 'G', st: 'final', hs: 1, as: 0 }, ro = DATA.rosters.G.filter(r => !r.dev);
           const pick = p => ro.find(r => r.p === p) || ro[0];
           const rows = Object.keys(want).map((p, i) => ({ order: Math.min(i + 1, 9), pos: p, starter: i < 9, name: pick({ '投': '投手', '捕': '捕手', '左': '外野手', '中': '外野手', '右': '外野手' }[p] || '内野手').n, avg: '.250', results: [] }));
@@ -2990,6 +3062,7 @@ async def pos_icon_check(browser):
           [...lu.querySelectorAll('.lnm')].forEach((m, i) => {
             const p = Object.keys(want)[i], nm = m.querySelector('.ptile:not(.posic)'), ic = m.querySelector('.posic');
             if (!ic) { ng.push(`「${p}」のアイコンがない`); return; }
+            if (p.length > 1) { const all = [...m.querySelectorAll('.posic')].map(e => e.textContent.trim()).join(''); if (all !== p) ng.push(`「${p}」が1つずつの札になっていない（${all}）`); }
             if (!ic.classList.contains('ptile') || !ic.classList.contains(want[p])) ng.push(`「${p}」が名前と同じ札でない・色の種類が違う（${ic.className}）`);
             if (nm.compareDocumentPosition(ic) !== Node.DOCUMENT_POSITION_FOLLOWING || ic.getBoundingClientRect().left < nm.getBoundingClientRect().right - 1) ng.push(`打順の表：「${p}」が名前の右にない`);
             const a = getComputedStyle(ic), b = getComputedStyle(nm), ab = getComputedStyle(ic.querySelector('b')), bb = getComputedStyle(nm.querySelector('b'));
@@ -3005,7 +3078,7 @@ async def pos_icon_check(browser):
           ['pp', 'pc', 'pi', 'po'].forEach(same);
           if (lu.querySelector('td.lp')) ng.push('打順の表に、名前の左の守備位置の列が残っている');
           lu.remove();
-          // 今の打者の印（▶）は行の頭に1つだけ。盗塁成功の札。「三併打」は凡打の色
+          // 今の打者の印（▶）は行の頭に1つだけ。盗塁の札。「三併打」は凡打の色
           { const gg = { d: '2026-10-02', h: 'S', a: 'G', st: 'live', hs: 0, as: 0 }, k = gg.d + gkey(gg), atkName = Object.keys(YSHORT).find(x => YSHORT[x] === 'G');
             PD[k] = { half: '1回表', attack: atkName, batter: { name: ro[0].n } };
             const rr = [{ order: 1, pos: '中', starter: true, name: ro[0].n, avg: '.250', results: ['三併打', '左安'], sb: '1' }, { order: 2, pos: '走', starter: false, name: ro[1].n, avg: '.250', results: [], sb: '2' }];
@@ -3018,7 +3091,7 @@ async def pos_icon_check(browser):
               if (getComputedStyle(cur.querySelector('.posic'), '::before').content.includes('▶') || getComputedStyle(cur.querySelector('.lnm .ptile:not(.posic)'), '::before').content.includes('▶')) ng.push('名前・守備位置の札の中に▶が付いている'); }
             const sbs = [...w.querySelectorAll('tr')].map(t => t.querySelectorAll('.rc.sb').length);
             if (sbs.join() !== '1,2') ng.push(`盗塁成功の札の数が違う（${sbs}）`);
-            if (![...w.querySelectorAll('.rc.sb')].every(e => e.textContent === '盗塁成功')) ng.push('盗塁成功の札の文字が違う');
+            if (![...w.querySelectorAll('.rc.sb')].every(e => e.textContent === '盗塁')) ng.push('盗塁の札の文字が「盗塁」でない');
             const dp = [...w.querySelectorAll('.rc')].find(e => e.textContent === '三併打');
             if (!dp || !dp.classList.contains('o')) ng.push('「三併打」が凡打の色になっていない');
             const leg = document.createElement('div'); leg.innerHTML = RES_LEGEND; if (![...leg.querySelectorAll('.sb')].length) ng.push('見方に盗塁成功がない');
@@ -4418,6 +4491,8 @@ async def main():
         await runner_text_check(browser)
         await rec_active_check(browser)
         await same_name_check(browser)
+        await walkoff_check(browser)
+        await multi_pos_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

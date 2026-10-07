@@ -50,6 +50,9 @@ export default {
     if (pst) return playerStats(pst, cache, cors);
     const rankKey = url.searchParams.get("rank");
     if (rankKey) return statsRank(rankKey, cache, cors, lg);
+    // 確かめ用：スポナビの試合のページを、中継プログラムが読んだ形（行ごと）で返す（?lines=<試合ID または T-C>&p=text|score）
+    const linesKey = url.searchParams.get("lines");
+    if (linesKey) return pageLines(linesKey, url.searchParams.get("p") === "score" ? "score" : "text", cache, cors);
     const pitchKey = url.searchParams.get("pitch");
     if (pitchKey) return pitchDetail(pitchKey, cache, cors);
     const keys = (url.searchParams.get("games") || "").split(",").filter(k => /^[A-Z]{1,2}-[A-Z]{1,2}$/.test(k)).slice(0, 6);
@@ -233,6 +236,21 @@ function kindOf(t) {
   return "得点";
 }
 
+async function pageLines(key, kind, cache, cors) {
+  try {
+    let id = /^\d{8,12}$/.test(key) ? key : null;
+    if (!id) { const d = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); id = (await cachedFetch(cache, "ids2-" + d, 300, todayIds))[key]; }
+    if (!id) return new Response(JSON.stringify({ error: "not_found", key }), { headers: cors });
+    const html = await (await fetch(`https://baseball.yahoo.co.jp/npb/game/${id}/${kind}`, UA)).text();
+    const lines = toText(html), i0 = Math.max(0, lines.findIndex(l => kind === "text" ? l === "テキスト速報" : /^\d+回(表|裏)/.test(l)));
+    const cls = kind === "score" ? [...new Set([...html.matchAll(/class="([^"]*(?:[Bb]ase|[Rr]unner)[^"]*)"/g)].map(m => m[1]))].slice(0, 40) : undefined;
+    const parsed = kind === "text" ? (({ live, now, over, flows }) => ({ live, now, over, flows: (flows || []).length }))(parseGame(html)) : parsePitch(html);
+    return new Response(JSON.stringify({ id, kind, lines: lines.slice(i0, i0 + 260), cls, parsed }), { headers: cors });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), { headers: cors });
+  }
+}
+
 function debugLines(html) {
   const lines = toText(html);
   const st = lines.findIndex(l => l === "テキスト速報");
@@ -259,15 +277,19 @@ function parseGame(html) {
   const st = lines.findIndex(l => l === "テキスト速報");
   const halves = [];
   let cur = null, bat = null, over = false;
+  // 打席の見出し（「4番 小野寺 暖 無死走者なし」）。ページによって打順・名前・状況が別々の行になることがあるので、3行先までつないで確かめる
+  const PA1 = /(?:^|\s|:)(\d+番|代打|代走)\s*:?\s*(.+?)\s+(無死|一死|二死)\s*(走者なし|満塁|[一二三]+塁)/;
+  const PAN = /^(\d+番|代打|代走)\s*:?\s*(.+?)\s+(無死|一死|二死)\s*(走者なし|満塁|[一二三]+塁)$/;
   for (let i = st < 0 ? 0 : st + 1; i < lines.length; i++) {
     const l = lines[i];
-    if (/^新着動画|の日程・結果$/.test(l)) break;
+    if (halves.length && /^新着動画|の日程・結果$/.test(l)) break;   // 本文（回の見出し）より前にある日程の欄では止めない
     let m;
     if ((m = l.match(/^(\d+)回(表|裏)(?:\s|$)/))) { cur = { half: `${m[1]}回${m[2]}`, n: +m[1] * 2 + (m[2] === "裏" ? 1 : 0), bats: [] }; halves.push(cur); bat = null; continue; }
     if (!cur) continue;
-    if ((m = l.match(/(?:^|\s|:)(\d+番|代打|代走)\s*:?\s*(.+?)\s+(無死|一死|二死)\s*(走者なし|満塁|[一二三]+塁)/))) {
-      bat = { order: m[1], name: m[2], sit: m[3] + m[4], ev: [] }; cur.bats.push(bat); continue;
-    }
+    m = l.match(PA1);
+    let used = 0;
+    if (!m && /^(\d+番|代打|代走)/.test(l)) for (let k = 1; k <= 3 && !m; k++) { const j = lines.slice(i, i + k + 1).join(" "); if ((m = j.match(PAN))) used = k; }
+    if (m) { bat = { order: m[1], name: m[2], sit: m[3] + m[4], ev: [] }; cur.bats.push(bat); i += used; continue; }
     if (/試合終了/.test(l)) over = true;
     if (bat) bat.ev.push(l);
   }
@@ -312,7 +334,10 @@ function parseGame(html) {
   // 中断・遅延は、この試合の本文だけで探す（下の「今日の日程・結果」「順位表」「新着ニュース」には、ほかの試合の中断・中止やニュースが並ぶ）
   const side = lines.findIndex(l => /^(?:\d{1,2}月\d{1,2}日\s*\(.\)\s*の日程・結果|順位表|新着ニュース|ニュース一覧|セ・リーグ順位表|パ・リーグ順位表)$/.test(String(l).normalize("NFKC")));
   const w = weatherOf(lines.slice(0, side > 0 ? Math.min(side, 400) : 400), headerOf(lines));
-  return { line, plays, flows, notes: notes.slice(-6), now: over ? null : now, over, dps, ...(w ? { w } : {}) };
+  // いちばん新しい回の打席ごとの状況（「一死一三塁」）とできごと（代走・盗塁・けん制など）：画面で塁上の走者を順に追いかけるため
+  const lastH = halves[halves.length - 1];
+  const live = over || !lastH ? null : { half: lastH.half, bats: lastH.bats.map(b => ({ order: b.order, name: b.name, sit: b.sit, ev: b.ev.slice(0, 10).map(x => String(x).slice(0, 100)) })) };
+  return { line, plays, flows, notes: notes.slice(-6), now: over ? null : now, live, over, dps, ...(w ? { w } : {}) };
 }
 
 const SHORTN = { "DeNA": "デ", "阪神": "神", "巨人": "巨", "中日": "中", "広島": "広", "ヤクルト": "ヤ",

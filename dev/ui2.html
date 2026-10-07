@@ -7139,13 +7139,18 @@ function renderRec() {
     return m ? esc(m.main) : `<span class="muted">—</span>`;
   };
   const head = `<th>順位</th><th class="tnm">選手名</th><th class="tnm">チーム</th><th>${esc(label)}</th><th class="rp">${kind === "ss" ? "年度" : "実働期間"}</th>`;
-  const body = L.rows.map((r, ri) => {
-    const rk = parseInt(r[0], 10) || 0, h0 = nowHit(r, ri);
-    const rt = kind !== "ss" && isAct(ri) && retired(h0), act = kind !== "ss" && isAct(ri) && !rt;   // 「現役」の印：NPBの現役の印（選手番号）だけで決める。引退を発表した選手は「引退」
+  // 現役の記録：今季で引退を発表した選手は外す（通算の記録で「引退」の札付きで出る）。順位は残った選手で付け直す（同じ記録は同じ順位のまま）
+  const keep = L.rows.map((r, ri) => ri).filter(ri => kind !== "ac" || !retired(nowHit(L.rows[ri], ri)));
+  const rk0 = ri => parseInt(L.rows[ri][0], 10) || 0;
+  const newRank = ri => kind === "ac" ? 1 + keep.filter(j => rk0(j) < rk0(ri)).length : rk0(ri);
+  const body = keep.map(ri => {
+    const r = L.rows[ri], rk = newRank(ri), h0 = nowHit(r, ri);
+    // 「現役」の印：通算の記録だけ（現役の記録は全員が現役なので出さない・シーズンの記録も出さない）。NPBの現役の印（選手番号）で決める。引退を発表した選手は「引退」
+    const rt = kind === "lt" && isAct(ri) && retired(h0), act = kind === "lt" && isAct(ri) && !rt;   // 「現役」の印：NPBの現役の印（選手番号）だけで決める。引退を発表した選手は「引退」
     const yv = kind === "ss" ? recCell(r[yi]) : period(r[pi]);
     // 名前を押すと：今の選手は選手の画面、引退した選手はNPBの選手のページ（ほかのタブと同じく、名前はどれも押せる）
     const tapA = h0 ? ` data-pl="${h0.t}|${esc(h0.n)}|${side === "p" ? "pit" : "bat"}"` : (L.pid && L.pid[ri] ? ` data-npb="${esc(L.pid[ri])}"` : "");
-    return `<tr class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${esc(r[0])}</span></td><td class="pnm"${tapA}>${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : rt ? `<span class="recact rt">引退</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
+    return `<tr data-ri="${ri}" class="${rk === 1 ? "lead" : ""}"${h0 ? ` style="${tv(h0.t)}"` : ""}><td class="num"><span class="rkm r${rk >= 1 && rk <= 3 ? rk : 0}">${rk || esc(r[0])}</span></td><td class="pnm"${tapA}>${isPawa() ? `<div class="recnmw">${recTile(r[ni], h0, L.pos && L.pos[ri], L.role && L.role[ri])}</div>` : `<span class="recnm">${esc(r[ni])}</span>`}${act ? `<span class="recact">現役</span>` : rt ? `<span class="recact rt">引退</span>` : ""}</td><td class="tnm">${teamOf(r, ri)}</td><td class="num v">${recCell(r[vi])}</td><td class="num rp">${yv}</td></tr>`;
   }).join("");
   tbl.innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
   $("recNote").textContent = L.note || "";

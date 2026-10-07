@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007232552">
+<meta name="build" content="20261008002144">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2533,6 +2533,88 @@ html:not(.theme-pawa) .ps-pos:not(#z),html:not(.theme-pawa) #kicker:not(#z),.min
 /* 打順の守備位置：途中で変わった選手は札を1つずつ並べる（入りきらなければ折り返す。名前の札と打率の位置は変えない） */
 .lnm .lpis:not(#z){display:inline-flex;flex-wrap:wrap;gap:4px;flex:0 1 auto;min-width:0;align-self:center;overflow:visible;white-space:normal;font-weight:inherit}
 .lnm .lpis .posic:not(#z){flex:none}
+/* ===== CS・日本シリーズのトーナメント表：ナイターの特別な舞台（どの見た目でも夜空の舞台。照明・金のトロフィー・勝ち上がった線はチームの色で光る） ===== */
+.tb{--ln:rgba(255,255,255,.14);--box:rgba(10,16,34,.72);--boxb:rgba(255,255,255,.12);--mut:#9FB0D0;--gold:#F5C542;
+  position:relative;overflow:hidden;margin:14px 0 6px;padding:16px 10px 14px;border-radius:22px;display:grid;color:#EEF3FF;isolation:isolate;
+  background:radial-gradient(60% 38% at 18% 0%,rgba(255,255,255,.16),transparent 70%),radial-gradient(60% 38% at 82% 0%,rgba(255,255,255,.16),transparent 70%),
+    radial-gradient(70% 45% at 50% 18%,rgba(245,197,66,.20),transparent 70%),repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 14px),linear-gradient(180deg,#0B1530 0%,#070B18 60%,#0A1A12 100%);
+  box-shadow:inset 0 0 0 1px rgba(245,197,66,.35),0 14px 34px rgba(0,0,0,.35)}
+.tb::after{content:"";position:absolute;left:-10%;right:-10%;bottom:-60px;height:120px;background:radial-gradient(50% 60% at 50% 0%,rgba(46,160,90,.25),transparent 70%);z-index:-1}
+.tb *{box-sizing:border-box}
+.tb-top{display:grid;justify-items:center;gap:4px;position:relative}
+.tb-cup{width:58px;height:58px;filter:drop-shadow(0 0 10px rgba(245,197,66,.55)) drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.tb.crowned .tb-cup{width:70px;height:70px;filter:drop-shadow(0 0 18px rgba(245,197,66,.9)) drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.tb.crowned .tb-top::before{content:"";position:absolute;top:-30px;left:50%;width:240px;height:150px;margin-left:-120px;z-index:-1;
+  background:repeating-conic-gradient(from 0deg at 50% 45%,rgba(245,197,66,.20) 0 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(closest-side,#000 30%,transparent);mask:radial-gradient(closest-side,#000 30%,transparent)}
+.tb-champ{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:999px;border:1.5px solid rgba(245,197,66,.55);background:rgba(10,16,34,.8);color:var(--gold);font-size:15px;font-weight:900;letter-spacing:.16em}
+.tb-champ.on{background:linear-gradient(90deg,var(--tc),color-mix(in srgb,var(--tc) 70%,#000));border:2px solid var(--gold);color:var(--ti,#fff);letter-spacing:.06em;font-size:18px;box-shadow:0 0 22px rgba(245,197,66,.55)}
+.tb-champ .tb-cs{font-size:11px;font-weight:900;letter-spacing:.12em;padding:2px 8px;border-radius:999px;background:linear-gradient(180deg,#FFF4C2,#D4A017);color:#2A1E00}
+.tb-join{position:relative;height:22px;margin:4px 25% 0}
+.tb-join::before{content:"";position:absolute;left:50%;top:0;height:11px;width:3px;margin-left:-1.5px;background:var(--ln);border-radius:2px}
+.tb-join.on::before{background:var(--gold);box-shadow:0 0 10px var(--gold)}
+.tb-join i{position:absolute;top:10px;bottom:0;width:50%;border-top:3px solid var(--ln)}
+.tb-join i.l{left:0;border-left:3px solid var(--ln);border-top-left-radius:12px}
+.tb-join i.r{right:0;border-right:3px solid var(--ln);border-top-right-radius:12px}
+.tb-join i.on{border-color:var(--tc);filter:drop-shadow(0 0 5px var(--tc))}
+.tb-js,.tb-m{position:relative;border-radius:16px;background:var(--box);border:1px solid var(--boxb);padding:8px;display:grid;gap:5px;min-width:0;backdrop-filter:blur(2px);box-shadow:0 8px 18px rgba(0,0,0,.35)}
+.tb-js{border:1.5px solid rgba(245,197,66,.55);box-shadow:0 0 0 1px rgba(245,197,66,.15),0 0 26px rgba(245,197,66,.18),0 8px 18px rgba(0,0,0,.35)}
+.tb-jsr{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tb-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tb-col{display:flex;flex-direction:column;min-width:0}
+.tb-ln.v{align-self:center;width:3px;height:16px;background:var(--ln);border-radius:2px}
+.tb-ln.v.on{background:var(--tc);box-shadow:0 0 10px var(--tc)}
+.tb-mh{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 5px;font-size:12px;font-weight:900;color:#fff;letter-spacing:.1em;margin:0 0 2px}
+.tb-mh small{font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--mut)}
+.tb-mh > *{white-space:nowrap}
+.tb-lg{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,.14);font-size:11px;letter-spacing:0}
+.tb-jsh{font-size:13px;color:var(--gold);letter-spacing:.2em}
+.tb-p{position:relative;display:flex;align-items:center;gap:6px;height:36px;padding:0 0 0 7px;border-radius:7px;color:var(--ti,#fff);overflow:hidden;min-width:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0) 50%,rgba(0,0,0,.18)),var(--tc,#2A3350);clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+.tb-p.win{box-shadow:inset 0 0 0 2px var(--gold),0 0 16px color-mix(in srgb,var(--tc) 75%,transparent)}
+.tb-p.win::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.35) 45%,transparent 60%);background-size:250% 100%;animation:tbshine 3.2s ease-in-out infinite}
+@keyframes tbshine{0%{background-position:120% 0}60%,100%{background-position:-60% 0}}
+@media (prefers-reduced-motion:reduce){.tb-p.win::after{animation:none;opacity:0}}
+.tb-p.lose{opacity:.42}
+.tb-p.tbd{background:rgba(255,255,255,.06);color:var(--mut);border:1px dashed rgba(255,255,255,.18)}
+.tb-seed{flex:none;font-size:11px;font-weight:900;padding:1px 5px;border-radius:4px;background:rgba(0,0,0,.72);color:#fff;letter-spacing:0;position:relative;z-index:1}
+.tb-p.tbd .tb-seed{background:rgba(255,255,255,.12)}
+.tb-n{flex:1 1 auto;min-width:0;font-size:14px;font-weight:900;white-space:nowrap;letter-spacing:-.01em;position:relative;z-index:1;text-shadow:0 1px 0 rgba(0,0,0,.15)}
+.tb-n.n5{font-size:12.5px;letter-spacing:-.04em}
+.tb-n.n6{font-size:12px;letter-spacing:-.06em}
+.tb-p.tbd .tb-n{font-weight:700;text-shadow:none}
+.tb-w{flex:none;align-self:stretch;display:grid;place-items:center;min-width:32px;font-size:20px;font-weight:900;background:rgba(5,8,18,.82);color:#fff;position:relative;z-index:1;
+  clip-path:polygon(8px 0,100% 0,100% 100%,0 100%);padding-left:6px}
+.tb-p.win .tb-w{color:var(--gold);text-shadow:0 0 8px rgba(245,197,66,.6)}
+.tb-p.tbd .tb-w{background:transparent}
+.tb-adv{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 6px;height:20px;border-radius:5px;background:color-mix(in srgb,var(--tc) 22%,rgba(0,0,0,.3));font-size:11px;color:#fff}
+.tb-adv span{font-weight:700;opacity:.9;letter-spacing:.02em;white-space:nowrap;overflow:hidden}
+.tb-adv b{font-weight:900;color:var(--gold)}
+.tb-gs{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:4px;margin-top:2px}
+.tb-g{position:relative;display:grid;justify-items:center;align-content:center;height:36px;border-radius:7px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.18);color:var(--mut);line-height:1.15;overflow:hidden}
+.tb-g small{position:absolute;top:1px;left:3px;font-size:11px;font-weight:800;opacity:.0}
+.tb-g i{font-style:normal;font-size:11px;font-weight:800;white-space:nowrap}
+.tb-g b{font-size:12px;font-weight:900;white-space:nowrap}
+.tb-g.w{background:linear-gradient(180deg,rgba(255,255,255,.25),rgba(255,255,255,0) 55%),var(--tc);border:0;color:var(--ti,#fff)}
+.tb-g.d{background:#5B6378;border:0;color:#fff}
+.tb-g.lv{border:1.5px solid #FF4D4D;color:#fff;background:rgba(255,77,77,.16);animation:tblive 1.6s ease-in-out infinite}
+.tb-g.lv i{color:#FF8A8A}
+@keyframes tblive{50%{box-shadow:0 0 12px rgba(255,77,77,.6)}}
+@media (prefers-reduced-motion:reduce){.tb-g.lv{animation:none}}
+.tb-g.cx{opacity:.6}
+.tb-g.o7{opacity:.45}
+.tb-go{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:2px;padding:3px 6px;border-radius:999px;font-size:11px;font-weight:800;color:var(--gold);background:rgba(245,197,66,.10);border:1px solid rgba(245,197,66,.4);white-space:nowrap;overflow:hidden}
+.tb-go b{color:#fff;font-weight:900}
+@media (max-width:374px){.tb{padding:14px 6px 12px}.tb-mh{letter-spacing:.02em;gap:2px 3px}.tb-p{gap:4px;padding-left:5px}.tb-n{font-size:13px}.tb-n.n5{font-size:11.5px}.tb-n.n6{font-size:11px;letter-spacing:-.08em}.tb-seed{padding:1px 3px}
+  .tb-w{font-size:17px;min-width:26px;padding-left:5px}.tb-cols,.tb-jsr{gap:4px}.tb-js,.tb-m{padding:5px}.tb-gs{grid-template-columns:repeat(auto-fill,minmax(31px,1fr));gap:3px}.tb-g b{font-size:11px}.tb-adv span{font-size:11px}}
+/* どの見た目でも夜空の舞台なので、テーマの文字色の決まり（パワプロ風の紺の字など）より強く */
+.tb .tb-p:not(.tbd) .tb-n:not(#z),.tb .tb-g.w :is(i,b):not(#z){color:var(--ti,#fff) !important}
+.tb .tb-w:not(#z),.tb .tb-seed:not(#z),.tb .tb-mh:not(#z),.tb .tb-go b:not(#z),.tb .tb-adv:not(#z),.tb .tb-g.d :is(i,b):not(#z),.tb .tb-g.lv b:not(#z){color:#fff !important}
+.tb .tb-p.win .tb-w:not(#z),.tb .tb-jsh:not(#z),.tb .tb-go:not(#z),.tb .tb-adv b:not(#z),.tb .tb-champ:not(.on):not(#z){color:#F5C542 !important}
+.tb .tb-mh small:not(#z),.tb .tb-p.tbd :is(.tb-n,.tb-seed):not(#z),.tb .tb-g:not(.w):not(.d):not(.lv) :is(i,b):not(#z){color:#9FB0D0 !important}
+.tb .tb-g.lv i:not(#z){color:#FF8A8A !important}
+.tb .tb-champ.on:not(#z) b{color:var(--ti,#fff) !important}
+.tb .tb-champ .tb-cs:not(#z){color:#2A1E00 !important}
+html.theme-pawa .tb{box-shadow:inset 0 0 0 1px rgba(245,197,66,.35),0 0 0 3px #1D3E7C,0 6px 0 rgba(29,62,124,.35)}
 /* 名前の札（一球速報の投手・打者・次の打者・打順・投手の表・得点の流れ・走者）：字は11px未満にしない。入らない長い名前は2行に（行の長さをそろえる） */
 html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),html.theme-pawa .putab td.pnx .sptile b:not(#z),html.theme-pawa .flow .fb .sptile b:not(#z),html.theme-pawa .ptile.rtile b:not(#z),html.theme-pawa .pnx3 .ptile.sptile b:not(#z){
   font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))) !important;white-space:normal !important;text-wrap:balance;line-height:1.05;text-align:center;overflow-wrap:anywhere}
@@ -3435,6 +3517,8 @@ html.sty-light:not(.theme-pawa) .psub{color:#59595F}
 html.sty-light:not(.theme-pawa) .psub b{color:#1C1C21}
 html.sty-light:not(.theme-pawa) .pcnt{background:rgba(20,24,40,0.108);color:#1C1C21}
 html.sty-light:not(.theme-pawa) .pbox.v2 .pnx3{border-top:1px solid #E0E0E0}
+html.sty-light:not(.theme-pawa) .tb-champ .tb-cs{background:linear-gradient(180deg,#FFF4C2,#D4A017);color:#FFFFFF}
+html.sty-light:not(.theme-pawa) .tb-g.d{background:#5B6378;color:#fff}
 html.sty-light:not(.theme-pawa) #peek .pk-card{background:#F0F0F3;border:1px solid #E3E3E6}
 html.sty-light:not(.theme-pawa) .pk-h small{color:#575761}
 html.sty-light:not(.theme-pawa) .pk-t{color:#575761}
@@ -6833,21 +6917,46 @@ function renderBracket() {
     return `<span class="bk-g${x.st === "live" ? " lv" : ""}"><em>第${g.no}戦</em>${md(g.d)}${r ? `<b class="num">${esc(r)}</b>` : ""}</span>`;
   };
   const pro = me.done ? "" : "今の順位で表示（シーズン終了で確定）";
+  // 試合ごとの結果（トーナメント表の下）：日付・スコア・○●△。チームの札はトーナメント表にあるので、ここには出さない
   const stage = (name, rule, gs, top, bottom, s, note) => `<div class="bk-st"><div class="bk-h"><b>${name}</b><small>${span(gs)}　${rule}</small></div>
-    <div class="bk-m">${top}${bottom}</div>${gs.length ? `<div class="bk-gs">${gs.map(g => chip(g, s.hi)).join("")}</div>` : ""}
+    ${gs.length ? `<div class="bk-gs">${gs.map(g => chip(g, s.hi)).join("")}</div>` : ""}
     ${s.win ? `<p class="bk-win">${fn(s.win)}${note}</p>` : ""}</div>`;
   const L = lg === "C" ? "セ" : "パ";
-  box.innerHTML = `<h2>CS・日本シリーズ</h2>${pro ? `<p class="bk-note">${pro}</p>` : ""}<div class="bk">
-    ${stage(`${L}・CSファーストステージ`, "先に2勝（3試合・並んだら2位）", me.cs1, tm(me.rk[1], "2位", me.s1.wh, me.s1.win), tm(me.rk[2], "3位", me.s1.wl, me.s1.win), { ...me.s1, hi: me.rk[1] }, "がファイナルステージへ")}
-    ${stage(`${L}・CSファイナルステージ`, me.rule ? (me.rule.two ? "先に5勝（1位に2勝のアドバンテージ・7試合）" : "先に4勝（1位に1勝のアドバンテージ・6試合）") : "先に4勝（6試合・1位に1勝のアドバンテージ）／条件により先に5勝（7試合・2勝のアドバンテージ）", me.csf, tm(me.rk[0], "1位", me.sf.wh, me.sf.win, me.R.adv), tm(me.s1.win, "ファースト勝者", me.sf.wl, me.sf.win), { ...me.sf, hi: me.rk[0] }, `が日本シリーズへ（${L}・リーグ代表）`)}
-    ${(() => {   // 2026年からの決まり：どちらの形になるか（なりそうか）を説明
-      // 相手が決まっていればステージの見出し（先に4勝／5勝）で分かるので何も出さない。決まっていなければ1行だけ
-      const r = me.rule, two = x => x.two ? "先に5勝（2勝のアドバンテージ）" : "先に4勝（1勝のアドバンテージ）";
-      if (r) return "";
-      return `<p class="bk-rule">ファイナル：${esc(fn(me.rk[1]))}が勝ち上がれば${two(me.rule2)}、${esc(fn(me.rk[2]))}なら${two(me.rule3)}</p>`;
-    })()}
-    ${stage("日本シリーズ", "先に4勝（7試合）", jsg, tm(seW, "セ代表", js.wh, js.win), tm(paW, "パ代表", js.wl, js.win), { ...js, hi: seW }, "が日本一")}
-  </div>`;
+  // ===== トーナメント表：下から ファースト（2位-3位）→ ファイナル（1位-勝者）→ 日本シリーズ（セ代表-パ代表）→ 日本一。左がセ・右がパ =====
+  const C = lg === "C" ? me : ot, P2 = lg === "C" ? ot : me;
+  // ===== トーナメント表（ナイターの特別な舞台）：下から ファースト → ファイナル → 日本シリーズ → 日本一。左がセ・右がパ =====
+  // チームの札：チームの色の帯（放送のテロップのように右が斜め）。勝ち上がったら金色に光る・負けたら薄く（色はそのまま）
+  const plate = (t, seed, wins, win) => `<div class="tb-p${t && win === t ? " win" : t && win ? " lose" : ""}${t ? "" : " tbd"}" style="${t ? tv(t) : ""}">
+      <span class="tb-seed">${seed}</span>${t ? `<b class="tb-n${[...fn(t)].length >= 6 ? " n5 n6" : [...fn(t)].length >= 5 ? " n5" : ""}">${fn(t)}</b><span class="tb-w num">${wins}</span>` : `<b class="tb-n">未定</b><span class="tb-w num"></span>`}</div>`;
+  // 1試合ずつの札：勝ったチームの色で「神 3-1」（勝った方の点が先）。引き分けは灰色、試合中は赤く光る、これからは点線で日付、中止は「中止」
+  const gtiles = gs => !gs.length ? "" : `<div class="tb-gs">${gs.map(g => {
+      const lv = g.h && g.a && LIVEPOST[g.d + g.h + g.a], x = lv && g.st !== "final" ? { ...g, ...lv } : g;
+      const hi = Math.max(x.hs ?? 0, x.as ?? 0), lo = Math.min(x.hs ?? 0, x.as ?? 0), lead = x.hs > x.as ? x.h : x.as > x.hs ? x.a : null;
+      if (x.st === "final" && lead) return `<span class="tb-g w" style="${tv(lead)}"><small>${g.no}</small><i>${sn(lead)}</i><b class="num">${hi}-${lo}</b></span>`;
+      if (x.st === "final") return `<span class="tb-g d"><small>${g.no}</small><i>分</i><b class="num">${hi}-${lo}</b></span>`;
+      if (x.st === "live") return `<span class="tb-g lv"${lead ? ` style="${tv(lead)}"` : ""}><small>${g.no}</small><i>${lead ? sn(lead) : "LIVE"}</i><b class="num">${hi}-${lo}</b></span>`;
+      return `<span class="tb-g${x.st === "canc" ? " cx" : ""}${g.only7 ? " o7" : ""}"><small>${g.no}</small><i>${x.st === "canc" ? "中止" : "第" + g.no + "戦"}</i><b class="num">${md(g.d)}</b></span>`; }).join("")}</div>`;
+  const adv = (t, n) => t && n ? `<div class="tb-adv" style="${tv(t)}"><span>アドバンテージ</span><b class="num">${n}勝</b></div>` : "";
+  const done1 = (w, to) => w ? `<div class="tb-go" style="${tv(w)}"><b>${fn(w)}</b>${to}</div>` : "";
+  const line = (win, cls) => `<div class="tb-ln ${cls}${win ? " on" : ""}"${win ? ` style="${tv(win)}"` : ""}></div>`;
+  const col = (X, lab) => `<div class="tb-col">
+      ${line(X.sf.win, "v")}
+      <div class="tb-m"><div class="tb-mh"><span class="tb-lg">${lab}</span><span>ファイナル</span><small>先に${X.R.need}勝</small></div>${plate(X.rk[0], "1位", X.sf.wh, X.sf.win)}${plate(X.s1.win, "勝者", X.sf.wl, X.sf.win)}${adv(X.rk[0], X.R.adv)}${gtiles(X.csf)}${done1(X.sf.win, "突破")}</div>
+      ${line(X.s1.win, "v")}
+      <div class="tb-m"><div class="tb-mh"><span class="tb-lg">${lab}</span><span>ファースト</span><small>先に2勝</small></div>${plate(X.rk[1], "2位", X.s1.wh, X.s1.win)}${plate(X.rk[2], "3位", X.s1.wl, X.s1.win)}${gtiles(X.cs1)}${done1(X.s1.win, "突破")}</div></div>`;
+  const champ = js.win;
+  const trophy = `<svg class="tb-cup" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="tbgold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4C2"/><stop offset=".45" stop-color="#F5C542"/><stop offset="1" stop-color="#B8860B"/></linearGradient></defs>
+      <path d="M18 8h28v10c0 9-6 16-14 16S18 27 18 18z" fill="url(#tbgold)"/><path d="M18 12H9c0 8 4 12 10 13M46 12h9c0 8-4 12-10 13" fill="none" stroke="url(#tbgold)" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M28 34h8v8h-8z" fill="url(#tbgold)"/><path d="M20 46h24l3 8H17z" fill="url(#tbgold)"/><path d="M24 12l2 10" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  const tree = `<div class="tb${champ ? " crowned" : ""}" aria-label="トーナメント表">
+    <div class="tb-top">${trophy}<div class="tb-champ${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}>${champ ? `<b>${fn(champ)}</b><span class="tb-cs">日本一</span>` : `<b>日本一</b>`}</div></div>
+    <div class="tb-join${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}><i class="l${js.win && js.win === seW ? " on" : ""}"${seW && js.win === seW ? ` style="${tv(seW)}"` : ""}></i><i class="r${js.win && js.win === paW ? " on" : ""}"${paW && js.win === paW ? ` style="${tv(paW)}"` : ""}></i></div>
+    <div class="tb-js"><div class="tb-mh tb-jsh"><span>日本シリーズ</span><small>先に4勝</small></div><div class="tb-jsr">${plate(seW, "セ", js.wh, js.win)}${plate(paW, "パ", js.wl, js.win)}</div>${seW && paW ? gtiles(jsg) : ""}</div>
+    <div class="tb-cols">${col(C, "セ")}${col(P2, "パ")}</div></div>`;
+  // 2026年からの決まり：ファイナルの相手が決まっていなければ、どちらの形になるかを1行だけ
+  const ruleLine = (() => { const r = me.rule, two = x => x.two ? "先に5勝（2勝のアドバンテージ）" : "先に4勝（1勝のアドバンテージ）";
+    return r ? "" : `<p class="bk-rule">ファイナル：${esc(fn(me.rk[1]))}が勝ち上がれば${two(me.rule2)}、${esc(fn(me.rk[2]))}なら${two(me.rule3)}</p>`; })();
+  box.innerHTML = `<h2>CS・日本シリーズ</h2>${pro ? `<p class="bk-note">${pro}</p>` : ""}${tree}${ruleLine}`;
 }
 // その月度の支払い（最下位）の球団：終わっていればその月の最下位、終わっていなくても支払いが確定していればその球団。まだなら null
 function monthPayer(a) {

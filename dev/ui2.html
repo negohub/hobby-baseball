@@ -1905,12 +1905,14 @@ html:not(.theme-pawa) #songList .ptile.n5:not(#z) b{letter-spacing:0}
 /* パワプロ風：タイルの大きさ・名前の字はほかのタブと同じ（元のまま）。♪はタイルの右上の角に小さな丸で（名前に重ならないよう、角の外側に） */
 html.theme-pawa #songList .ptiles:not(#z){padding:6px 4px 8px 2px}
 html.theme-pawa #songList .ptile:not(#z){overflow:visible}
-html.theme-pawa #songList .tno small:not(#z){position:absolute;left:5px;top:1px;line-height:1}
-html.theme-pawa #songList .ptile.w2:not(#z){padding-top:4px}
+/* 背番号は、♪・戦力外の札と同じくタイルの上の辺に乗せる（名前はほかのタブと同じく上下左右の真ん中） */
+html.theme-pawa #songList .tno small:not(#z){position:absolute;left:6px;top:-11px;z-index:3;height:15px;padding:0 5px;border-radius:8px;line-height:15px;font-size:11px;font-weight:800;
+  background:#fff;color:#13264A !important;opacity:1 !important;box-shadow:0 0 0 1.5px rgba(19,38,74,.45)}
+html.theme-pawa.pawa-dark #songList .tno small:not(#z):not(#y){background:#13213F !important;color:#DEE5F2 !important;box-shadow:0 0 0 1.5px #3D64B0}
 html.theme-pawa #songList .tno .tsong:not(#z){position:absolute;top:-12px;right:5px;z-index:3;width:15px;height:15px;box-shadow:0 0 0 1.5px #fff}
-/* 名前はほかのタブと同じく真ん中。背番号（左上の角）と重ならないよう、名前は少し下に。字の大きさはほかのタブと同じ（14・13・11.5px）で、入らないときだけ11pxまで小さく、それでも入らない長い名前は2行に */
+/* 名前はほかのタブと同じく上下左右の真ん中。字の大きさはほかのタブと同じ（14・13・11.5px）で、入らないときだけ11pxまで小さく、それでも入らない長い名前は2行に */
 html.theme-pawa #songList .ptiles:not(#z){row-gap:16px;padding-top:14px}
-html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:11px 4px 0;box-sizing:border-box;--fs:14px}
+html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:0 4px;box-sizing:border-box;--fs:14px}
 html.theme-pawa #songList .ptile.n5:not(#z){--fs:13px}
 html.theme-pawa #songList .ptile.n7:not(#z){--fs:11.5px}
 html.theme-pawa #songList .ptile:not(#z) b{font-size:max(11px, min(var(--fs), calc(100cqw / var(--w, 3.5)))) !important;margin:0 !important;max-width:100%;

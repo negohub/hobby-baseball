@@ -6,6 +6,15 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE) if os.path.basename(HERE) == "dev" else HERE
 sys.path.insert(0, HERE)
 os.chdir(ROOT)
+# 色を自動で作る3つの部品。スマホから上げると名前の「_」が空白になることがあるので、どちらの名前でも読む
+def _mod(name):
+    import importlib.util
+    for fn in (name + ".py", name.replace("_", " ") + ".py"):
+        p = os.path.join(HERE, fn)
+        if os.path.exists(p):
+            spec = importlib.util.spec_from_file_location(name, p); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+            return m
+    raise FileNotFoundError(os.path.join(HERE, name + ".py"))
 ui=open(os.path.join(HERE,'ui2.html'),encoding='utf-8').read()
 core=open(os.path.join(HERE,'core.js'),encoding='utf-8').read()
 snap=open('data/latest.json',encoding='utf-8').read().replace('</','<\\\\/')
@@ -22,14 +31,14 @@ def ver(m):
     return f'{attr}="{f}?v={h}"'
 html=re.sub(r'(href|src)="((?:splash/)?[A-Za-z0-9_\-]+\.(?:png|jpg)(?:\?v=[0-9a-f]+)?)"', ver, html)
 # パワプロ風（夜）：パワプロ風（昼）のスタイルから夜の色の指定を作って、いちばん最後のスタイルの前に入れる
-import pawa_night
+pawa_night = _mod("pawa_night")
 _css = ''.join(re.findall(r'<style[^>]*>(.*?)</style>', ui, re.S))
 _night = pawa_night.build(_css)
 # スタイリッシュ（ライト）：スタイリッシュ（黒）のスタイルから明るい色の指定を作る
-import sty_light
+sty_light = _mod("sty_light")
 _night += "\n/* ===== スタイリッシュ（ライト）：自動で作った色の置き換え（sty_light.py） ===== */\n" + sty_light.build(_css)
 # 4つの見た目の文字の読みやすさ：できあがったスタイル全体（自動で作った夜・ライトも含む）から、足りない文字の色を直す
-import contrast_fix
+contrast_fix = _mod("contrast_fix")
 _all = _css + "\n" + _night
 _night += "\n/* ===== 文字の読みやすさ（contrast_fix.py） ===== */\n" + contrast_fix.build(_all)
 # 自動で作った指定は、手で書いた夜・ライトの仕上げ（「===== パワプロ風（夜）：パワプロの形」から下）より前に入れる。

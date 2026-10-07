@@ -1905,11 +1905,12 @@ html:not(.theme-pawa) #songList .ptile.n5:not(#z) b{letter-spacing:0}
 /* パワプロ風：タイルの大きさ・名前の字はほかのタブと同じ（元のまま）。♪はタイルの右上の角に小さな丸で（名前に重ならないよう、角の外側に） */
 html.theme-pawa #songList .ptiles:not(#z){padding:6px 4px 8px 2px}
 html.theme-pawa #songList .ptile:not(#z){overflow:visible}
-html.theme-pawa #songList .tno small:not(#z){position:absolute;left:5px;top:3px}
+html.theme-pawa #songList .tno small:not(#z){position:absolute;left:5px;top:1px;line-height:1}
+html.theme-pawa #songList .ptile.w2:not(#z){padding-top:4px}
 html.theme-pawa #songList .tno .tsong:not(#z){position:absolute;top:-12px;right:5px;z-index:3;width:15px;height:15px;box-shadow:0 0 0 1.5px #fff}
-/* 名前は背番号の右から（重ならない）。字の大きさはほかのタブと同じ（14・13・11.5px）で、入らないときだけ11pxまで小さく、それでも入らない長い名前は2行に */
+/* 名前はほかのタブと同じく真ん中。背番号（左上の角）と重ならないよう、名前は少し下に。字の大きさはほかのタブと同じ（14・13・11.5px）で、入らないときだけ11pxまで小さく、それでも入らない長い名前は2行に */
 html.theme-pawa #songList .ptiles:not(#z){row-gap:16px;padding-top:14px}
-html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:0 4px 0 25px;box-sizing:border-box;--fs:14px}
+html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:11px 4px 0;box-sizing:border-box;--fs:14px}
 html.theme-pawa #songList .ptile.n5:not(#z){--fs:13px}
 html.theme-pawa #songList .ptile.n7:not(#z){--fs:11.5px}
 html.theme-pawa #songList .ptile:not(#z) b{font-size:max(11px, min(var(--fs), calc(100cqw / var(--w, 3.5)))) !important;margin:0 !important;max-width:100%;
@@ -3366,6 +3367,7 @@ function setTab(t) {
   if (groupPages(grp).length > 1 && SUB_LAST[grp] !== t) { SUB_LAST[grp] = t; try { localStorage.setItem("sub-v1", JSON.stringify(SUB_LAST)); } catch {} }
   renderSubNav();
   ["magic", "game", "cal", "std", "stdh", "song", "stats", "rec", "ven", "off"].forEach(k => { const v = $("v-" + k); v.hidden = k !== t; if (k !== t) v.classList.remove("swin"); });
+  if (t === "song") markWrapped();   // 見えてから測る（2行になった長い名前）
   window.scrollTo({ top: 0 });
 }
 let autoGame = true;
@@ -5819,8 +5821,17 @@ function renderSong() {
   if (!roster.length) { $("songList").innerHTML = `<div class="rempty">選手一覧は次の自動更新のあとに表示されます。</div>` + html; return; }
   const nDev = all.filter(x => x.dev).length;
   $("songList").innerHTML = `<p class="scount num">支配下${all.length - nDev}人${nDev ? `・育成${nDev}人` : ""}<span class="sclg"><i class="tsong" aria-hidden="true">♪</i>応援歌あり</span></p>` + (html || `<div class="rempty">見つかりませんでした。</div>`);
+  markWrapped();
 }
 $("songQ").addEventListener("input", e => { S.songQ = e.target.value; renderSong(); });
+// 選手名鑑（パワプロ風）：2行になった長い名前は、タイルの上の方から並べる（1行の名前は背番号の下の高さ）
+function markWrapped() {
+  if (!isPawa()) return;
+  document.querySelectorAll("#songList .ptile").forEach(t => { const b = t.querySelector("b"); t.classList.toggle("w2", !!b && b.getClientRects().length > 0 && b.offsetHeight > parseFloat(getComputedStyle(b).fontSize) * 1.6); });
+}
+let mwT = 0;
+window.addEventListener("resize", () => { clearTimeout(mwT); mwT = setTimeout(() => { if (S.tab === "song") markWrapped(); }, 150); });
+document.addEventListener("toggle", e => { if (e.target.closest && e.target.closest("#songList")) markWrapped(); }, true);
 
 /* ---------- 成績 ---------- */
 // スポナビの個人成績と同じ全項目（打者24・投手27）

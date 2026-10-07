@@ -2495,6 +2495,47 @@ html.theme-pawa .pcnt{background:rgba(19,38,74,.1);color:#13264A}
 html.theme-pawa .pbox.v2 .pnx3{border-top-color:#DCE7F5;background:#F4F9FF}
 html.theme-pawa .pbox.v2 .pnx3.up{background:#FFF3C4}
 @media (max-width:374px){.pbox.v2 .pinn b{font-size:17px}.pln b{font-size:15px}.pln{gap:3px 10px}}
+/* 一球速報を1画面に（10/7〜）：余白を詰める・次の打者は打者の欄の中・更新時刻は「この打席」の見出しの右・1球ごとの一覧は1行（種類とカウントを横に） */
+.pbox.cmp .plast:not(#z){padding-top:6px;padding-bottom:6px}
+.pbox.cmp .pmid:not(#z){padding:5px 14px}
+.pbox.cmp .fwrap:not(#z){padding:4px 14px 0}
+.pbox.cmp .pc3:not(#z){padding:9px 10px 10px}
+.pbox.cmp .pn3:not(#z){margin:4px 0 6px}
+.pbox.cmp .pgauge:not(#z){margin:0 0 5px}
+.pbox.cmp .pln:not(#z){gap:2px 12px}
+.pbox.cmp .psub:not(#z){margin-top:4px}
+.pbox.cmp .pln.p3:not(#z){grid-template-columns:repeat(3,max-content);gap:2px 10px}
+.pbox.cmp .pln .pera:not(#z){grid-column:span 2;white-space:nowrap}
+.pbox.cmp .pln .pera b:not(#z){margin:0 0 0 4px}
+@media (max-width:374px){.pbox.cmp .pln.p3:not(#z){grid-template-columns:repeat(2,max-content)}}
+.pbox.cmp .pres3:not(#z){margin-top:6px}
+.pbox.cmp .pc3 .pnx3:not(#z){margin:8px 0 0;padding:0;border:0;background:none;gap:8px}
+.pbox.cmp .pc3 .pnx3.up:not(#z){padding:6px 8px;border-radius:8px;background:rgba(255,210,31,.12)}
+html.theme-pawa .pbox.cmp .pc3 .pnx3.up:not(#z){background:#FFF3C4}
+html.theme-pawa.pawa-dark .pbox.cmp .pc3 .pnx3.up:not(#z){background:rgba(255,216,77,.16)}
+.pbox.cmp .plist3:not(#z){padding:2px 12px 8px}
+.pbox.cmp .plhd:not(#z){padding:5px 0 4px;align-items:center}
+.pbox.cmp .plhd .pupd:not(#z){margin-left:auto}
+.pbox.cmp .pl3:not(#z){grid-template-columns:22px minmax(0,1fr) 60px 58px;gap:8px;padding:3px 0}
+.pbox.cmp .pl3 .pty:not(#z){flex-direction:row;align-items:baseline;justify-content:space-between;gap:6px}
+.pbox.cmp .pl3.latest:not(#z){padding:3px 6px}
+@media (max-width:374px){.pbox.cmp .pl3 .pty:not(#z){flex-direction:column;align-items:flex-start;gap:0}.pbox.cmp .pl3:not(#z){grid-template-columns:22px minmax(0,1fr) 58px 58px;gap:6px}}
+/* 開いた試合の中（一球速報・投手成績）の字も11px未満にしない（km/h・右投・先発のめやす・NEXT・更新時刻・カウント・km・投手成績の見出しと防御率） */
+.pkm small:not(#z),.hd:not(#z),.pgauge .pgnote:not(#z),.pnx3:not(#z),.pnxl:not(#z),.pupd:not(#z),.pl3 .pcn:not(#z),.pbar b small:not(#z),.putab th:not(#z),.putab td.pnx small:not(#z){font-size:11px}
+.pgauge .pgnote:not(#z){white-space:normal}
+/* 同じく11px未満にしない：投手成績の勝・敗・S・Hの札、放送予定の「テレビ・ネット・ラジオ」、スタメン・ベンチ（試合前の発表・試合中のベンチ）の見出しの小さい字・球団の丸・守備位置の札・打率・「先発」 */
+.putab .dec:not(#z){width:18px;height:18px;font-size:11px}
+.bck:not(#z),.stm summary small:not(#z),.ykb:not(#z),.stp:not(#z),.stl li .sta:not(#z),.stpit .sta:not(#z),.stpit .stk:not(#z){font-size:11px;letter-spacing:0}
+@media (max-width:374px){.stpit .stk:not(#z){grid-column:1/-1;grid-row:1;line-height:1.2}.stpit .stnm:not(#z),.stpit .sta:not(#z){grid-row:2}}
+/* 隠れている所も11px未満にしない：選手の画面の守備位置の札（スタイリッシュ）、上の「hobby baseball」（見出し・スクロール中の帯）、長押しの中（順位・残り・回避などの小見出し、閉じ方の一言）、次戦の日付 */
+html:not(.theme-pawa) .ps-pos:not(#z),html:not(.theme-pawa) #kicker:not(#z),.minibar .mk:not(#z),.pk-hint:not(#z),.pk-row small:not(#z),.ts-h small:not(#z){font-size:11px}
+/* 名前の札（一球速報の投手・打者・次の打者・打順・投手の表・得点の流れ・走者）：字は11px未満にしない。入らない長い名前は2行に（行の長さをそろえる） */
+html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),html.theme-pawa .putab td.pnx .sptile b:not(#z),html.theme-pawa .flow .fb .sptile b:not(#z),html.theme-pawa .ptile.rtile b:not(#z),html.theme-pawa .pnx3 .ptile.sptile b:not(#z){
+  font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))) !important;white-space:normal !important;text-wrap:balance;line-height:1.05;text-align:center;overflow-wrap:anywhere}
+/* 開いた試合の中の切り替え（一球速報｜打順｜投手｜ベンチ）：ほかの切り替えと同じボタンを、横幅いっぱいに等分 */
+.tgd .gseg:not(#z){display:flex;width:100%;box-sizing:border-box;margin:12px 0 10px}
+.tgd .gseg button:not(#z){flex:1 1 0;min-width:0;padding:8px 2px;white-space:nowrap}
+.tgd .gpane:not(#z) > :first-child{margin-top:0}
 /* 選手の画面：今日の試合 */
 .ps-today .ps-main + .ps-main{margin-top:8px}
 .ps-today .ps-res{margin-top:10px}
@@ -3321,7 +3362,7 @@ function renderSubNav() {
 // スワイプ：ページの順（グループの中のページも1つずつ）
 const tabOrder = () => TAB_GROUPS.flatMap(x => x.pages.map(([p]) => p)).filter(pageShown);
 const tabSwiper = makeSwiper({
-  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)),
+  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)) && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
   els: () => [$("v-" + S.tab)],
   edge: dx => { const t = tabOrder(), i = t.indexOf(S.tab); return (dx > 0 && i === 0) || (dx < 0 && i === t.length - 1); },
   target: dir => { const t = tabOrder(), i = t.indexOf(S.tab); return t[i + dir] || null; },
@@ -3373,6 +3414,8 @@ function setTab(t) {
   window.scrollTo({ top: 0 });
 }
 let autoGame = true;
+let autoPane = null;   // 自分の球団の試合を開いたとき、一球速報まで一度だけ送る（autoPaneScroll）
+S.gpane = {};   // 開いた試合の中の切り替え（一球速報・打順・投手・ベンチ）
 // 下のタブ：そのグループで最後に開いていたページへ。いま開いているグループをもう一度押したら、いちばん上へ
 document.querySelectorAll(".tabbar button").forEach(b => (b.onclick = () => {
   autoGame = false;
@@ -3390,8 +3433,11 @@ function maybeAutoGame() {
   autoGame = false;
   const g = live[0];
   S.open[g.d + gkey(g)] = true;
+  S.gpane[g.d + gkey(g)] = "pitch";
+  autoPane = { k: g.d + gkey(g), until: Date.now() + 20000 };
   setTab("game");
   window.scrollTo(0, 0);
+  autoPaneScroll();
   loadDetails(true); loadPitches();
 }
 let hiddenAt = 0;
@@ -3877,6 +3923,7 @@ function renderGame() {
   if (none && none.post) $("postNext").innerHTML = none.html;
   $("noGame").hidden = !none || none.post;
   if (none && !none.post) $("noGame").textContent = none.html;
+  autoPaneScroll();
 }
 function postNextHTML() {
   const today = jst().iso, over = seasonOver();
@@ -4353,14 +4400,14 @@ function pitchHTML(g) {
   //   中継ぎ：めやす30球（線）、20球から黄色・30球から赤、バーは36球でいっぱい（線の位置は先発と同じ）
   const role = pitcherRole(g, p, d, def);
   const NP = role === "rel" ? { cap: 36, line: 30, mid: 20, hi: 30 } : { cap: 120, line: 100, mid: 80, hi: 100 };
-  const gauge = npNow ? `<div class="pgauge ${npNow >= NP.hi ? "hi" : npNow >= NP.mid ? "mid" : ""}"><span>球数</span><i><b style="width:${Math.min(100, npNow / NP.cap * 100)}%"></b><u style="left:${NP.line / NP.cap * 100}%"></u></i><em class="num">${npNow}</em><small class="pgnote">${role === "rel" ? "中継ぎ" : "先発"}・めやす${NP.line}球（線）</small></div>` : "";
+  const gauge = npNow ? `<div class="pgauge ${npNow >= NP.hi ? "hi" : npNow >= NP.mid ? "mid" : ""}"><span>球数</span><i><b style="width:${Math.min(100, npNow / NP.cap * 100)}%"></b><u style="left:${NP.line / NP.cap * 100}%"></u></i><em class="num">${npNow}</em><small class="pgnote">${role === "rel" ? "中継ぎ" : "先発"}・めやす${NP.line}球</small></div>` : "";
   const upd = PD_AT[g.d + gkey(g)] ? new Date(PD_AT[g.d + gkey(g)]).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
   const lastRes = last ? String(last.res || "").normalize("NFKC").trim() : "";
   const abDone = !!lastRes && !/^(ボール|見逃し|空振り|ファウル|ストライク|ファール)$/.test(lastRes);
   // ===== 一球速報（シンプル版）：①いまの1球 ②状況（塁・カウント・アウト） ③投手と打者 ④この打席の投球 ⑤次の打者 =====
-  const pln = (arr) => { const xs = arr.filter(([, v]) => v != null && v !== ""); return xs.length ? `<div class="pln">${xs.map(([k, v]) => `<span><b class="num">${esc(String(v))}</b>${k}</span>`).join("")}</div>` : ""; };
+  const pln = (arr, extra, cls) => { const xs = arr.filter(([, v]) => v != null && v !== ""); return xs.length || extra ? `<div class="pln${cls ? " " + cls : ""}">${xs.map(([k, v]) => `<span><b class="num">${esc(String(v))}</b>${k}</span>`).join("")}${extra || ""}</div>` : ""; };
   const cntNow = cnt[cnt.length - 1] || "";
-  return `<div class="pbox v2">
+  return `<div class="pbox v2 cmp">
     ${last ? `<div class="plast ${pitchCls(last.res)}${newPitch(g, last) ? " fresh" : ""}"><span class="pn">${last.n}</span><div class="plr"><b>${esc(last.res)}</b><small>${esc(last.type)}${cntNow && !abDone ? `<em class="pcnt num">${cntNow}</em>` : ""}</small></div><div class="pkm num"><b>${kmh(last.speed) || "-"}</b><small>km/h</small></div></div>` : ""}
     ${(() => {   // リクエスト（リプレー検証）・判定の変更・危険球・退場など：一球速報の見出し、なければテキスト速報のその回のいちばん新しいできごと
       const nt = ((d && d.notes) || []).filter(x => x.half === p.half).slice(-1)[0];
@@ -4370,7 +4417,7 @@ function pitchHTML(g) {
       return `<div class="preq"><i aria-hidden="true">${lab === "リクエスト" ? "📹" : "⚠️"}</i><b>${lab}</b><span>${esc(txt.replace(/^リクエスト\s*/, ""))}</span></div>`;
     })()}
     <div class="pmid">
-      <div class="pinn"><b>${esc(p.half || "")}</b><span style="${tv(atk)}"><i></i>${fn(atk)}攻撃</span>${upd ? `<small class="pupd"><i></i>${` ${upd} 更新`}</small>` : ""}</div>
+      <div class="pinn"><b>${esc(p.half || "")}</b><span style="${tv(atk)}"><i></i>${fn(atk)}攻撃</span></div>
       <div class="bso3"><div><span>B</span>${lamp(p.b || 0, 3, "b")}</div><div><span>S</span>${lamp(p.s || 0, 2, "s")}</div><div><span>O</span>${lamp(p.o || 0, 2, "o")}</div></div>
     </div>
     <div class="fwrap">${fieldHTML}</div>
@@ -4378,18 +4425,17 @@ function pitchHTML(g) {
       <div class="pc3 pcp" style="${tv(def)}">
         <div class="pr3">投手<em>${fn(def)}</em></div>
         ${p.pitcher ? `<div class="pn3" data-pl="${def}|${esc(p.pitcher.name)}|pit"><b>${pwName(def, p.pitcher.name, "投手")}</b>${hand(p.pitcher.hand)}</div>
-        ${gauge}${pln([["回", pg && pg.ip], ["安", pg && pg.h], ["振", pg && pg.so], ["失", pg && pg.r]])}
-        ${p.pitcher.era ? `<div class="psub">防御率 <b class="num">${esc(p.pitcher.era)}</b></div>` : ""}` : ""}
+        ${gauge}${pln([["回", pg && pg.ip], ["安", pg && pg.h], ["振", pg && pg.so], ["失", pg && pg.r]], p.pitcher.era ? `<span class="pera">防御率<b class="num">${esc(p.pitcher.era)}</b></span>` : "", "p3")}` : ""}
       </div>
       <div class="pc3" style="${tv(atk)}">
         <div class="pr3${abDone ? " done" : ""}">${abDone ? `<span class="abt">打席終了</span><span class="abd rc ${resCls(lastRes)}">${esc(lastRes)}</span>` : "打者"}<em>${fn(atk)}</em></div>
         ${p.batter ? `<div class="pn3" data-pl="${atk}|${esc(p.batter.name)}"><b>${pwName(atk, p.batter.name)}</b>${hand(p.batter.hand)}</div>
         ${pln([["打率", p.batter.avg]])}
         ${bg && bg.results && bg.results.length ? `<div class="pres3">${bg.results.map((r, i) => rcChip(r, (bg.rbis || [])[i])).join("")}</div>` : `<div class="psub">今日はまだ打席なし</div>`}` : ""}
+        ${p.next ? `<div class="pnx3${abDone ? " up" : ""}"><span class="pnxl">${abDone ? "次の打者" : "NEXT"}</span><b data-pl="${atk}|${esc(p.next)}">${pwName(atk, p.next)}</b></div>` : ""}
       </div>
     </div>
-    ${list.length ? `<div class="plist3"><div class="plhd"><b>この打席</b><span><em class="num">${list.length}</em>球</span>${top ? `<span>最速 <em class="num">${top}</em>km</span>` : ""}</div>${list.map((x, i) => `<div class="pl3 ${pitchCls(x.res)}${i === list.length - 1 ? " latest" : ""}"><span class="pn">${x.n}</span><span class="pty">${esc(x.type)}<small class="pcn num">${cnt[i]}</small></span><span class="pbar"><i style="width:${spd(x.speed)}%"></i><b class="num">${kmh(x.speed) ? `${kmh(x.speed)}<small>km</small>` : ""}</b></span><span class="prs">${esc(x.res)}</span></div>`).join("")}</div>` : `<p class="pnone">この打席はまだ投球がありません</p>`}
-    ${p.next ? `<div class="pnx3${abDone ? " up" : ""}"><span class="pnxl">${abDone ? "次の打者" : "NEXT"}</span><b data-pl="${atk}|${esc(p.next)}">${pwName(atk, p.next)}</b></div>` : ""}
+    ${list.length ? `<div class="plist3"><div class="plhd"><b>この打席</b><span><em class="num">${list.length}</em>球</span>${top ? `<span>最速 <em class="num">${top}</em>km</span>` : ""}${upd ? `<small class="pupd"><i></i>${` ${upd} 更新`}</small>` : ""}</div>${list.map((x, i) => `<div class="pl3 ${pitchCls(x.res)}${i === list.length - 1 ? " latest" : ""}"><span class="pn">${x.n}</span><span class="pty">${esc(x.type)}<small class="pcn num">${cnt[i]}</small></span><span class="pbar"><i style="width:${spd(x.speed)}%"></i><b class="num">${kmh(x.speed) ? `${kmh(x.speed)}<small>km</small>` : ""}</b></span><span class="prs">${esc(x.res)}</span></div>`).join("")}</div>` : `<p class="pnone">この打席はまだ投球がありません</p>`}
   </div>`;
 }
 
@@ -4533,14 +4579,55 @@ function detailHTML(g) {
       if (f) h += flowHTML(f, f.half.includes("表") ? g.a : g.h);
     }
   }
-  if (g.st === "live" && PD[g.d + gkey(g)]) h += pitchHTML(g);
-  else if (d.now && g.st === "live") h += `<div class="nowbat"><span class="lv">● ${esc(d.now.half)}</span><b>${esc(d.now.order)} ${esc(callName(/表/.test(d.now.half || "") ? g.a : g.h, d.now.name))}</b><span class="sit">${esc(d.now.sit)}</span></div>`;
-  h += lineupHTML(g, d);
-  h += pitchingHTML(g, d);
-  h += benchHTML(g);
+  // スコア表の下は「一球速報｜打順｜投手｜ベンチ」の切り替え（ボタン・左右のスワイプ）。中身のないものは出さない
+  const panes = gamePanes(g, d), k = g.d + gkey(g);
+  if (panes.length < 2 || S.gpaneAll) return h + panes.map(x => x[2]).join("");   // gpaneAll：検査用（全部を縦に並べる）
+  const cur = panes.find(x => x[0] === S.gpane[k]) || panes[0];
+  h += `<div class="seg gseg" role="tablist" style="--n:${panes.length}">${panes.map(([id, l]) => `<button type="button" role="tab" data-gk2="${k}" data-gp="${id}" aria-pressed="${id === cur[0]}" aria-selected="${id === cur[0]}">${l}</button>`).join("")}</div>`;
+  h += `<div class="gpane" data-gk2="${k}" data-gp="${cur[0]}">${cur[2]}</div>`;
   // 得点シーンの一覧は出さない（スコア表の得点マスをタップすると、その回の流れが開く）
   return h;
 }
+function gamePanes(g, d) {
+  const k = g.d + gkey(g), out = [];
+  if (g.st === "live" && PD[k]) out.push(["pitch", "一球速報", pitchHTML(g)]);
+  else if (d.now && g.st === "live") out.push(["pitch", "一球速報", `<div class="nowbat"><span class="lv">● ${esc(d.now.half)}</span><b>${esc(d.now.order)} ${esc(callName(/表/.test(d.now.half || "") ? g.a : g.h, d.now.name))}</b><span class="sit">${esc(d.now.sit)}</span></div>`]);
+  [["lu", "打順", lineupHTML(g, d)], ["pu", "投手", pitchingHTML(g, d)], ["bench", "ベンチ", benchHTML(g)]].forEach(x => { if (x[2]) out.push(x); });
+  return out;
+}
+const paneList = k => { const g = [...DATA.games, ...postToday()].find(x => x.d + gkey(x) === k), d = g && GD[k]; return g && d ? gamePanes(g, d).map(x => x[0]) : []; };
+function pickPane(k, id) { S.gpane[k] = id; renderGame(); }
+document.addEventListener("click", e => {
+  const b = e.target.closest(".gseg button[data-gp]");
+  if (!b || b.getAttribute("aria-pressed") === "true") return;
+  pickPane(b.dataset.gk2, b.dataset.gp);
+});
+// 開いた試合の中身（スコア表の下）を左右にスワイプすると、一球速報・打順・投手・ベンチを切り替える。端まで来たらタブの切り替えに引き継ぐ
+let paneKey = null;
+makeSwiper({
+  canStart: e => { const p = S.tab === "game" && e.target.closest(".gpane"); paneKey = p ? p.dataset.gk2 : null; return !!p && !e.target.closest("input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target); },
+  els: () => [...document.querySelectorAll(`.gpane[data-gk2="${paneKey}"]`)],
+  edge: dx => { const l = paneList(paneKey), i = l.indexOf((document.querySelector(`.gpane[data-gk2="${paneKey}"]`) || {}).dataset?.gp); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
+  target: dir => { const l = paneList(paneKey), i = l.indexOf((document.querySelector(`.gpane[data-gk2="${paneKey}"]`) || {}).dataset?.gp); return i < 0 ? null : l[i + dir] || null; },
+  commit: id => pickPane(paneKey, id),
+  fallback: tabSwiper,
+});
+// 試合中に自分の球団の試合が開いたとき：一球速報が出たら、それが画面のいちばん上に来るように一度だけ送る（自分で触ったら送らない）
+function autoPaneScroll() {
+  if (!autoPane || autoPane.wait || S.tab !== "game") return;
+  if (Date.now() > autoPane.until) { autoPane = null; return; }
+  const box = document.querySelector(`.gpane[data-gk2="${autoPane.k}"] .pbox`);
+  if (!box) return;
+  const k = autoPane.k; autoPane = { k, wait: true, until: autoPane.until };
+  // 開いたときの「ふわっと」（.tgd の vin、0.35秒）が終わってから測る
+  setTimeout(() => {
+    if (!autoPane || !autoPane.wait || S.tab !== "game") return;
+    autoPane = null;
+    const b = document.querySelector(`.gpane[data-gk2="${k}"] .pbox`);
+    if (b) window.scrollTo({ top: Math.max(0, b.getBoundingClientRect().top + scrollY - 62) });
+  }, 400);
+}
+["touchstart", "wheel", "keydown"].forEach(ev => window.addEventListener(ev, () => { autoPane = null; }, { passive: true }));
 
 function renderToday(a) {
   const byT = {}; a.rows.forEach(r => (byT[r.t] = r));
@@ -4569,6 +4656,7 @@ function renderToday(a) {
     return [];
   };
   const effects = (g, homeWin) => effectsOf(g, homeWin).html;
+  const monthDecided = a.rows.filter(r => !CONFIG.excluded.includes(r.t)).every(r => r.safe || r.eliminated);   // 月度の最下位（支払い）が決まった
   const effectsOf = (g, homeWin) => {
     // この試合を「勝ち」にした場合（試合データの同一性で探し、見つからなければ日付・カード・開始時刻で探す）
     const same = x => x === g || (x.d === g.d && x.h === g.h && x.a === g.a && (x.t || "") === (g.t || "") && x.st === g.st);
@@ -4614,7 +4702,9 @@ function renderToday(a) {
     const eH = open2 ? effectsOf(g, true) : null, eA = open2 ? effectsOf(g, false) : null;
     // 直接対決：対象どうしの試合のうち、勝ち負けで最下位争い（回避・支払いの確定、最下位の入れ替わり、マジック）が動く試合だけ
     const both = byT[g.h] && byT[g.a] && open2 && (eH.race || eA.race);
-    const outs = !open2 ? "" : `
+    // 月度の順位（最下位）が決まっていて、どちらが勝っても何も動かない（優勝マジックなども）ときは「○○が勝ったら」を出さない
+    const quiet = open2 && monthDecided && !eH.race && !eA.race && /class="nil"/.test(eH.html) && /class="nil"/.test(eA.html);
+    const outs = !open2 || quiet ? "" : `
       <div class="tgo${lead === "h" ? " now" : ""}" style="${tv(g.h)}"><b>${fn(g.h)}が勝ったら${lead === "h" ? `<em>このまま終われば</em>` : ""}</b><ul>${eH.html}</ul></div>
       <div class="tgo${lead === "a" ? " now" : ""}" style="${tv(g.a)}"><b>${fn(g.a)}が勝ったら${lead === "a" ? `<em>このまま終われば</em>` : ""}</b><ul>${eA.html}</ul></div>`;
     const k = g.d + gkey(g), canOpen = (live || fin) && CONFIG.liveApi, open = canOpen && S.open[k];

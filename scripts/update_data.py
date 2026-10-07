@@ -1588,12 +1588,17 @@ def merge_transfer(off, season, rosters, now=None):
     return off
 
 
-def fetch_fpos(season, old):
-    """各球団の個人守備成績から、選手ごとに今季守ったポジション（投・捕・内・外）と試合数を取る（1日1回）"""
+def fetch_fpos(season, old, last_day=None):
+    """各球団の個人守備成績から、選手ごとに今季守ったポジション（投・捕・内・外）と試合数を取る。
+    NPBの成績ページは試合の日の夜〜翌朝に更新されるので、「1日1回」だと更新前に読んでその日の分を取りこぼす
+    （広島の林が外野を守ったのに内野だけになっていた）。ページの「○月○日現在」が最後の試合の日に追いつくまで読み直す"""
     today = datetime.now(JST).strftime("%Y-%m-%d")
     prev = (old or {}).get("fpos") or {}
-    if prev.get("date") == today and prev.get("season") == season and len(prev.get("teams", {})) == len(ROSTER_CODE):
-        return prev
+    if (prev.get("date") == today and prev.get("season") == season and len(prev.get("teams", {})) == len(ROSTER_CODE)
+            and (not last_day or (prev.get("asof") or "") >= last_day
+                 or (datetime.now(JST).minute >= 20 and os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch"))):
+        return prev   # 追いついていないときの読み直しは1時間に1回（毎分のように読みに行かない）
+    asof = None
     teams = dict(prev.get("teams", {})) if prev.get("season") == season else {}
     for t, code in ROSTER_CODE.items():
         html = fetch(f"https://npb.jp/bis/{season}/stats/idf1_{code}.html")
@@ -1601,6 +1606,10 @@ def fetch_fpos(season, old):
             print(f"[守備位置] {t} 読み取れず（前回の値を使用）")
             continue
         soup = BeautifulSoup(html, "html.parser")
+        m = re.search(r"(\d{1,2})月(\d{1,2})日\s*現在", soup.get_text(" "))
+        if m:
+            a = f"{season}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
+            asof = a if not asof or a < asof else asof   # いちばん古い球団のページに合わせる
         out = {}
         for table in soup.find_all("table"):
             h = table.find_previous(["h5", "h4", "h3"])
@@ -1709,7 +1718,7 @@ def fetch_fpos(season, old):
             roles[t] = out
             time.sleep(1)
     print(f"[投手の役割] {sum(len(v) for v in roles.values())}人（{len(roles)}球団）")
-    return {"season": season, "date": today, "teams": teams, "roles": roles}
+    return {"season": season, "date": today, "asof": asof or prev.get("asof"), "teams": teams, "roles": roles}
 
 
 def fetch_rosters(old):
@@ -2916,7 +2925,8 @@ def main():
                 g["st"] = "canc"
             else:
                 g["hs"], g["as"], g["st"] = ticker[k][0], ticker[k][1], "final"
-    fpos = safe("守備位置", lambda: fetch_fpos(season, old), (old or {}).get("fpos"))
+    _last = max([g["d"] for g in all_games if g.get("st") == "final"] or [""]) or None
+    fpos = safe("守備位置", lambda: fetch_fpos(season, old, _last), (old or {}).get("fpos"))
     # Actions の画面で「Run workflow」を押したとき（手動で実行したとき）は、3時間の間隔を待たずに球団サイトを見に行く
     off_force = os.environ.get("OFF_FORCE") == "1" or os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch"
     offseason = safe("戦力外・引退", lambda: fetch_offseason(season, old, rosters, off_force, os.environ.get("OFF_FORCE") == "1"), (old or {}).get("offseason"))

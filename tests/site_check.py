@@ -3252,7 +3252,8 @@ async def num_cell_check(browser):
 async def ux_check(browser):
     """使いやすさ：①最初の画面（公式戦が終わったらCS・日本シリーズのあいだは勝ち上がり表、そのあとは入退団）②選手をさがす（12球団）
     ③ページの中の目次 ④名前を押すと開く（球場別・歴代記録）⑤字は11px未満にしない（丸の中の球団の印は除く）
-    ⑥見出しと右上のボタン ⑦シーズンの最終結果 ⑧月度のボタン ⑨横にすべらせる並びがない ⑩戦況の試合速報"""
+    ⑥見出しと右上のボタン ⑦シーズンの最終結果 ⑧月度のボタン ⑨横にすべらせる並びがない ⑩戦況の試合速報
+    ⑪切り替えはボタン（6つ以下）か選ぶ欄（7つ以上） ⑫スクロールしてもページを切り替えられる ⑬対戦成績は戦況の1か所 ⑭時期で中身を入れ替える（CS・日本シリーズ・オフ）"""
     for th in ["pawa", ""]:
         for w in [320, 390]:
             pg, errs = await open_page(browser, w, th)
@@ -3339,6 +3340,53 @@ async def ux_check(browser):
                 gs.forEach((g, i) => { for (const k of Object.keys(g)) delete g[k]; Object.assign(g, keep[i]); });
                 seasonOver = () => true; TAB_DIRTY.add('magic'); renderMagic(); if (!document.getElementById('todayStrip').hidden) ng.push('シーズンが終わっても試合速報が出る');
                 seasonOver = so3; renderAll(); setTab('magic'); }
+              // ⑪ 切り替えの形は2種類：6つ以下は全部見えるボタン、7つ以上は選ぶ欄（どのページも）
+              for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {
+                setTab(tb); await new Promise(r => setTimeout(r, 40));
+                const v = document.getElementById('v-' + tb);
+                v.querySelectorAll('.seg, .chips, .teams, .chips2').forEach(g => { if (!g.offsetParent) return; const n = g.querySelectorAll(':scope > button').length; if (n > 6) ng.push(`${tb}：ボタンが7つ以上並んでいる（${g.id || g.className}・${n}個）`); });
+                v.querySelectorAll('#catSel, #ptCat, #venTeam').forEach(sl => { if (!sl.offsetParent || !sl.options.length) return;   // 数がデータで決まる欄（年度・球場・歴代の部門）は、検査用の小さいデータでは少ないので除く
+                  if (sl.options.length < 7) ng.push(`${tb}：選ぶ欄なのに6つ以下（${sl.id}・${sl.options.length}個）→ボタンに`); });
+              }
+              // ⑫ ページの切り替え（今季｜歴代など）は、スクロールしても上の小さいヘッダーから切り替えられる
+              { setTab('stats'); window.scrollTo(0, 99999); await new Promise(r => setTimeout(r, 120));
+                const mb = document.getElementById('minibar'), bs = [...mb.querySelectorAll('#miniSeg button')];
+                if (!mb.classList.contains('show') || bs.length !== groupPages('data').length) ng.push('スクロールしたときの小さいヘッダーにページの切り替えが出ない');
+                else {
+                  const r0 = mb.getBoundingClientRect(); if (bs.some(b => { const r = b.getBoundingClientRect(); return r.right > r0.right || r.left < r0.left; }) || document.getElementById('miniTtl').scrollWidth > document.getElementById('miniTtl').clientWidth + 1) ng.push('小さいヘッダーの切り替え・見出しがはみ出す・切れる');
+                  bs.find(b => b.dataset.p === 'rec').click(); if (S.tab !== 'rec') ng.push('小さいヘッダーの切り替えを押してもページが変わらない');
+                }
+                setTab('magic'); window.scrollTo(0, 99999); await new Promise(r => setTimeout(r, 120));
+                if (!document.getElementById('miniSeg').hidden) ng.push('切り替えのないページ（戦況）の小さいヘッダーに切り替えが出ている');
+                window.scrollTo(0, 0); }
+              // ⑬ 対戦成績は戦況の1か所：この月度｜今季を切り替えられる（順位タブには出さない）
+              { setTab('magic'); const sg = [...document.querySelectorAll('#mh2hSeg button')];
+                if (sg.length !== 2) ng.push('戦況の対戦成績に「月度｜今季」の切り替えがない');
+                else { sg[1].click(); const note = document.getElementById('mh2hNote').textContent;
+                  const first = document.querySelector('#mh2h tbody tr th')?.textContent, top = seasonTable(DATA.games, calOrder(), pendingMakeups())[0].t;
+                  if (!/今季/.test(note) || first !== calSn(top)) ng.push(`対戦成績を「今季」にしても今季の表にならない（${note}・${first}）`);
+                  document.querySelectorAll('#mh2hSeg button')[0].click(); if (!/月度/.test(document.getElementById('mh2hNote').textContent)) ng.push('対戦成績を月度に戻せない'); }
+                if (document.querySelector('#v-std #h2h, #v-std .h2h')) ng.push('順位タブにも対戦成績が残っている'); }
+              // ⑭ 時期で中身を入れ替える：CS・日本シリーズの時期は、試合がない日に次戦、試合の日は戦況のいちばん上に今日の試合。全部終わったらそう書く
+              { const so4 = seasonOver, jj4 = jst; seasonOver = () => true;
+                const first = postGames().filter(g => g.h && g.a).sort((x, y) => (x.d < y.d ? -1 : 1))[0];
+                if (first) {
+                  const [y0, m0, d0] = first.d.split('-').map(Number), prev = new Date(y0, m0 - 1, d0 - 1);
+                  jst = () => ({ y: prev.getFullYear(), m: prev.getMonth() + 1, d: prev.getDate(), iso: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${String(prev.getDate()).padStart(2, '0')}` });
+                  TAB_DIRTY.add('game'); setTab('game');
+                  const pn = document.getElementById('postNext');
+                  if (pn.hidden || !pn.textContent.includes(STAGE[first.stage][1]) || !pn.querySelector('[data-gobk]')) ng.push('CS・日本シリーズの前の日に、試合タブに次戦が出ない');
+                  jst = () => ({ y: y0, m: m0, d: d0, iso: first.d }); LIVEPOST[first.d + first.h + first.a] = { st: 'live', hs: 1, as: 0, inn: '3回裏' };
+                  S.period = defaultPeriod(periods()); renderAll(); setTab('magic');
+                  const ts = document.getElementById('todayStrip'), c = ts.querySelector('.ts-g[data-pk]');
+                  if (ts.hidden || !c) ng.push('CS・日本シリーズの日に、戦況に今日の試合が出ない');
+                  else { if (ts.nextElementSibling !== document.getElementById('seasonEnd')) ng.push('CS・日本シリーズの今日の試合が最終結果より上にない');
+                    c.click(); await new Promise(r => setTimeout(r, 300)); if (S.tab !== 'game' || !document.querySelector(`#v-game [data-pk="${c.dataset.pk}"]`)) ng.push('戦況のCSの試合を押しても試合タブのその試合が出ない'); }
+                  delete LIVEPOST[first.d + first.h + first.a];
+                }
+                jst = () => ({ y: 2026, m: 12, d: 20, iso: '2026-12-20' }); TAB_DIRTY.add('game'); setTab('game');
+                if (document.getElementById('noGame').hidden || !/すべて終わりました/.test(document.getElementById('noGame').textContent)) ng.push('日本シリーズのあとの試合タブが「今季の試合はすべて終わりました」になっていない');
+                seasonOver = so4; jst = jj4; S.period = defaultPeriod(periods()); renderAll(); setTab('magic'); }
               // ⑤ 字の大きさ
               const small = [];
               for (const tb of ['magic', 'game', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) {

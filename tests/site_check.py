@@ -1065,6 +1065,82 @@ async def multi_pos_check(browser):
             await pg.close()
 
 
+TB_SETUP = """(done) => {
+  jst = () => ({ y: 2026, m: 10, d: done ? 31 : 16, iso: done ? '2026-10-31' : '2026-10-16' });
+  DATA.games.forEach(g => { if (g.st !== 'final' && g.st !== 'canc') { g.st = 'final'; g.hs = 2; g.as = 1; } });
+  const P = DATA.post;
+  for (const lg of ['C', 'P']) { const rk = lgRank(lg).rk, mine = st => P.filter(g => g.stage === st && (g.lg || 'C') === lg).sort((a, b) => a.no - b.no);
+    const c1 = mine('CS1'), cf = mine('CSF');
+    if (lg === 'C') { Object.assign(c1[0], { h: rk[1], a: rk[2], hs: 3, as: 1, st: 'final' }); Object.assign(c1[1], { h: rk[1], a: rk[2], hs: 5, as: 2, st: 'final' });
+      Object.assign(cf[0], { h: rk[0], a: rk[1], hs: 4, as: 1, st: 'final' }); Object.assign(cf[1], { h: rk[0], a: rk[1], hs: 2, as: 3, st: 'final' }); Object.assign(cf[2], { h: rk[0], a: rk[1], hs: 1, as: 0, st: done ? 'final' : 'live' });
+      if (done) Object.assign(cf[3], { h: rk[0], a: rk[1], hs: 6, as: 2, st: 'final' }); }
+    else { Object.assign(c1[0], { h: rk[1], a: rk[2], hs: 1, as: 4, st: 'final' }); Object.assign(c1[1], { h: rk[1], a: rk[2], hs: 3, as: 3, st: 'final' });
+      if (done) { Object.assign(c1[2], { h: rk[1], a: rk[2], hs: 0, as: 2, st: 'final' }); for (let i = 0; i < 4; i++) Object.assign(cf[i], { h: rk[0], a: rk[2], hs: 5, as: 1, st: 'final' }); } }
+  }
+  if (done) { const js = P.filter(g => g.stage === 'JS').sort((a, b) => a.no - b.no), se = lgPost('C').sf.win, pa = lgPost('P').sf.win; [[se, 3, 1], [pa, 2, 0], [se, 4, 2], [se, 5, 4], [pa, 1, 6], [se, 3, 2]].forEach(([w, a, b], i) => Object.assign(js[i], { h: se, a: pa, hs: w === se ? a : b, as: w === se ? b : a, st: 'final' })); }
+  Object.keys(LGPOST_MEMO).forEach(k => delete LGPOST_MEMO[k]); renderAll(); setTab('std');
+  const box = document.getElementById('bracketBox'); box.style.contentVisibility = 'visible'; window.scrollTo(0, box.getBoundingClientRect().top + scrollY - 70); }"""
+
+
+async def tournament_check(browser):
+    """CS・日本シリーズのトーナメント表：下から ファースト → ファイナル → 日本シリーズ → 日本一。左がセ・右がパ。
+    勝ち上がった札（win）と線（on）はそのチームの色、負けた札は薄く。1試合ずつの丸の数・色。はみ出し・重なりなし・字は11px以上・読める色（4つの見た目×幅390/320、途中と全部終わったあと）"""
+    for theme, mode in [("pawa", "light"), ("pawa", "dark"), ("", "dark"), ("", "light")]:
+        for width in [390, 320]:
+            for done in [False, True]:
+                label = f"[トーナメント表 {'パワプロ風' if theme else 'スタイリッシュ'}・{'ダーク' if mode == 'dark' else 'ライト'} 幅{width}{' 全部終了' if done else ' 途中'}]"
+                pg, errs = await open_page(browser, width, theme)
+                await pg.evaluate(f"localStorage.setItem('mode','{mode}'); applyPawaMode()")
+                await pg.evaluate(TB_SETUP, done)
+                await pg.wait_for_timeout(300)
+                r = await pg.evaluate("""(done) => { const ng = [], tb = document.querySelector('#bracketBox .tb'); if (!tb) return ['トーナメント表がない'];
+                  const C = lgPost('C'), P = lgPost('P'), cols = tb.querySelectorAll('.tb-col');
+                  if (cols.length !== 2) ng.push('セ・パの2列になっていない');
+                  const chk = (col, X, lg) => { const ms = col.querySelectorAll('.tb-m'); if (ms.length !== 2) { ng.push(`${lg}：ファイナル・ファーストの2つがない`); return; }
+                    const [fin, fst] = ms, nm = p => (p.querySelector('.tb-n') || {}).textContent;
+                    if (!fst.textContent.includes('ファースト') || !fin.textContent.includes('ファイナル')) ng.push(`${lg}：下がファースト・上がファイナルの順になっていない`);
+                    const fp = fst.querySelectorAll('.tb-p'); if (nm(fp[0]) !== fn(X.rk[1]) || nm(fp[1]) !== fn(X.rk[2])) ng.push(`${lg}：ファーストの2位・3位が違う`);
+                    const gp = fin.querySelectorAll('.tb-p'); if (nm(gp[0]) !== fn(X.rk[0])) ng.push(`${lg}：ファイナルの1位が違う`);
+                    if (X.s1.win && nm(gp[1]) !== fn(X.s1.win)) ng.push(`${lg}：ファーストの勝者がファイナルに上がっていない`);
+                    if (!X.s1.win && nm(gp[1]) !== '未定') ng.push(`${lg}：ファーストが終わっていないのに勝者が入っている`);
+                    [[fst, X.s1], [fin, X.sf]].forEach(([m, s]) => { m.querySelectorAll('.tb-p').forEach(p => { const n = nm(p), isW = !!s.win && n === fn(s.win);
+                      if (isW !== p.classList.contains('win')) ng.push(`${lg}：${n} の勝ち上がりの色が違う`); if (s.win && !isW && n !== '未定' && !p.classList.contains('lose')) ng.push(`${lg}：負けた ${n} が薄くなっていない`); }); });
+                    const lns = col.querySelectorAll('.tb-ln'); if (!!X.sf.win !== lns[0].classList.contains('on') || !!X.s1.win !== lns[1].classList.contains('on')) ng.push(`${lg}：勝ち上がりの線の色が違う`);
+                    // 1試合ずつの札：試合の数だけ。勝った試合は勝ったチームの色で「勝ったチーム・勝った方の点-負けた方の点」
+                    if (fst.querySelectorAll('.tb-g').length !== X.cs1.length || fin.querySelectorAll('.tb-g').length !== X.csf.length) ng.push(`${lg}：1試合ずつの札の数が試合の数と違う`);
+                    const fw = fst.querySelectorAll('.tb-g.w').length, want = X.cs1.filter(g => g.st === 'final' && g.hs !== g.as).length; if (fw !== want) ng.push(`${lg}：勝ちの札の数が違う（${fw}・${want}）`);
+                    const g0 = X.cs1[0], t0 = fst.querySelector('.tb-g');
+                    if (g0 && g0.st === 'final' && g0.hs !== g0.as && t0) { const w = g0.hs > g0.as ? g0.h : g0.a, sc = `${Math.max(g0.hs, g0.as)}-${Math.min(g0.hs, g0.as)}`;
+                      if (t0.querySelector('b').textContent !== sc || t0.querySelector('i').textContent !== sn(w)) ng.push(`${lg}：ファースト第1戦の札が違う（${t0.textContent}、正しくは ${sn(w)} ${sc}）`); }
+                    // 突破の札
+                    if (!!X.s1.win !== !!fst.querySelector('.tb-go') || (X.s1.win && !fst.querySelector('.tb-go').textContent.includes(fn(X.s1.win)))) ng.push(`${lg}：ファーストの突破の札が違う`);
+                    if (!!X.sf.win !== !!fin.querySelector('.tb-go')) ng.push(`${lg}：ファイナルの突破の札が違う`);
+                    if (X.R.adv && !(fin.querySelector('.tb-adv') || {}).textContent?.includes(X.R.adv + '勝')) ng.push(`${lg}：アドバンテージの勝ち数が出ない`); };
+                  chk(cols[0], C, 'セ'); chk(cols[1], P, 'パ');
+                  // 負けたチームも札の色はチームの色のまま（灰色にしない）
+                  tb.querySelectorAll('.tb-p.lose').forEach(p => { const f = getComputedStyle(p).filter; if (/grayscale|saturate\(0/.test(f)) ng.push(`負けた ${p.textContent.trim()} の札がチームの色でない`); });
+                  const champ = tb.querySelector('.tb-champ'); if (done && !champ.classList.contains('on')) ng.push('日本シリーズが終わったのに日本一が出ない'); if (!done && champ.classList.contains('on')) ng.push('まだなのに日本一が出ている');
+                  // はみ出し・重なり・字の大きさ
+                  const W = tb.getBoundingClientRect(); const X2 = (a, b) => a.right > b.left + .5 && a.left < b.right - .5 && a.bottom > b.top + .5 && a.top < b.bottom - .5;
+                  tb.querySelectorAll('*').forEach(e => { const b = e.getBoundingClientRect(); if (b.width && (b.right > W.right + .5 || b.left < W.left - .5)) ng.push(`はみ出し：${e.className}`); });
+                  const ps = [...tb.querySelectorAll('.tb-p, .tb-mh, .tb-champ')]; ps.forEach((a, i) => ps.slice(i + 1).forEach(b => { if (!a.contains(b) && !b.contains(a) && X2(a.getBoundingClientRect(), b.getBoundingClientRect())) ng.push(`重なり：${a.className} と ${b.className}`); }));
+                  tb.querySelectorAll('.tb-p').forEach(p => { const n = p.querySelector('.tb-n'); if (n && n.scrollWidth > n.clientWidth + 1) ng.push(`名前が札に入りきらない：${n.textContent}`); });
+                  // 見出し・札の中の言葉は途中で折り返さない（「ファイナ／ル」にしない）。勝ち抜けの札も1行に収める
+                  tb.querySelectorAll('.tb-go').forEach(e => { const r = document.createRange(); r.selectNodeContents(e); const tops = [...r.getClientRects()].map(x => x.top); if (Math.max(...tops) - Math.min(...tops) > 6) ng.push(`突破の札が2行になっている：${e.textContent}`); if (e.scrollWidth > e.clientWidth + 1) ng.push(`入りきらない：${e.textContent}`); });
+                  tb.querySelectorAll('.tb-mh > *, .tb-g i, .tb-g b, .tb-adv span').forEach(e => { if (e.getClientRects().length > 1 || (e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 1.9)) ng.push(`言葉が途中で折り返している：${e.textContent}`); if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow === 'hidden') ng.push(`入りきらない：${e.textContent}`); });
+                  const wk = document.createTreeWalker(tb, NodeFilter.SHOW_TEXT); let x; while ((x = wk.nextNode())) { const el = x.parentElement; if (x.textContent.trim() && el.offsetParent && parseFloat(getComputedStyle(el).fontSize) < 10.95) ng.push(`11px未満の字：${x.textContent.trim()}`); }
+                  return [...new Set(ng)].slice(0, 8); }""", done)
+                for m in r:
+                    bad(f"{label} {m}")
+                ng = await pg.evaluate(NIGHT_CONTRAST_JS, "トーナメント表")
+                for m in ng:
+                    if "トーナメント表" in m and any(k in m for k in ["tb-", "bk-"]):
+                        bad(f"{label} 読みにくい字 {m}")
+                for e in errs:
+                    bad(f"{label}: 画面のエラー {e}")
+                await pg.close()
+
+
 async def tap_target_check(browser):
     """指で押す部品が縦横44px以上あるか（表の球団名はマス全体が押せるか）。両テーマ×幅390/320×両リーグ・全タブ"""
     for theme in ["", "pawa"]:
@@ -2204,9 +2280,12 @@ async def post_bracket_check(browser):
               if (s.sf.wh !== 3 + s.R.adv || s.sf.win !== rk[0]) ng.push(`ファイナルの1位の勝ち数（アドバンテージ${s.R.adv}込み）・勝ち上がりが違う（${s.sf.wh}・${s.sf.win}）`);
               const box = document.getElementById('bracketBox'); box.style.contentVisibility = 'visible';   // 画面の外は並べるのを後回しにしているので、読む前に並べる
               const txt = box.innerText;
-              if (!txt.includes(fn(rk[1]) + 'がファイナルステージへ')) ng.push('ファーストステージの勝ち上がりの文言が出ない');
-              if (!txt.includes(fn(rk[0]) + 'が日本シリーズへ')) ng.push('ファイナルステージの勝ち上がりの文言が出ない');
-              if (!/○ 3-1/.test(txt) || !/● 2-5/.test(txt) || !/△ 4-4/.test(txt)) ng.push('1試合ずつの結果（○●△）が出ない');
+              // トーナメント表：このリーグの列（左がセ・右がパ）のファースト・ファイナルに「○○突破」、1試合ずつの札（勝ったチーム・スコア、引き分けは「分」）
+              const col = box.querySelectorAll('.tb-col')[lg === 'C' ? 0 : 1], [fin, fst] = col ? col.querySelectorAll('.tb-m') : [];
+              if (!fst || !(fst.querySelector('.tb-go') || {}).textContent?.includes(fn(rk[1]) + '突破')) ng.push('ファーストステージの勝ち上がり（突破）が出ない');
+              if (!fin || !(fin.querySelector('.tb-go') || {}).textContent?.includes(fn(rk[0]) + '突破')) ng.push('ファイナルステージの勝ち上がり（突破）が出ない');
+              const tl = fst ? [...fst.querySelectorAll('.tb-g')].map(e => e.querySelector('i').textContent + ' ' + e.querySelector('b').textContent) : [];
+              if (JSON.stringify(tl) !== JSON.stringify([sn(rk[1]) + ' 3-1', sn(rk[2]) + ' 5-2', '分 4-4'])) ng.push(`1試合ずつの結果の札が違う：${JSON.stringify(tl)}`);
               const W = box.getBoundingClientRect().right + 1;
               box.querySelectorAll('*').forEach(e => { const b = e.getBoundingClientRect(); if (b.width && b.right > W) ng.push(`はみ出し：${e.className}`); });
               return [...new Set(ng)].slice(0, 6);
@@ -4493,6 +4572,7 @@ async def main():
         await same_name_check(browser)
         await walkoff_check(browser)
         await multi_pos_check(browser)
+        await tournament_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

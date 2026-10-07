@@ -147,15 +147,16 @@ CHECK_JS = r"""
     let col = base.slice(0, 3);
     for (const e of chain) {
       const cs = getComputedStyle(e);
-      if (cs.backgroundImage && cs.backgroundImage !== 'none') {
-        // グラデーション：一番上に敷いた色を代表として使う（半透明なら重ねる）
-        const m = cs.backgroundImage.match(/(rgba?\([^)]+\)|color\(srgb[^)]+\))/);
-        const g = m ? parse(m[1]) : null;
-        if (g && g[3] > .6) col = [0, 1, 2].map(i => g[i] * g[3] + col[i] * (1 - g[3]));
-        else if (!g) return null;
-      }
+      // 下に敷く色 → その上のグラデーションの順に重ねる
       const b = parse(cs.backgroundColor);
       if (b && b[3] > 0) col = [0, 1, 2].map(i => b[i] * b[3] + col[i] * (1 - b[3]));
+      if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+        // グラデーション：上から見て最初の不透明に近い色を代表として使う（名前の札の上の白い光沢のような半透明の重ねは飛ばす）
+        const gs = [...cs.backgroundImage.matchAll(/(rgba?\([^)]+\)|color\(srgb[^)]+\))/g)].map(m => parse(m[1])).filter(Boolean);
+        const g = gs.find(c => c[3] > .6);
+        if (g) col = [0, 1, 2].map(i => g[i] * g[3] + col[i] * (1 - g[3]));
+        else if (!gs.length) return null;
+      }
       if (+cs.opacity < .99 && e !== el) {} // 親の半透明は文字にも効くので比較には影響しない
     }
     return col;
@@ -208,7 +209,7 @@ async def open_page(browser, width, theme, me="S", touch=False):
             GAME.pop("h2", None)
     y, m, d = GAME["d"].split("-")
     await pg.evaluate(f"CONFIG.recUrl='{LIVE}records.json'; loadRec(true); CONFIG.venUrl='{LIVE}venues.json'; loadVen(true);")
-    await pg.evaluate(f"CONFIG.liveApi='{LIVE}'; jst=()=>({{y:{int(y)},m:{int(m)},d:{int(d)},iso:'{GAME['d']}'}}); liveWanted=()=>true; autoGame=false;")
+    await pg.evaluate(f"CONFIG.liveApi='{LIVE}'; jst=()=>({{y:{int(y)},m:{int(m)},d:{int(d)},iso:'{GAME['d']}'}}); liveWanted=()=>true; autoGame=false; S.gpaneAll=true;")   # gpaneAll：開いた試合の中（一球速報・打順・投手・ベンチ）を全部縦に並べて、ほかの検査がすべてを見られるように（切り替えそのものは pane_check）
     return pg, errs
 
 
@@ -602,6 +603,146 @@ SWIPE_JS = """([sel, dx, dy]) => {
   fire("touchend", x + dx, y + dy);
   return "ok";
 }"""
+
+
+PANE_PITCHES = [("ストレート", 148, "ボール"), ("フォーク", 136, "空振り"), ("スライダー", 131, "ファウル"), ("ストレート", 151, "ボール"), ("カーブ", 118, "ファウル"), ("フォーク", 138, "ファウル")]
+
+
+async def pane_check(browser):
+    """開いた試合の中の切り替え（一球速報｜打順｜投手｜ベンチ）：ボタン・左右のスワイプで替わる・端ではタブの切り替えに引き継ぐ・
+    どの中身もはみ出し／読みにくい字／11px未満の字がない。一球速報は6球の打席でも1画面（上の帯の下〜タブバーの上）に収まる。
+    自分の球団の試合中に開いたら、一球速報が画面のいちばん上に来るよう一度だけ送る（4つの見た目×幅390/320）"""
+    keep = dict(PITCH)
+    PITCH.update({"b": 2, "s": 2, "o": 1, "bases": {"1": True, "2": True}, "occ": ["1", "2"], "rnames": ["丸山和郁", "長岡秀樹"],
+                  "pitches": [{"n": i + 1, "type": t, "speed": f"{v}km/h", "res": r} for i, (t, v, r) in enumerate(PANE_PITCHES)]})
+    try:
+        for theme, mode in [("pawa", "light"), ("pawa", "dark"), ("", "dark"), ("", "light")]:
+            for width in [390, 320]:
+                label = f"[試合の中の切り替え {'パワプロ風' if theme else 'スタイリッシュ'}・{'ダーク' if mode == 'dark' else 'ライト'} 幅{width}]"
+                pg, errs = await open_page(browser, width, theme, me="S", touch=True)
+                await pg.evaluate(f"S.gpaneAll = false; localStorage.setItem('mode','{mode}'); applyTheme(store('theme')); applyPawaMode(); setTab('magic'); window.scrollTo(0, 0); autoGame = true; pollLive()")
+                await pg.wait_for_timeout(2500)
+                # 自動で送る：試合タブ・一球速報が上の帯のすぐ下
+                r = await pg.evaluate("""() => { const b = document.querySelector('.tg.islive .gpane .pbox'), mb = document.getElementById('minibar'), tb = document.querySelector('.tabbar');
+                  if (S.tab !== 'game' || !b) return { tab: S.tab, box: !!b };
+                  const rows = [...b.querySelectorAll('.pl3')], last = rows[rows.length - 1];
+                  return { tab: S.tab, top: Math.round(b.getBoundingClientRect().top), mb: Math.round(mb.getBoundingClientRect().bottom), tbTop: Math.round(tb.getBoundingClientRect().top), lastBottom: last ? Math.round(last.getBoundingClientRect().bottom) : null, n: rows.length }; }""")
+                if r.get("tab") != "game" or "top" not in r:
+                    bad(f"{label} 自分の球団の試合中に開いても、試合タブの一球速報が開かない（{r}）")
+                else:
+                    if not (r["mb"] - 1 <= r["top"] <= r["mb"] + 24):
+                        bad(f"{label} 開いたとき一球速報が画面のいちばん上に来ない（一球速報の上の辺 {r['top']}px・上の帯の下 {r['mb']}px）")
+                    if width == 390 and r["lastBottom"] and r["lastBottom"] > r["tbTop"]:
+                        bad(f"{label} 一球速報（6球の打席）が1画面に収まらない（最後の球 {r['lastBottom']}px・タブバー {r['tbTop']}px）")
+                # 触ったら、もう勝手に送らない
+                await pg.evaluate("window.scrollTo(0, 0); autoPane = { k: Object.keys(S.open).find(k => S.open[k]), until: Date.now() + 9999 }; window.dispatchEvent(new Event('wheel')); renderGame()")
+                await pg.wait_for_timeout(600)
+                if await pg.evaluate("scrollY") > 0:
+                    bad(f"{label} 自分で動かしたあとも一球速報まで勝手に送る")
+                # ボタンで切り替え：一球速報（最初）→ 打順 → 投手
+                r = await pg.evaluate("""async () => { const ng = [], card = () => document.querySelector('.tg.islive'), seg = () => card().querySelector('.gseg');
+                  // ベンチ（試合前の発表）も入れて、4つ全部を見る
+                  const [gd, gh, ga] = card().dataset.gk.split('|'), gg = DATA.games.find(x => x.d === gd && x.h === gh && x.a === ga);
+                  const bench = t => { const ro = DATA.rosters[t] || []; const pk = (p, k) => ro.filter(x => x.p === p).slice(0, k).map(x => ({ n: x.n, bt: '右右', st: '.250' }));
+                    return { '投手': pk('投手', 8), '捕手': pk('捕手', 2), '内野手': pk('内野手', 4), '外野手': pk('外野手', 3) }; };
+                  PRE[`${gd}|${gh}|${ga}`] = { bench: { h: bench(gh), a: bench(ga) } }; S.stmOpen = S.stmOpen || {}; S.stmOpen['b|' + gd + gkey(gg)] = true; renderGame();
+                  if (!seg()) return ['切り替えのボタンがない'];
+                  const ids = [...seg().querySelectorAll('button')].map(b => b.dataset.gp), labs = [...seg().querySelectorAll('button')].map(b => b.textContent);
+                  if (ids.join(',') !== 'pitch,lu,pu,bench' || labs.join(',') !== '一球速報,打順,投手,ベンチ') ng.push(`切り替えの並びが違う：${labs}`);
+                  if (seg().querySelector('[aria-pressed="true"]').dataset.gp !== 'pitch') ng.push('試合中なのに最初が一球速報になっていない');
+                  const want = { pitch: '.pbox', lu: '.lutab', pu: '.putab', bench: '.stm.bench' };
+                  for (const id of ids) { seg().querySelector(`[data-gp="${id}"]`).click(); await new Promise(r => setTimeout(r, 80));
+                    const panes = card().querySelectorAll('.gpane');
+                    if (panes.length !== 1) ng.push(`中身が${panes.length}つ出ている`);
+                    if (!panes[0] || !panes[0].querySelector(want[id])) ng.push(`「${id}」を押しても中身が替わらない`);
+                    for (const o of Object.values(want)) if (o !== want[id] && panes[0] && panes[0].querySelector(o)) ng.push(`「${id}」なのに ${o} も出ている`);
+                    if (seg().querySelector('[aria-pressed="true"]').dataset.gp !== id) ng.push(`「${id}」のボタンが選ばれた色にならない`);
+                    // ボタンの字が収まる・11px以上・ボタンが44px以上
+                    for (const b of seg().querySelectorAll('button')) { const rb = b.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(b); const ri = rg.getBoundingClientRect();
+                      if (ri.left < rb.left - .5 || ri.right > rb.right + .5) ng.push(`切り替えのボタンの字がはみ出す：${b.textContent}`);
+                      if (rb.height < 43.5) ng.push(`切り替えのボタンが低い（${Math.round(rb.height)}px）`);
+                      if (parseFloat(getComputedStyle(b).fontSize) < 10.95) ng.push('切り替えのボタンの字が11px未満'); }
+                    const sr = seg().getBoundingClientRect(), cr = card().getBoundingClientRect();
+                    if (sr.left < cr.left || sr.right > cr.right + .5) ng.push('切り替えのボタンが枠からはみ出す');
+                    // 中身の字：11px以上
+                    const wk = document.createTreeWalker(panes[0], NodeFilter.SHOW_TEXT); let n;
+                    while ((n = wk.nextNode())) { const el = n.parentElement; if (!n.textContent.trim() || !el.offsetParent || el.closest('.badge')) continue;
+                      if (parseFloat(getComputedStyle(el).fontSize) < 10.95) ng.push(`「${id}」に11px未満の字：${n.textContent.trim().slice(0, 8)}`); }
+                  }
+                  // 得点の流れ（スコア表の得点のマスを押す）の字も11px以上
+                  seg().querySelector('[data-gp="pitch"]').click();
+                  const scd = card().querySelector('.ls td.scd'); if (scd) { scd.click(); await new Promise(r => setTimeout(r, 80));
+                    const fl = card().querySelector('.flow'); if (!fl) ng.push('得点の流れが開かない');
+                    else { const wk = document.createTreeWalker(fl, NodeFilter.SHOW_TEXT); let n;
+                      while ((n = wk.nextNode())) { const el = n.parentElement; if (!n.textContent.trim() || !el.offsetParent || el.closest('.badge')) continue;
+                        if (parseFloat(getComputedStyle(el).fontSize) < 10.95) ng.push(`得点の流れに11px未満の字：${n.textContent.trim().slice(0, 8)}`); } }
+                    card().querySelector('.ls td.scd').click(); }
+                  return [...new Set(ng)].slice(0, 8); }""")
+                for m in r:
+                    bad(f"{label} {m}")
+                # どの中身でも、はみ出し・読みにくい字がない（画面全体の検査と同じもの）
+                ids = await pg.evaluate("[...document.querySelectorAll('.tg.islive .gseg button')].map(b => b.dataset.gp)")
+                for gp in ids:
+                    await pg.evaluate(f"pickPane(document.querySelector('.tg.islive .gpane').dataset.gk2, '{gp}')")
+                    out = await pg.evaluate(CHECK_JS, "game")
+                    for o in out["overflow"]:
+                        bad(f"{label} {gp}: {o}")
+                    for c in out["contrast"]:
+                        bad(f"{label} {gp}: 文字が読みにくい {c}")
+                await pg.evaluate("pickPane(document.querySelector('.tg.islive .gpane').dataset.gk2, 'pitch')")
+                # スワイプ：左へ → 打順、もう一度 → 投手、右へ → 打順。一球速報で右へ → 戦況タブへ（端はタブの切り替えに引き継ぐ）
+                if width == 390:
+                    steps = [(-160, "lu"), (-160, "pu"), (160, "lu"), (160, "pitch")]
+                    for dx, want in steps:
+                        await pg.evaluate(SWIPE_JS, [".tg.islive .gpane .lu, .tg.islive .gpane .putab, .tg.islive .gpane .plast", dx, 0])
+                        await pg.wait_for_timeout(900)
+                        got = await pg.evaluate("[S.tab, (document.querySelector('.tg.islive .gpane') || {}).dataset?.gp]")
+                        if got != ["game", want]:
+                            bad(f"{label} 試合の中を{'左' if dx < 0 else '右'}へスワイプしても「{want}」にならない（{got}）")
+                            break
+                    left = await pg.evaluate("[...document.querySelectorAll('.gpane, .view')].filter(el => el.style.transform || el.style.opacity).length")
+                    if left:
+                        bad(f"{label} スワイプのあと、中身の位置や透明度が元に戻っていない")
+                    await pg.evaluate(SWIPE_JS, [".tg.islive .gpane .plast", 160, 0])
+                    await pg.wait_for_timeout(900)
+                    if await pg.evaluate("S.tab") != "magic":
+                        bad(f"{label} 一球速報で右へスワイプしても戦況タブへ戻らない（いちばん左の中身では、タブの切り替えに引き継ぐ）")
+                for e in errs:
+                    bad(f"{label}: 画面のエラー {e}")
+                await pg.close()
+    finally:
+        PITCH.clear(); PITCH.update(keep)
+
+
+async def quiet_outs_check(browser):
+    """試合の「○○が勝ったら」：月度の最下位（支払い）が決まっていて、どちらが勝っても何も動かないときは出さない。決まっていないときは出す（いろいろな日で）"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [], seen = { open: 0, quiet: 0 }, jj = jst;
+      const days = [...new Set(DATA.games.filter(g => TEAM[g.h] && TEAM[g.a] && g.st !== 'canc').map(g => g.d))].sort();
+      const pick = days.filter((d, i) => i % Math.max(1, Math.floor(days.length / 25)) === 0).concat(days.slice(-3));
+      for (const d of [...new Set(pick)]) {
+        const gs = DATA.games.filter(g => g.d === d && TEAM[g.h] && TEAM[g.a] && g.st !== 'canc'), keep = gs.map(g => [g.st, g.hs, g.as]);
+        gs.forEach(g => { g.st = 'sched'; g.hs = 0; g.as = 0; });
+        jst = () => ({ y: +d.slice(0, 4), m: +d.slice(5, 7), d: +d.slice(8), iso: d }); liveWanted = () => false;
+        S.period = defaultPeriod(periods()); setTab('game'); renderGame();
+        const a = analyze(DATA.games, defaultPeriod(periods()), CONFIG), decided = a.rows.filter(x => !CONFIG.excluded.includes(x.t)).every(x => x.safe || x.eliminated);
+        for (const c of document.querySelectorAll('#today .tg[data-gk]')) {
+          const o = c.querySelectorAll('.tgo');
+          if (!decided) { seen.open++; if (o.length !== 2) ng.push(`${d}：月度の最下位が決まっていないのに「○○が勝ったら」が出ない（${c.dataset.gk}）`); }
+          else if (o.length) { const nil = [...o].every(x => x.querySelector('li.nil') && x.querySelectorAll('li').length === 1); if (nil) ng.push(`${d}：月度の最下位が決まっていて何も動かないのに「○○が勝ったら」が出ている（${c.dataset.gk}）`); }
+          else seen.quiet++;
+        }
+        gs.forEach((g, i) => { [g.st, g.hs, g.as] = keep[i]; });
+      }
+      jst = jj; S.period = defaultPeriod(periods()); renderAll();
+      if (!seen.open) ng.push('月度の最下位が決まっていない日の試合が1つも見つからない（検査になっていない）');
+      if (!seen.quiet) ng.push('月度の最下位が決まった日の試合が1つも見つからない（検査になっていない）');
+      return ng.slice(0, 8); }""")
+    for m in r:
+        bad(f"[○○が勝ったら] {m}")
+    for e in errs:
+        bad(f"[○○が勝ったら]: 画面のエラー {e}")
+    await pg.close()
 
 
 async def tap_target_check(browser):
@@ -1627,6 +1768,10 @@ async def pitch_tile_check(browser):
             if (ws.length && new Set(ws).size > 1) ng.push(`${n}の札の大きさがそろっていない：${[...new Set(ws)].join(',')}`);
           }
           box.querySelectorAll('.ptile').forEach(e => { const b = e.querySelector('b'), r = document.createRange(); r.selectNodeContents(b); const rr = r.getBoundingClientRect(), tr = e.getBoundingClientRect(); if (rr.width && (rr.left < tr.left + 0.5 || rr.right > tr.right - 0.5)) ng.push(`名前が札からはみ出している：${b.textContent}`); });
+          // 字は11px未満にしない（長い名前は2行に）。上下にもはみ出さない
+          box.querySelectorAll('.ptile b').forEach(b => { const e = b.closest('.ptile'), r = document.createRange(); r.selectNodeContents(b); const rr = r.getBoundingClientRect(), tr = e.getBoundingClientRect();
+            if (rr.width && parseFloat(getComputedStyle(b).fontSize) < 10.95) ng.push(`名前の札の字が11px未満：${b.textContent}（${getComputedStyle(b).fontSize}）`);
+            if (rr.height && (rr.top < tr.top - 0.5 || rr.bottom > tr.bottom + 0.5)) ng.push(`名前が札の上下からはみ出している：${b.textContent}`); });
           box.querySelectorAll('.pn3').forEach(e => { const tl = e.querySelector('.ptile'), h = e.querySelector('.hd'); if (tl && h && Math.abs(tl.getBoundingClientRect().top - h.getBoundingClientRect().top) > 12) ng.push('名前の札と「右投」などが同じ行に並んでいない'); });
           // 打順の上の色の説明は出さない（色で分かる）。一球速報はシンプル版（投手は球数・回・安・振・失・防御率、打者は打率・今日の結果だけ）
           if (document.querySelector('.tgd .rleg')) ng.push('打順の上に色の説明が出ている');
@@ -2274,6 +2419,11 @@ async def pre_game_check(browser):
               if (!card) return ['スタメンが出ない'];
               if (card.querySelectorAll('.stm:not(.bench) .stl li').length !== 18) ng.push(`打順の数が違う（${card.querySelectorAll('.stm:not(.bench) .stl li').length}）`);
               if (!card.querySelector('.stm.bench .stl li')) ng.push('ベンチ入りが出ない');
+              // 字は11px未満にしない（見出しの小さい字・球団の丸・守備位置の札・打率・「先発」も）
+              { const wk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT); let n; const sm = new Set();
+                while ((n = wk.nextNode())) { const el = n.parentElement; if (!n.textContent.trim() || !el.offsetParent || el.closest('.badge')) continue;
+                  if (parseFloat(getComputedStyle(el).fontSize) < 10.95) sm.add(n.textContent.trim().slice(0, 8)); }
+                if (sm.size) ng.push(`11px未満の字：${[...sm].slice(0, 6)}`); }
               // ホームのチームは左
               for (const st of card.querySelectorAll('.stm')) {
                 const first = st.querySelector('.stc .sth');
@@ -2996,6 +3146,7 @@ async def pitch_count_check(browser):
       const bw = box.querySelector('.pgauge i').getBoundingClientRect().width, nb = box.querySelector('.pgnote').getBoundingClientRect(), ib = box.querySelector('.pgauge i').getBoundingClientRect();
       if (bw < 50) ng.push(`球数のバーが細すぎる（${Math.round(bw)}px）`);
       if (nb.top < ib.bottom - 1) ng.push('先発・中継ぎの説明がバーの下にない');
+      if (parseFloat(getComputedStyle(box.querySelector('.pgnote')).fontSize) < 10.95) ng.push('先発・中継ぎの説明の字が11px未満');
       box.remove();
       delete PD[k]; delete GD[k]; return ng; }""")
     for m in r:
@@ -3646,6 +3797,7 @@ NIGHT_CONTRAST_JS = r"""(tab) => {
     // 縁取りの文字（空の上の白抜きの見出しなど）は、縁取りで読めるので数えない
     if ((cs.webkitTextStrokeWidth && parseFloat(cs.webkitTextStrokeWidth) > 0) || (cs.textShadow && (cs.textShadow.match(/rgb/g) || []).length >= 3)) continue;
     const fs = parseFloat(cs.fontSize), fw = +cs.fontWeight || 400, big = fs >= 24 || (fs >= 18.66 && fw >= 700);
+    if (fs < 10.95) out.push(`${tab}：${t.textContent.trim().slice(0, 14)}（${el.className || el.tagName}・11px未満の字 ${fs}px）`);   // 隠れている所（開いた中身・長押し・選手の画面など）でも11px未満の字を出さない
     const bg = bgOf(el), L1 = lum(fg), L2 = lum(bg), cr = (Math.max(L1, L2) + .05) / (Math.min(L1, L2) + .05);
     if (cr < (big ? 3 : 4.5)) out.push(`${tab}：${t.textContent.trim().slice(0, 14)}（${el.className || el.tagName}・コントラスト ${cr.toFixed(1)}）`);
   }
@@ -4013,6 +4165,8 @@ async def main():
         await fast_start_check(browser)
         await pos_icon_check(browser)
         await pitch_align_check(browser)
+        await pane_check(browser)
+        await quiet_outs_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

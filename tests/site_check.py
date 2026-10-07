@@ -1926,6 +1926,26 @@ async def fpos_check(browser):
         ud.fetch, ud.datetime, ud.time.sleep = keep
 
 
+async def roster_parse_check(browser):
+    """データ更新側：NPBの選手一覧の備考に、いなくなったこと（自由契約・引退・ほかの球団へ移籍）が書いてある選手は入れない（支配下が70人を超えないように）"""
+    try:
+        import sys as _s
+        _s.path.insert(0, str(ROOT / "scripts"))
+        import update_data as ud
+    except ImportError:
+        return
+    head = "<tr><th>No.</th><th>{}</th><th>生年月日</th><th>身長</th><th>体重</th><th>投</th><th>打</th><th>備考</th></tr>"
+    row = lambda no, n, note="": f"<tr><td>{no}</td><td>{n}</td><td>1995.01.01</td><td>180</td><td>80</td><td>右</td><td>右</td><td>{note}</td></tr>"
+    html = ("<h3>支配下選手</h3><table>" + head.format("投手") + row(0, "デュプランティエ", "7/17 自由契約") + row(11, "東 克樹") + row(42, "ビド", "6/16 支配下選手登録")
+            + head.format("捕手") + row(50, "山本 祐大", "5/13 ソフトバンクへ移籍") + row(27, "甲斐 拓也", "5/13 DeNAから移籍") + row(29, "育成 落ち", "8/1 育成選手契約")
+            + head.format("内野手") + row(66, "ビシエド", "5/25 任意引退") + "</table>"
+            + "<h3>育成選手</h3><table>" + head.format("投手") + row(140, "松本 隆之介") + row(141, "支配下 上がり", "7/1 支配下選手登録") + row(142, "育成 退団", "9/1 自由契約") + "</table>")
+    got = [(r["n"], r["dev"]) for r in ud.parse_roster(html)]
+    want = [("東 克樹", False), ("ビド", False), ("甲斐 拓也", False), ("松本 隆之介", True)]
+    if got != want:
+        bad(f"[選手一覧] いなくなった選手の外し方が違う：{got}")
+
+
 async def consistency_check(browser):
     """言葉・書き方の統一：同じものを別の書き方で出していないか（全タブ・設定・選手の画面）"""
     NG = [(r"^(チーム内の成績|今オフの動き|.*のオフの動き|今日の試合|次の試合|直近の勝敗|順位の推移|担当者ごとの年間成績|月度ごとの支払い|首脳陣の配置転換)", "見出しに「〜の」が残っている"),
@@ -3976,6 +3996,7 @@ async def main():
         await song_list_check(browser)
         await meikan_tile_check(browser)
         await fpos_check(browser)
+        await roster_parse_check(browser)
         await consistency_check(browser)
         await owner_pos_check(browser)
         await team_rank_menu_check(browser)

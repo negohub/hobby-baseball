@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261007173813">
+<meta name="build" content="20261007191018">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -3823,7 +3823,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <details class="rules conds" id="conds"><summary>確定の条件と残り試合</summary><div id="condBody"></div></details>
     <details class="rules">
       <summary>計算のルール</summary>
-      <p class="cl-only">月度の最下位の担当者が、庄村にJ SPORTS代2,580円を支払います（担当：阪神＝根来、巨人＝池田、DeNA＝新國、中日＝庄村、ヤクルト＝今井）。</p>
+      <p class="cl-only">月度の最下位の担当者が、庄村にJ SPORTS代2,580円（9・10月度は2か月分の5,160円）を支払います（担当：阪神＝根来、巨人＝池田、DeNA＝新國、中日＝庄村、ヤクルト＝今井）。</p>
       <p class="cl-only">対象は広島を除く5球団。3・4月と9・10月はまとめて1つの月度、それ以外は1か月ごとにリセット。交流戦も含む全公式戦の勝敗で集計します。</p>
       <p class="cl-only">順位は勝率（勝÷（勝＋敗）、引き分けは除外）。勝率で並んだ場合は、セ・リーグの規定どおり ①勝利数 ②当該球団間の対戦勝率 ③リーグ内対戦（交流戦を除く）の勝率 ④前年度順位 の順で決めます（月度の成績で判定）。同率で並ぶ可能性が残っているうちは、★（回避確定）も支払い確定も出しません。</p>
       <p class="pl-only">パ・リーグ6球団の、月度ごとの最下位回避マジックを表示します（担当者・支払いはセ・リーグだけの遊びです）。3・4月と9・10月はまとめて1つの月度、それ以外は1か月ごとにリセット。交流戦も含む全公式戦の勝敗で集計します。</p>
@@ -4349,7 +4349,8 @@ const CONFIG = {
   payee: "庄村",          // 受け取る人
   ownerPos: { S: "内", D: "中", DB: "外", G: "外", T: "内" }, // パワプロ風の名前タイルの色（内＝内野手 外＝外野手 捕＝捕手 先＝先発 中＝リリーフ）
   nameShort: { "佐藤輝明": "佐藤輝" }, // 呼び名を個別に決める選手（フルネームは空白なしで書く） // パワプロ風テーマの名前タイルの色（今井＝内野手、庄村＝捕手、新國・池田＝外野手、根来＝内野手）
-  fee: 2580,              // 1月度あたりの支払い額
+  fee: 2580,              // 1か月分の支払い額
+  feeMonths: { "9-10": 2 },   // 2か月分を払う月度（9・10月度は2か月分）
   liveApi: "https://jsports-live.kazushi-negoro.workers.dev/", // Cloudflare WorkerのURL（空ならライブ更新はしない）
   tieIsSafe: false,       // 最下位タイを回避扱いにするなら true
   calOrder: ["T", "DB", "G", "D", "C", "S"], // 日程の球団ボタンの並び（2025年の順位順）
@@ -4390,6 +4391,8 @@ const WD = "日月火水木金土";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const tc = t => (TEAM[t] ? TEAM[t].c : "#777");
+// その月度の支払い額（9・10月度は2か月分）
+const feeOf = p => CONFIG.fee * ((CONFIG.feeMonths || {})[p && p.id] || 1);
 const tv = t => `--tc:${tc(t)};--ti:${TEAM[t] && TEAM[t].i ? TEAM[t].i : "#000"}`;
 const sn = t => (TEAM[t] ? TEAM[t].s : t);
 const fn = t => (TEAM[t] ? TEAM[t].n : t);
@@ -4744,22 +4747,22 @@ function monthLast(hist, pay) {
   return `<div class="se-mon"><h3 class="se-h">月度別の最下位</h3><div class="se-mgrid">${hist.map(([p, t]) => `<div class="se-m" style="${tv(t)}">
     <span class="se-mp">${esc(p.label)}</span>
     <span class="se-mt"><i class="se-bd">${sn(t)}</i><b>${esc(pay ? own(t) : fn(t))}</b></span>
-    ${pay ? `<small>${esc(fn(t))}・${yen(CONFIG.fee)}</small>` : ""}</div>`).join("")}</div></div>`;
+    ${pay ? `<small>${esc(fn(t))}・${yen(feeOf(p))}</small>` : ""}</div>`).join("")}</div></div>`;
 }
 function renderSeasonEnd() {
   const on = seasonOver() && S.period && S.period.id === defaultPeriod(periods()).id;
   $("seasonEnd").hidden = !on;
   if (!on) return;
   const list = periods(), cur = defaultPeriod(list);
-  const paid = {}, hist = [];
-  list.forEach(p => { const a = analyze(DATA.games, p, CONFIG); if (!a.finished) return; const low = a.rows[a.rows.length - 1]; paid[low.t] = (paid[low.t] || 0) + 1; hist.push([p, low.t]); });
+  const paid = {}, amt = {}, hist = [];
+  list.forEach(p => { const a = analyze(DATA.games, p, CONFIG); if (!a.finished) return; const low = a.rows[a.rows.length - 1]; paid[low.t] = (paid[low.t] || 0) + 1; amt[low.t] = (amt[low.t] || 0) + feeOf(p); hist.push([p, low.t]); });
   const per = list.map(p => analyze(DATA.games, p, CONFIG)).filter(a => a.finished);
   const people = Object.keys(CONFIG.owners).map(t => {
     const rs = per.map(a => a.rows.findIndex(r => r.t === t) + 1);
-    return { t, n: paid[t] || 0, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : 9 };
+    return { t, n: paid[t] || 0, yen: amt[t] || 0, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : 9 };
   }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
   const champ = seasonTable(DATA.games, calOrder())[0];
-  const total = Object.values(paid).reduce((s, n) => s + n, 0) * CONFIG.fee;
+  const total = Object.values(amt).reduce((s, n) => s + n, 0);
   const year = DATA.season || new Date().getFullYear();
   if (isPL() || !people.length) {
     $("seasonEnd").innerHTML = `<div class="se-grid">
@@ -4772,7 +4775,7 @@ function renderSeasonEnd() {
       <div class="se-box" style="${tv(people[0].t)}"><span class="se-l">年間MVP</span><b>${ownT(people[0].t)}</b><small>${fn(people[0].t)}・支払い${people[0].n}回・平均${people[0].avg.toFixed(1)}位</small></div>
       <div class="se-box" style="${tv(champ.t)}"><span class="se-l">${year} セ・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
     </div>
-    <div class="ywrap"><table class="ytab se-tab"><thead><tr><th>順位</th><th class="tnm">担当</th><th>支払い</th><th>金額</th></tr></thead><tbody>${people.map((x, i) => `<tr style="${tv(x.t)}" data-tm="${x.t}"><td class="num">${i + 1}</td><td class="tnm">${own(x.t)}<small>${fn(x.t)}</small></td><td class="num">${x.n}回</td><td class="num">${x.n ? yen(x.n * CONFIG.fee) : "-"}</td></tr>`).join("")}</tbody></table></div>
+    <div class="ywrap"><table class="ytab se-tab"><thead><tr><th>順位</th><th class="tnm">担当</th><th>支払い</th><th>金額</th></tr></thead><tbody>${people.map((x, i) => `<tr style="${tv(x.t)}" data-tm="${x.t}"><td class="num">${i + 1}</td><td class="tnm">${own(x.t)}<small>${fn(x.t)}</small></td><td class="num">${x.n}回</td><td class="num">${x.n ? yen(x.yen) : "-"}</td></tr>`).join("")}</tbody></table></div>
     ${monthLast(hist, true)}
     <p class="se-sum">庄村のもとに集まったJ SPORTS代　<b class="num">${yen(total)}</b></p>`;
 }
@@ -4850,7 +4853,7 @@ function renderMagic() {
     return `<div class="hero ${state}${hs}" style="${tv(t)}${hd}">
       <span class="hb">${sn(t)}</span>
       <div class="hm"><div class="hl">${lbl}</div><div class="hn"><b>${isPL() ? fn(t) : ownT(t)}</b>${isPL() ? "" : `<span>${fn(t)}</span>`}</div>${sub ? `<div class="hs num">${sub}</div>` : ""}</div>
-      ${isPL() ? "" : `<div class="hp num"><b>${yen(CONFIG.fee)}</b><small>${toPayee}</small></div>`}
+      ${isPL() ? "" : `<div class="hp num"><b>${yen(feeOf(S.period))}</b><small>${toPayee}</small></div>`}
     </div>`;
   };
   if (!a.played) {
@@ -6025,7 +6028,7 @@ function drawCardPawa(a) {
   else { x.fillStyle = NAVY; x.font = F(900, 52); x.fillText(fn(low.t), P + 170, bY + 142); }
   if (!done) { const up = rows[rows.length - 2], gg = ((up.w - low.w) + (low.l - up.l)) / 2;
     x.fillStyle = K.muted; x.font = F(700, 24); x.fillText(`残り${low.rem}試合・${fn(up.t)}まで${gg.toFixed(1)}差`, P + 170, bY + 190); }
-  if (!pl) { x.textAlign = "right"; x.fillStyle = NAVY; x.font = F(900, 58); x.fillText(yen(CONFIG.fee), W - P - 40, bY + 124);
+  if (!pl) { x.textAlign = "right"; x.fillStyle = NAVY; x.font = F(900, 58); x.fillText(yen(feeOf(S.period)), W - P - 40, bY + 124);
     x.fillStyle = K.muted; x.font = F(700, 26); x.fillText(own(low.t) === CONFIG.payee ? "支払い" : `→ ${CONFIG.payee}`, W - P - 40, bY + 166); x.textAlign = "left"; }
   // 順位表（白いパネル・青い見出し）
   const cols = [["順位", 80], ["チーム", 272], ["試合", 72], ["勝", 64], ["負", 64], ["分", 58], ["勝率", 100], ["差", 70], ["残", 62], ["マジック", 126]];
@@ -6122,7 +6125,7 @@ function drawCard(a) {
   x.fillStyle = K.sub; x.font = F(400, 30); x.fillText(fn(low.t), P + 168 + ow + 18, bY + 116);
   if (!done) { const up = rows[rows.length - 2], gg = ((up.w - low.w) + (low.l - up.l)) / 2;
     x.fillStyle = K.sub2; x.font = F(400, 24); x.fillText(`残り${low.rem}試合・${fn(up.t)}まで${gg.toFixed(1)}差`, P + 172, bY + 158); }
-  x.textAlign = "right"; x.fillStyle = K.fee; x.font = F(700, 50); x.fillText(yen(CONFIG.fee), W - P - 36, bY + 100);
+  x.textAlign = "right"; x.fillStyle = K.fee; x.font = F(700, 50); x.fillText(yen(feeOf(S.period)), W - P - 36, bY + 100);
   x.fillStyle = K.sub; x.font = F(400, 26); x.fillText(own(low.t) === CONFIG.payee ? "支払い" : `→ ${CONFIG.payee}`, W - P - 36, bY + 140); x.textAlign = "left";
   // 順位表（サイトと同じ形式）
   const cols = [["順位", 72], ["チーム名", 246], ["試合", 70], ["勝利", 70], ["敗戦", 70], ["引分", 62], ["勝率", 104], ["勝差", 72], ["残試合", 84], ["マジック", 102]];
@@ -6686,21 +6689,21 @@ function renderStd() {
     first: r.magic === 0 ? "優勝" : r.magic != null ? `M${r.magic}` : "-" })));
   $("stdNote").textContent = "全試合";
   const list = periods();
-  const paid = {};
+  const paid = {}, amt = {};
   $("hist").innerHTML = `<div class="ywrap"><table class="ytab htab"><thead><tr><th>月度</th><th>順位（左から1位）</th><th class="tnm">支払い</th><th>金額</th></tr></thead><tbody>` + list.map(p => {
     const a = analyze(DATA.games, p, CONFIG);
     // 支払い：月度が終わっていればその月の最下位。まだ試合が残っていても、最下位（支払い）が確定していればその球団
     const payT = monthPayer(a);
-    if (payT) paid[payT] = (paid[payT] || 0) + 1;
+    if (payT) { paid[payT] = (paid[payT] || 0) + 1; amt[payT] = (amt[payT] || 0) + feeOf(p); }
     const ranks = a.played ? a.rows.map(r => `<span class="badge${r.t === payT ? " last" : ""}" style="${tv(r.t)}">${sn(r.t)}</span>`).join("") + (payT && !a.finished ? `<small class="hzan">順位は暫定</small>` : "") : "";
     return `<tr${payT ? ` style="${tv(payT)}"` : ""}><td class="mo">${p.label.replace("月度", "")}</td><td class="rk5">${ranks}</td>
-      <td class="tnm">${!a.played ? "—" : payT ? `${ownT(payT)}${a.finished ? "" : `<small class="hfix">確定</small>`}` : `<span class="muted">集計中</span>`}</td><td class="num">${payT ? yen(CONFIG.fee) : "-"}</td></tr>`;
+      <td class="tnm">${!a.played ? "—" : payT ? `${ownT(payT)}${a.finished ? "" : `<small class="hfix">確定</small>`}` : `<span class="muted">集計中</span>`}</td><td class="num">${payT ? yen(feeOf(p)) : "-"}</td></tr>`;
   }).join("") + `</tbody></table></div>`;
   const per = list.map(p => ({ p, a: analyze(DATA.games, p, CONFIG) })).filter(x => x.a.played);
   const people = Object.keys(CONFIG.owners).map(t => {
     const ranks = per.map(({ p, a }) => ({ p, r: a.rows.findIndex(x => x.t === t) + 1, done: a.finished, pay: monthPayer(a) === t }));
     const fin = ranks.filter(x => x.done);
-    return { t, n: paid[t] || 0, ranks, avg: fin.length ? fin.reduce((s, x) => s + x.r, 0) / fin.length : 9, tops: fin.filter(x => x.r === 1).length };
+    return { t, n: paid[t] || 0, yen: amt[t] || 0, ranks, avg: fin.length ? fin.reduce((s, x) => s + x.r, 0) / fin.length : 9, tops: fin.filter(x => x.r === 1).length };
   }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
   const best = people[0], maxN = Math.max(...people.map(x => x.n));
   const short = lbl => lbl.replace("月度", "");
@@ -6708,7 +6711,7 @@ function renderStd() {
     people.map(x => `<tr style="${tv(x.t)}" data-tm="${x.t}">
       <td class="yn"><span class="badge">${sn(x.t)}</span><span class="ynm"><b>${ownT(x.t)}${x === best ? `<span class="ytag mvp">MVP</span>` : ""}</b><small class="num">平均${x.avg < 9 ? x.avg.toFixed(1) : "-"}位</small></span></td>
       ${x.ranks.map(v => `<td class="yc2${v.done && v.r === 1 ? " first" : ""}${(v.done && v.r === 5) || v.pay ? " last" : ""}${v.done ? "" : " now"}"><b class="num">${v.r}</b></td>`).join("")}
-      <td class="ya num">${x.n ? `<b>${yen(x.n * CONFIG.fee)}</b><small>${x.n}回${maxN > 0 && x.n === maxN ? `<span class="ytag bad">最多</span>` : ""}</small>` : `<small>なし</small>`}</td>
+      <td class="ya num">${x.n ? `<b>${yen(x.yen)}</b><small>${x.n}回${maxN > 0 && x.n === maxN ? `<span class="ytag bad">最多</span>` : ""}</small>` : `<small>なし</small>`}</td>
     </tr>`).join("") + `</tbody></table></div>`;
 }
 

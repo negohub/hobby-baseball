@@ -745,6 +745,97 @@ async def quiet_outs_check(browser):
     await pg.close()
 
 
+RUN_11 = [  # 10/7 阪神－広島 11回裏（テキスト速報の実物どおり）
+    ["4番", "小野寺 暖", "無死走者なし", ["投手交代: 髙 → ターノック", "ストレートのフォアボールで出塁 一塁"]],
+    ["5番", "熊谷 敬宥", "無死一塁", ["一塁走者 小野寺 →代走: 植田", "一塁けん制:ランナー 植田 帰塁", "一塁走者 植田 :盗塁成功 二塁", "見事送りバントを成功させる 1アウト三塁"]],
+    ["6番", "髙寺 望夢", "一死三塁", ["－広島:コーチマウンドへむかう－", "一塁が空いているため敬遠で勝負を避けられる 一三塁"]],
+    ["7番", "梅野 隆太郎", "一死一三塁", []],
+]
+
+
+async def runner_text_check(browser):
+    """一球速報の走者：テキスト速報の打席ごとの状況（「一死一三塁」）と代走・盗塁・けん制アウトから、塁と名前を追いかける。
+    10/7 阪神－広島 11回裏（四球→代走植田→盗塁→送りバント→故意四→梅野の打席で一三塁）で、塁も名前も合うか。
+    中継プログラムが、打順・名前・状況が1行でも別々の行でも、テキスト速報の打席を読めるか"""
+    # 中継プログラム：テキスト速報の読み取り（1行の形・行が分かれた形、新しい打席が上の並び）
+    wk = ROOT / "worker" / "worker.js"
+    if wk.exists():
+        import subprocess, tempfile
+        src = wk.read_text(encoding="utf-8") + "\nexport { parseGame };\n"
+        rows = json.dumps(RUN_11, ensure_ascii=False)
+        test = """
+import { parseGame } from "./w.mjs";
+const R = %s;
+const ok = (n, got, want) => { if (JSON.stringify(got) !== JSON.stringify(want)) console.log("NG " + n + " " + JSON.stringify(got)); };
+const one = r => `<li><p>${r[0]} <a href="/npb/player/1/top">${r[1]}</a> ${r[2]}</p>${r[3].map(e => `<p>${e}</p>`).join("")}</li>`;
+const split = r => `<li><div><span>${r[0]}</span></div><div><a href="/npb/player/1/top">${r[1]}</a></div><div>${r[2]}</div>${r[3].map(e => `<div>${e}</div>`).join("")}</li>`;
+for (const [nm, f] of [["1行", one], ["別々の行", split]]) {
+  const html = `<div>10月7日（水）の日程・結果</div><h2>テキスト速報</h2><h1>11回裏</h1><ol>${R.slice().reverse().map(f).join("")}</ol><h1>11回表</h1><ol><li><p>1番 秋山 翔吾 無死走者なし</p><p>ライトフライ 1アウト</p></li></ol>`;
+  const d = parseGame(html), L = d.live || {};
+  ok(nm + "：回", L.half, "11回裏");
+  ok(nm + "：打席", (L.bats || []).map(b => [b.name, b.sit]), R.map(r => [r[1], r[2]]));
+  ok(nm + "：できごと", ((L.bats || [])[1] || {}).ev, R[1][3]);
+  ok(nm + "：今の打者", (d.now || {}).name, "梅野 隆太郎");
+}
+""" % rows
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "w.mjs").write_text(src, encoding="utf-8")
+            (Path(d) / "t.mjs").write_text(test, encoding="utf-8")
+            out = subprocess.run(["node", str(Path(d) / "t.mjs")], capture_output=True, text=True, timeout=60)
+            for line in (out.stdout + out.stderr).splitlines():
+                if line.strip():
+                    bad(f"[走者・テキスト速報の読み取り] {line.strip()[:200]}")
+    # 画面：場面ごとに、光る塁と走者の名前
+    for theme in ["pawa", ""]:
+        pg, errs = await open_page(browser, 390, theme)
+        r = await pg.evaluate("""(R) => { const ng = [];
+          const g = { d: jst().iso, h: 'T', a: 'C', st: 'live', hs: 1, as: 1, inn: '11回裏', v: '甲子園' }; DATA.games.push(g); const k = g.d + gkey(g);
+          const ro = n => ({ order: 0, name: n, results: [] });
+          const box = { line: null, lineups: [[], [{ order: 4, pos: '一右', starter: false, name: '小野寺 暖', results: ['四球'] }, { order: 4, pos: '走', starter: false, name: '植田 海', results: [] }, { order: 5, pos: '走一三一', starter: false, name: '熊谷 敬宥', results: ['投犠打'] }, { order: 6, pos: '左', starter: true, name: '髙寺 望夢', results: ['故意四'] }, { order: 7, pos: '捕', starter: true, name: '梅野 隆太郎', results: [] }]], pitchers: [[], []] };
+          const scene = (upto, ev, extra) => {
+            const bats = R.slice(0, upto + 1).map((r, i) => ({ order: r[0], name: r[1], sit: r[2], ev: i === upto ? ev : r[3] }));
+            const steps = [{ order: '4番', name: '小野寺 暖', res: '四球' }, { order: '5番', name: '熊谷 敬宥', res: '投犠打' }, { order: '6番', name: '髙寺 望夢', res: '故意四' }].slice(0, upto);
+            GD[k] = { ...box, cur: { half: '11回裏', steps }, live: { half: '11回裏', bats }, now: { half: '11回裏', name: R[upto][1], sit: R[upto][2] } };
+            PD[k] = { half: '11回裏', attack: '阪神', b: 1, s: 1, o: upto ? 1 : 0, batter: { name: R[upto][1], hand: '右打', avg: '.200' }, pitcher: { name: 'ターノック', hand: '右投' }, pitches: [{ n: 1, type: 'ストレート', speed: '150km/h', res: 'ボール' }], ...(extra || {}) };
+            const w = document.createElement('div'); w.innerHTML = pitchHTML(g);
+            const lit = [...w.querySelectorAll('.fld rect.bs')].map((e, i) => e.classList.contains('on') ? ['2', '1', '3'][i] : null).filter(Boolean).sort().join(',');
+            const names = isPawa() ? [...w.querySelectorAll('.fldw .rtile')].map(e => e.textContent.replace(/\\s+/g, '')).sort().join(',') : [...w.querySelectorAll('.fld g[data-pl] text')].map(e => e.textContent.replace(/\\s+/g, '')).sort().join(',');
+            return [lit, names]; };
+          const want = (nm, got, w) => { if (JSON.stringify(got) !== JSON.stringify(w)) ng.push(`${nm}：${JSON.stringify(got)}（正しくは ${JSON.stringify(w)}）`); };
+          want('熊谷の打席・代走が出た', scene(1, R[1][3].slice(0, 1)), ['1', '植田']);
+          want('熊谷の打席・植田が盗塁', scene(1, R[1][3].slice(0, 3)), ['2', '植田']);
+          want('髙寺の打席（送りバントで三塁）', scene(2, []), ['3', '植田']);
+          want('梅野の打席（髙寺は故意四で一塁）', scene(3, []), ['1,3', '植田,髙寺']);
+          want('梅野の打席・一球速報のページに「ランナー2,3塁」', scene(3, [], { occ: ['2', '3'] }), ['2,3', '植田,髙寺']);
+          // 名前の並び：三塁が植田・二塁が髙寺（前の走者ほど先の塁）
+          { scene(3, [], { occ: ['2', '3'] }); const T = textRunners(GD[k], PD[k]); if (!T || T.list.map(x => x.name.split(' ')[0]).join(',') !== '植田,髙寺') ng.push(`走者の順が違う：${JSON.stringify(T)}`); }
+          // テキスト速報がないとき（計算だけ）：故意四は四球として一塁へ
+          { scene(3, []); delete GD[k].live; delete GD[k].now; const S2 = simRunners(PD[k], GD[k], g); if (S2['1'] !== '髙寺') ng.push(`計算で故意四の打者が一塁にいない：${JSON.stringify(S2)}`); }
+          // 「一死二塁」の「一」を一塁と読まない
+          { scene(3, []); delete GD[k].live; GD[k].now = { half: '11回裏', name: '梅野 隆太郎', sit: '一死二塁' }; const w = document.createElement('div'); w.innerHTML = pitchHTML(g);
+            const lit = [...w.querySelectorAll('.fld rect.bs')].map((e, i) => e.classList.contains('on') ? ['2', '1', '3'][i] : null).filter(Boolean).join(','); if (lit !== '2') ng.push(`「一死二塁」で光る塁が違う：${lit}`); }
+          // 打席結果の札：故意四は四球の色
+          if (resCls('故意四') !== 'bb' || resCls('故四') !== 'bb') ng.push('故意四が四球の札にならない');
+          // ほかの回（10/7 の実物）：7回裏（二塁打→代走→タイムリーで一塁→三振→けん制→盗塁死）、10回裏（四球→二ゴロで二塁へ）
+          const seq = (half, rows, upto, ev, res) => { GD[k] = { cur: { half, steps: rows.slice(0, upto).map((r, i) => ({ order: r[0], name: r[1], res: res[i] })) }, live: { half, bats: rows.slice(0, upto + 1).map((r, i) => ({ order: r[0], name: r[1], sit: r[2], ev: i === upto ? ev : r[3] })) } };
+            PD[k] = { half, batter: { name: rows[upto][1] } }; const T = textRunners(GD[k], PD[k]); return T ? T.list.map(x => x.base + ':' + String(x.name || '?').split(' ')[0]).join(',') : null; };
+          const R7 = [['4番', '佐藤 輝明', '無死走者なし', ['外角低めのスライダーを引っかけてファーストゴロ 1アウト']], ['5番', '大山 悠輔', '一死走者なし', ['レフトへの二塁打 二塁']],
+            ['6番', '髙寺 望夢', '一死二塁', ['二塁走者 大山 →代走: 熊谷', '1アウト二塁の0-2からセンターへの同点タイムリーヒット！ 神 1-1 広 一塁']], ['7番', '梅野 隆太郎', '一死一塁', ['空振り三振でバッターアウト 2アウト']],
+            ['8番', '小幡 竜平', '二死一塁', ['一塁けん制:ランナー 髙寺 帰塁', '一塁走者 髙寺 :盗塁を試みるもアウト 3アウト']]], res7 = ['一ゴロ', '左2', '中安', '空三振'];
+          want('7回裏・髙寺の打席（代走熊谷が二塁）', seq('7回裏', R7, 2, R7[2][3].slice(0, 1), res7), '2:熊谷');
+          want('7回裏・梅野の打席（髙寺が一塁）', seq('7回裏', R7, 3, [], res7), '1:髙寺');
+          want('7回裏・小幡の打席・けん制で帰塁', seq('7回裏', R7, 4, R7[4][3].slice(0, 1), res7), '1:髙寺');
+          want('7回裏・小幡の打席・盗塁死', seq('7回裏', R7, 4, R7[4][3], res7), '');
+          const R10 = [['9番', '元山 飛優', '無死走者なし', ['センターフライ 1アウト']], ['1番', '近本 光司', '一死走者なし', ['フォアボールを選ぶ 一塁']], ['2番', '木浪 聖也', '一死一塁', ['セカンドゴロ 2アウト二塁']], ['代打', '伏見 寅威', '二死二塁', []]];
+          want('10回裏・伏見の打席（近本が二塁）', seq('10回裏', R10, 3, [], ['中飛', '四球', '二ゴロ']), '2:近本');
+          DATA.games.pop(); delete GD[k]; delete PD[k]; return ng; }""", RUN_11)
+        for m in r:
+            bad(f"[走者 {'パワプロ風' if theme else 'スタイリッシュ'}] {m}")
+        for e in errs:
+            bad(f"[走者]: 画面のエラー {e}")
+        await pg.close()
+
+
 async def tap_target_check(browser):
     """指で押す部品が縦横44px以上あるか（表の球団名はマス全体が押せるか）。両テーマ×幅390/320×両リーグ・全タブ"""
     for theme in ["", "pawa"]:
@@ -4167,6 +4258,7 @@ async def main():
         await pitch_align_check(browser)
         await pane_check(browser)
         await quiet_outs_check(browser)
+        await runner_text_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)
         await pennant_check(browser)

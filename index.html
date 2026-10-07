@@ -47,7 +47,7 @@
 <meta name="twitter:description" content="セ・パ12球団の戦況・マジック・試合速報・順位・成績・応援歌・入退団情報">
 <meta name="twitter:image" content="https://negohub.github.io/hobby-baseball/ogp.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="build" content="20261008005804">
+<meta name="build" content="20261008011046">
 <style>
 :root{
   --bg:#000; --p1:#101010; --p2:#1A1A1A; --line:#2B2B2B; --line2:#1F1F1F;
@@ -2620,6 +2620,25 @@ html:not(.theme-pawa) .ps-pos:not(#z),html:not(.theme-pawa) #kicker:not(#z),.min
 .tb .tb-champ.on:not(#z) b{color:var(--ti,#fff) !important}
 .tb .tb-champ .tb-cs:not(#z){color:#2A1E00 !important}
 html.theme-pawa .tb{box-shadow:inset 0 0 0 1px rgba(245,197,66,.35),0 0 0 3px #1D3E7C,0 6px 0 rgba(29,62,124,.35)}
+/* ===== 角の丸みの決まり（10/8 見直し。全部のタブ・4つの見た目で同じ） =====
+   大きい箱（カード）＝ --r-lg（パワプロ風16px・スタイリッシュ20px）／中の箱・四角いボタン・入力欄＝ --r-md（14px）／札（選手名・チーム・試合の札・暦の日）＝ 8px／
+   小さい札（タグ）＝ 5px／丸いボタン＝まん丸（999px）／丸い印＝ 50%。表のマスは角なし */
+:root{--r-sm:8px;--r-xs:5px}
+.tb:not(#z){border-radius:20px !important}
+html.theme-pawa .tb:not(#z){border-radius:16px !important}
+.tb-js:not(#z),.tb-m:not(#z),.srow:not(#z),.bk-rule:not(#z){border-radius:var(--r-md,14px) !important}
+html.theme-pawa :is(.view,.blk) > h2:not(#z),#mPrev:not(#z),#mNext:not(#z){border-radius:var(--r-md,14px) !important}
+.day:not(#z),.tb-p:not(#z),.tb-g:not(#z),html.theme-pawa .ptile:not(#z){border-radius:var(--r-sm) !important}
+:is(.ytag,.tb-seed,.ps,.offtag,.recact,.res,.tb-adv,.tb-lg,.hfix,.hzan):not(#z){border-radius:var(--r-xs) !important}
+.yc2 b:not(#z){border-radius:var(--r-xs) !important}
+html:not(.theme-pawa) #songList .ptile:not(#z){border-radius:var(--r-md,14px) !important}
+/* 「画像にしてLINEで送る」：表の右下に小さく（画面いっぱいの大きなボタンにしない） */
+#shotBtn:not(#z){display:flex;align-items:center;justify-content:center;width:auto;min-height:44px;margin:12px 0 0 auto;padding:0 18px;font-size:13px;border-radius:999px}
+/* たたむ見出し：見出しの右に＋／－。たたんでいる間は中身を出さない */
+.fold > h2:not(#z){cursor:pointer;min-height:44px;box-sizing:border-box;-webkit-user-select:none;user-select:none}
+.fold > h2:not(#z)::after{content:"＋";margin-left:auto;padding-left:12px;font-size:16px;font-weight:700;opacity:.8}
+.fold:not(.shut) > h2:not(#z)::after{content:"－"}
+.fold.shut > :not(h2):not(#z){display:none}
 /* 名前の札（一球速報の投手・打者・次の打者・打順・投手の表・得点の流れ・走者）：字は11px未満にしない。入らない長い名前は2行に（行の長さをそろえる） */
 html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),html.theme-pawa .putab td.pnx .sptile b:not(#z),html.theme-pawa .flow .fb .sptile b:not(#z),html.theme-pawa .ptile.rtile b:not(#z),html.theme-pawa .pnx3 .ptile.sptile b:not(#z){
   font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))) !important;white-space:normal !important;text-wrap:balance;line-height:1.05;text-align:center;overflow-wrap:anywhere}
@@ -3940,7 +3959,6 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   <section class="view" id="v-magic" aria-label="マジック">
     <section class="season-end" id="seasonEnd" hidden></section>
     <div class="chips" id="chips" role="tablist" aria-label="月度"></div>
-    <nav class="jump" aria-label="このページの中へ移動"><button type="button" data-to="cards">順位表</button><button type="button" data-to="mh2hBlk">対戦成績</button><button type="button" data-to="trendBlk">順位推移</button><button type="button" data-to="formBlk">直近5試合</button><button type="button" data-to="histTop" class="cl-only">支払い</button></nav>
     <div id="alert"></div>
     <div id="meCard"></div>
     <section class="tstrip" id="todayStrip" hidden aria-label="試合速報"></section>
@@ -3952,19 +3970,19 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
       <div class="seg" id="mh2hSeg" role="tablist" aria-label="対戦成績の期間"></div>
       <div id="mh2h"></div>
     </section>
-    <section class="blk" id="trendBlk">
+    <section class="blk fold" id="trendBlk" data-fold="trend">
       <h2>順位推移<small id="trendNote"></small></h2>
       <div class="trend" id="trend"></div>
     </section>
-    <section class="blk" id="formBlk">
+    <section class="blk fold" id="formBlk" data-fold="form">
       <h2>直近5試合</h2>
       <div class="form" id="form"></div>
     </section>
     <section class="blk cl-only" id="payBlk">
       <h2 id="histTop">月度別 支払い</h2>
       <div class="hist" id="hist"></div>
-      <h2>担当者別 年間成績</h2>
-      <div class="tot" id="tot"></div>
+      <section class="blk fold" id="totBlk" data-fold="tot"><h2>担当者別 年間成績</h2>
+      <div class="tot" id="tot"></div></section>
     </section>
     <details class="rules conds" id="conds"><summary>確定の条件と残り試合</summary><div id="condBody"></div></details>
     <details class="rules">
@@ -5055,7 +5073,7 @@ function renderMagic() {
     const p = R.w + R.l ? R.w / (R.w + R.l) : 0;
     let at = tRows.findIndex(r => (r.w + r.l ? r.w / (r.w + r.l) : 0) < p);
     if (at < 0) at = tRows.length;
-    tRows.splice(at, 0, { ...R, g: R.w + R.l + R.d, ex: true, sub: "対象外", extra: "" });
+    tRows.splice(at, 0, { ...R, g: R.w + R.l + R.d, ex: true, extra: "" });   // 対象外の札は出さない（行が薄く・順位が「-」で分かる）
   }
   $("cards").innerHTML = yTable(tRows, "マジック");
 
@@ -6990,6 +7008,18 @@ function ranksFixed(a) {
 }
 // 月度が決まったか（全試合が終わった、または順位がもう動かない）
 const monthDone = a => !!a && (a.finished || ranksFixed(a));
+// たたむ見出し（戦況の 順位推移・直近5試合・担当者別 年間成績）：見出しを押すと開く・閉じる。開いたかどうかは端末に覚える（最初は閉じている）
+const FOLD_OPEN = (() => { try { return JSON.parse(localStorage.getItem("fold-v1") || "{}") || {}; } catch { return {}; } })();
+function initFolds() {
+  document.querySelectorAll(".fold").forEach(sec => {
+    const h = sec.querySelector(":scope > h2"), k = sec.dataset.fold; if (!h) return;
+    const set = open => { sec.classList.toggle("shut", !open); h.setAttribute("aria-expanded", String(open)); };
+    h.setAttribute("role", "button"); h.tabIndex = 0; set(!!FOLD_OPEN[k]);
+    const flip = () => { const open = sec.classList.contains("shut"); FOLD_OPEN[k] = open; set(open); try { localStorage.setItem("fold-v1", JSON.stringify(FOLD_OPEN)); } catch {} };
+    h.addEventListener("click", flip); h.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+  });
+}
+initFolds();
 // その月度の支払い（最下位）の球団：終わっていればその月の最下位、終わっていなくても支払いが確定していればその球団。まだなら null
 function monthPayer(a) {
   if (!a || !a.played) return null;

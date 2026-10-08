@@ -2337,6 +2337,7 @@ html.theme-pawa .bi.fin.canc b{color:#C62828}
 /* タブの中の切り替え（今日｜日程・今季｜歴代・応援歌｜入退団）：見出しのすぐ下。打撃｜投手と同じボタン */
 /* ページの切り替えなので、中の「打撃｜投手」より大きく・画面の幅いっぱいに（同じ形のボタンで、段の違いが分かるように） */
 .subnav{display:grid !important;grid-template-columns:repeat(var(--n,2),1fr);width:100%;box-sizing:border-box;margin:2px 0 14px}
+.subnav[hidden]{display:none !important}   /* 切り替えのないタブ（戦況）で、空の枠が残らないように */
 .subnav button{width:100%;min-height:42px;font-size:15px !important;justify-content:center;text-align:center}
 .offtag{display:inline-flex;align-items:center;height:18px;padding:0 6px;margin-left:6px;border-radius:5px;font-size:10.5px;font-weight:800;letter-spacing:0;vertical-align:2px;white-space:nowrap;background:#E12D33;color:#fff}
 .offtag.k-retire{background:#5F6670}   /* 白い字が読める濃さ */
@@ -3605,19 +3606,14 @@ function renderSeasonEnd() {
     const rs = per.map(a => a.rows.findIndex(r => r.t === t) + 1);
     return { t, n: paid[t] || 0, yen: amt[t] || 0, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : 9 };
   }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
-  const total = Object.values(amt).reduce((s, n) => s + n, 0), times = Object.values(paid).reduce((s, n) => s + n, 0);
   // リーグ優勝は順位タブ（いちばん上の札）。ここは月度の遊びの最終結果だけ
   if (isPL() || !people.length) {
     $("seasonEnd").innerHTML = monthLast(hist, false);
     $("seasonEnd").hidden = !hist.length;
     return;
   }
-  const payeeT = Object.keys(CONFIG.owners).find(t => CONFIG.owners[t] === CONFIG.payee) || people[0].t;
-  $("seasonEnd").innerHTML = `<div class="se-grid">
-      <div class="se-box" style="${tv(people[0].t)}"><span class="se-l">年間MVP</span><b>${ownT(people[0].t)}</b><small>${fn(people[0].t)}・支払い${people[0].n}回・平均${people[0].avg.toFixed(1)}位</small></div>
-      <div class="se-box se-yen" style="${tv(payeeT)}"><span class="se-l">J SPORTS代 合計</span><b class="num">${yen(total)}</b><small>支払い${times}回 → ${esc(CONFIG.payee)}</small></div>
-    </div>
-    <h3 class="se-h">担当者別 年間成績</h3>
+  // 年間MVP・合計の札は出さない（10/9）：下の担当者別 年間成績にMVPの印と支払いがあるので
+  $("seasonEnd").innerHTML = `<h3 class="se-h">担当者別 年間成績</h3>
     <div class="tot">${totHTML(list, paid, amt)}</div>
     ${monthLast(hist, true)}`;
 }

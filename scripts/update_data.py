@@ -672,7 +672,7 @@ OFF_SEED = [
     {"t": "G", "n": "岡田 悠希", "kind": "cut", "date": "2026-10-05", "url": "https://news.yahoo.co.jp/articles/c1b91c1a5acbd8e36a59ac20663f9b80c5b58b62", "title": "巨人 岡田悠希ら支配下3選手に戦力外通告（球団発表）"},
     {"t": "G", "n": "山田 龍聖", "kind": "cut", "date": "2026-10-05", "url": "https://news.yahoo.co.jp/articles/c1b91c1a5acbd8e36a59ac20663f9b80c5b58b62", "title": "巨人 岡田悠希ら支配下3選手に戦力外通告（球団発表）"},
     {"t": "G", "n": "郡 拓也", "kind": "cut", "date": "2026-10-05", "url": "https://news.yahoo.co.jp/articles/c1b91c1a5acbd8e36a59ac20663f9b80c5b58b62", "title": "巨人 岡田悠希ら支配下3選手に戦力外通告（球団発表）"},
-    {"t": "G", "n": "萩尾 匡也", "kind": "offer", "date": "2026-10-05", "url": "https://www.tokyo-sports.co.jp/articles/-/405558", "title": "巨人 萩尾匡也が自由契約 育成契約を打診の見込み（球団発表）"},
+    {"t": "G", "n": "萩尾 匡也", "kind": "free", "offer": True, "date": "2026-10-05", "url": "https://www.tokyo-sports.co.jp/articles/-/405558", "title": "巨人 萩尾匡也が自由契約 育成契約を打診の見込み（球団発表）"},
     # コーチの退団（10/4 球団発表。球団のニュース一覧から拾えなかったので補う）
     {"t": "B", "n": "波留 敏夫", "kind": "coach_out", "role": "ヘッドコーチ", "date": "2026-10-04", "url": "https://full-count.jp/2026/10/04/post2026060/", "title": "波留敏夫ヘッドコーチ 契約満了で退団（球団発表）"},
     {"t": "B", "n": "川島 慶三", "kind": "coach_out", "role": "打撃コーチ", "date": "2026-10-04", "url": "https://full-count.jp/2026/10/04/post2026060/", "title": "川島慶三打撃コーチ 本人の申し入れで退団（球団発表）"},
@@ -1354,7 +1354,7 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
         key = (x["t"], x["n"])
         ro = next((r for r in rosters.get(x["t"]) or [] if squash(r.get("n", "")) == squash(x["n"])), None)
         if key in items:
-            for f in ("date", "kind"):
+            for f in ("date", "kind", "offer"):
                 if x.get(f):
                     items[key][f] = x[f]
             if x.get("url") and not items[key].get("url"):
@@ -1362,7 +1362,7 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
         else:
             items[key] = {"t": x["t"], "n": x["n"], "no": (ro or {}).get("no", "") or (managers.get(x["t"]) or {}).get("no", "") if x["kind"] == "mgr" else (ro or {}).get("no", ""),
                           "dev": bool((ro or {}).get("dev")), "kind": x["kind"], "date": x.get("date") or today, "url": x.get("url", ""), "title": x.get("title", "")}
-            for f in ("role", "mid"):
+            for f in ("role", "mid", "offer"):
                 if x.get(f):
                     items[key][f] = x[f]
             if x["kind"].startswith("coach"):
@@ -1461,7 +1461,8 @@ def parse_transfer(html, season):
 # ===== ベースボールチャンネルの「今季の戦力外通告・現役引退・自由契約・退団選手一覧」（12球団。発表の当日に更新される） =====
 # スポナビの入退団情報は反映が遅れることがあるので、もう1つの元として使う。記事の場所は毎年変わるので「自由契約」のタグの一覧から探す
 BBC_TAGS = ["https://www.baseballchannel.jp/tag/%E8%87%AA%E7%94%B1%E5%A5%91%E7%B4%84/", "https://www.baseballchannel.jp/tag/%E6%88%A6%E5%8A%9B%E5%A4%96%E9%80%9A%E5%91%8A/"]
-BBC_KIND = [(re.compile(r"引退"), "retire"), (re.compile(r"戦力外"), "cut"), (re.compile(r"自由契約"), "cut"), (re.compile(r"退団"), "leave")]
+# 自由契約（10/8〜）：戦力外とは別の種類（free）。シーズン途中の自由契約（外国人選手など）も、その年の分はすべて入れる
+BBC_KIND = [(re.compile(r"引退"), "retire"), (re.compile(r"戦力外"), "cut"), (re.compile(r"自由契約"), "free"), (re.compile(r"退団"), "leave")]
 BBC_SHORT = {"阪神": "T", "DeNA": "DB", "巨人": "G", "中日": "D", "広島": "C", "ヤクルト": "S", "ソフトバンク": "H", "日本ハム": "F",
              "オリックス": "B", "楽天": "E", "西武": "L", "ロッテ": "M"}
 
@@ -1478,8 +1479,11 @@ def clean_off_name(n):
     return re.sub(r"\s+", " ", s).strip()
 
 
-def parse_bbc(html, season):
-    """一覧の表（日付｜球団｜選手｜ポジション）を、直前の見出し（戦力外通告・引退表明・自由契約・退団）ごとに読む"""
+def parse_bbc(html, season, today=None):
+    """一覧の表（日付｜球団｜選手｜ポジション）を、直前の見出し（戦力外通告・引退表明・自由契約・退団）ごとに読む。
+    日付は「2月25日」のように年がないので、1・2月は翌年とみなす。ただし今日より後になるなら今年（10/8 2月の自由契約が「2027年」になって、
+    今オフのいちばん新しい発表のように出ていた）"""
+    today = today or datetime.now(JST).strftime("%Y-%m-%d")
     soup = BeautifulSoup(html, "html.parser")
     out = []
     for tb in soup.find_all("table"):
@@ -1501,12 +1505,15 @@ def parse_bbc(html, season):
                 continue
             y = season if mo >= 3 else season + 1
             date = f"{y:04d}-{mo:02d}-{d:02d}"
-            if date < f"{season}-09-01":
+            if date > today:
+                date = f"{season:04d}-{mo:02d}-{d:02d}"
+            if date < (f"{season}-01-01" if kind == "free" else f"{season}-09-01"):
                 continue
             # 名前の欄には「NEW」「育成」などの札も並ぶ（10/4 から）→ 名前だけにして、育成は dev に
             name = clean_off_name(c[2])
             if name:
-                out.append({"t": t, "n": name, "dev": bool(re.search(r"※|育成", c[2])), "kind": kind, "date": date, "note": head})
+                out.append({"t": t, "n": name, "dev": bool(re.search(r"※|育成", c[2])), "kind": kind, "date": date, "note": head,
+                            "pos": c[3] if len(c) > 3 and re.fullmatch(r"投手|捕手|内野手|外野手", c[3]) else ""})
     return out
 
 
@@ -1571,6 +1578,9 @@ def merge_transfer(off, season, rosters, now=None):
     got = uniq
     print(f"[戦力外の一覧（ベースボールチャンネル）] {bbc_url or '見つからない'}：今オフ {len(bbc)}件")
     items = {(x["t"], okey(x["n"])): x for x in off.get("items") or []}
+    # 一覧から読んだ項目で、日付が今日より後のもの（年の読み違い。10/8 羽月の2月の自由契約が「2027年」になっていた）は捨てる（読み直した正しい日付で入れ直す）
+    today = now.strftime("%Y-%m-%d")
+    items = {k: x for k, x in items.items() if not (x.get("src") == "bbc" and (x.get("date") or "") > today)}
     add = upd = 0
     for x in got:
         ro = next((r for r in rosters.get(x["t"]) or [] if okey(r.get("n", "")) == okey(x["n"])), None)
@@ -1578,7 +1588,10 @@ def merge_transfer(off, season, rosters, now=None):
         cur = items.get(key)
         if cur:
             # 戦力外→引退などに変わったとき（新しい日付のとき）だけ直す。移籍・監督などの項目には手を出さない
-            if cur.get("kind") in ("cut", "offer", "retire", "leave") and cur.get("kind") != x["kind"] and x["date"] > (cur.get("date") or ""):
+            # 戦力外の選手が12月の自由契約の公示で一覧の「自由契約」に載っても、戦力外のまま（自由契約に上書きしない）
+            if x["kind"] == "free" and cur.get("kind") in ("cut", "offer"):
+                continue
+            if cur.get("kind") in ("cut", "offer", "retire", "leave", "free") and cur.get("kind") != x["kind"] and x["date"] > (cur.get("date") or ""):
                 cur["kind"], cur["date"] = x["kind"], x["date"]
                 upd += 1
             continue
@@ -1586,6 +1599,8 @@ def merge_transfer(off, season, rosters, now=None):
         items[key] = {"t": x["t"], "n": (ro or {}).get("n") or x["n"], "no": (ro or {}).get("no", ""), "dev": bool((ro or {}).get("dev")) or x["dev"],
                       "kind": x["kind"], "date": x["date"], "url": bbc_url if _bbc else TRANSFER_URL,
                       "title": "ベースボールチャンネル 戦力外・引退一覧" if _bbc else "スポーツナビ 入退団情報", "src": "bbc" if _bbc else "sponavi"}
+        if not ro and x.get("pos"):
+            items[key]["pos"] = x["pos"]   # 名簿にもういない選手（シーズン途中の自由契約など）の守備位置（名前の札の色に使う）
         add += 1
     off = dict(off)
     # 同じ球団・同じ選手（名前の空白の有無だけ違うもの）・同じ種類は1つにまとめる

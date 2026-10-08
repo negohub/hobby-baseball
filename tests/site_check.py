@@ -1300,6 +1300,25 @@ async def mark_contrast_check(browser):
     await pg.close()
 
 
+async def off_tag_color_check(browser):
+    """入退団の札の色（10/8）：4つの見た目のどれでも、種類ごとに色が分かれている（戦力外・自由契約・引退が同じ色にならない）。
+    スタイリッシュで、読みやすさの自動直しが全部の札を同じ赤に上書きしていた"""
+    for theme, mode in [("", "dark"), ("", "light"), ("pawa", "light"), ("pawa", "dark")]:
+        label = f"[入退団の札の色 {'パワプロ風' if theme else 'スタイリッシュ'} {mode}]"
+        pg, errs = await open_page(browser, 390, theme)
+        await pg.evaluate(f"localStorage.setItem('mode','{mode}'); applyPawaMode(); renderAll()")
+        r = await pg.evaluate("""() => { const box = document.createElement('div'); box.id = 'offList'; document.getElementById('v-off').appendChild(box); setTab('off');
+          const bg = k => { const e = document.createElement('span'); e.className = 'offtag k-' + k; e.textContent = 'x'; box.appendChild(e); const cs = getComputedStyle(e); return cs.backgroundColor + ' ' + cs.backgroundImage; };
+          const c = { cut: bg('cut'), free: bg('free'), retire: bg('retire'), out: bg('out'), fa_decl: bg('fa_decl'), draft: bg('draft'), mgr: bg('mgr') }; box.remove();
+          const ng = []; for (const [k, v] of Object.entries(c)) if (k !== 'cut' && v === c.cut) ng.push(`${OFF_LABEL[k]}の札が戦力外と同じ色`);
+          if (c.free === c.retire) ng.push('自由契約と引退の札が同じ色'); return ng; }""")
+        for m in r:
+            bad(f"{label} {m}")
+        for e in errs:
+            bad(f"{label}: 画面のエラー {e}")
+        await pg.close()
+
+
 async def month_done_check(browser):
     """月度の順位がもう動かないときは、試合が残っていても「確定」として扱う（10/7 の9・10月度：残りは広島－ヤクルトの1試合だけ）。
     戦況の帯は「9・10月度の支払い」、月度のボタンに集計中の印なし、月度別 支払いに「順位は暫定」「確定」の小さい札なし、担当者別の9・10月度は点線でない。
@@ -1478,7 +1497,32 @@ async def swipe_check(browser):
         await pg.wait_for_timeout(800)
         if await pg.evaluate("[S.tab, document.getElementById('formBlk').hidden]") != ["std", False]:
             bad(f"{label} 順位タブの順位推移を左へスワイプしても直近5試合にならない")
-        await pg.evaluate("setTab('magic')")
+        # 入退団（10/8）：一覧を左へスワイプで次の種類（すべて→戦力外→…）、右へで前へ。最初の種類で右へ → 名鑑へ
+        if await pg.evaluate("syncOffTab()"):
+            await pg.evaluate("S.offCat = 'all'; setTab('off'); renderOff(); window.scrollTo(0, 0)")
+            await pg.wait_for_timeout(300)
+            cats = await pg.evaluate("S.offCatList || null")
+            if cats is None:
+                bad(f"{label} 入退団の種類をスワイプで切り替えられない（切り替えの順がない）")
+            elif len(cats) >= 3:
+                await pg.evaluate(SWIPE_JS, ["#offList", -160, 0])
+                await pg.wait_for_timeout(800)
+                r = await pg.evaluate("[S.tab, S.offCat, document.querySelector('#offCats button[aria-pressed=\"true\"]')?.dataset.oc]")
+                if r != ["off", cats[1], cats[1]]:
+                    bad(f"{label} 入退団の一覧を左へスワイプしても次の種類（{cats[1]}）にならない（{r}）")
+                await pg.evaluate(SWIPE_JS, ["#offList", 160, 0])
+                await pg.wait_for_timeout(800)
+                if await pg.evaluate("[S.tab, S.offCat]") != ["off", "all"]:
+                    bad(f"{label} 入退団の一覧を右へスワイプしても前の種類に戻らない")
+                await pg.evaluate(SWIPE_JS, ["#offList", 160, 0])
+                await pg.wait_for_timeout(800)
+                if await pg.evaluate("S.tab") != "song":
+                    bad(f"{label} 入退団の最初の種類で右へスワイプしても名鑑へ進まない（{await pg.evaluate('S.tab')}）")
+                left = await pg.evaluate("[document.getElementById('offList')].filter(el => el.style.transform || el.style.opacity).length")
+                if left:
+                    bad(f"{label} 入退団のスワイプのあと、一覧の位置や透明度が元に戻っていない")
+            else:
+                bad(f"{label} 入退団の種類が少なく、スワイプの検査ができない（{cats}）")
         await pg.evaluate("setTab('magic'); window.scrollTo(0, 0)")
         await pg.wait_for_timeout(300)
         await pg.evaluate(SWIPE_JS, ["#chips", -160, 0])   # 順位表・切り替え以外（月度のボタンの段）：タブが変わる
@@ -1948,6 +1992,18 @@ async def offseason_check(browser):
     bb = ud.parse_bbc('<h2>戦力外通告</h2><table><tr><td>9月29日</td><td>阪神</td><td>松原快 <span>育成</span></td><td>投手</td></tr><tr><td>10月4日</td><td>ロッテ</td><td>髙野光海 <b>NEW</b> <span>育成</span></td><td>外野手</td></tr></table>', 2026)
     if [(x["n"], x["dev"]) for x in bb] != [("松原快", True), ("髙野光海", True)]:
         bad(f"[入退団の名前] ベースボールチャンネルの名前の札を外せない：{[(x['n'], x['dev']) for x in bb]}")
+    # 日付に年がない一覧：1・2月は翌年とみなすが、今日より後になるなら今年（10/8 2月25日の自由契約が「2027年」になって今オフの発表に出ていた）
+    bh = '<h2>自由契約</h2><table><tr><td>2月25日</td><td>広島</td><td>羽月隆太郎</td><td>内野手</td></tr><tr><td>10月5日</td><td>巨人</td><td>萩尾匡也</td><td>外野手</td></tr></table>'
+    got = [(x["n"], x["date"], x["kind"], x.get("pos")) for x in ud.parse_bbc(bh, 2026, today="2026-10-08")]
+    # 自由契約（10/8〜）：戦力外とは別の種類（free）。シーズン途中（2月など）の自由契約もその年の分はすべて。守備位置も
+    if got != [("羽月隆太郎", "2026-02-25", "free", "内野手"), ("萩尾匡也", "2026-10-05", "free", "外野手")]:
+        bad(f"[入退団の日付] 自由契約の読み取りが違う（年のない日付を今日より後にしない・種類は自由契約・その年の分すべて）：{got}")
+    got = [(x["n"], x["kind"]) for x in ud.parse_bbc('<h2>戦力外通告</h2><table><tr><td>2月25日</td><td>広島</td><td>テスト一郎</td><td>投手</td></tr><tr><td>10月1日</td><td>広島</td><td>テスト二郎</td><td>投手</td></tr></table>', 2026, today="2026-10-08")]
+    if got != [("テスト二郎", "cut")]:
+        bad(f"[入退団の日付] 戦力外は今オフ（9月から）の分だけのはず：{got}")
+    got = [(x["n"], x["date"]) for x in ud.parse_bbc(bh.replace("2月25日", "1月10日"), 2026, today="2027-01-20")]
+    if ("羽月隆太郎", "2027-01-10") not in got:
+        bad(f"[入退団の日付] 年明け（1月）の発表を翌年にできない：{got}")
     # 球場別成績：出場成績のページを読み、球団・球場・選手ごとに足す（打者の塁打・四球・死球・犠飛は打席の結果からも数える。投手の投球回はアウト数で足す）
     def box_html(date, home, away, bat_a, bat_h, pit_a, pit_h):
         bt = lambda rows: '<table><tr><th>位置</th><th>選手名</th><th>打率</th><th>打数</th><th>得点</th><th>安打</th><th>打点</th><th>三振</th><th>四球</th><th>死球</th><th>犠打</th><th>盗塁</th><th>失策</th><th>本塁打</th><th>1回</th><th>2回</th><th>3回</th></tr>' + ''.join(f'<tr><td>(右)</td><td>{n}</td><td>.300</td><td>{ab}</td><td>0</td><td>{h}</td><td>{rbi}</td><td>0</td><td>{bb}</td><td>0</td><td>0</td><td>0</td><td>0</td><td>{hr}</td>' + ''.join(f'<td>{x}</td>' for x in res) + '</tr>' for n, ab, h, rbi, bb, hr, res in rows) + '</table>'
@@ -3228,6 +3284,20 @@ async def live_off_check(browser):
       if (gz.length !== 1) ng.push(`「F・グズマン」と「グズマン」が別々に出ている（${gz.length}件）`);
       else if (gz[0].no !== '042') ng.push('同じ人をまとめたとき、背番号のある方が残っていない');
       if (!offItems().some(x => x.kind === 'promote')) ng.push('育成から支配下登録が出ない');
+      { const fut = offItems().filter(x => (x.date || '') > jst().iso); if (fut.length) ng.push(`入退団に今日より後の日付の発表が出ている（年の読み違い）：${fut.slice(0, 3).map(x => x.n + ' ' + x.date)}`); }
+      { const keep = DATA.offseason.items; DATA.offseason.items = [...keep, { t: 'C', n: 'テスト未来', no: '', dev: false, kind: 'cut', date: '2099-02-25', url: 'u', title: 'x', src: 'bbc' }]; if (offItems().some(x => x.n === 'テスト未来')) ng.push('一覧から読んだ未来の日付の発表を出してしまう'); DATA.offseason.items = keep; }
+      // 自由契約（10/8〜）：戦力外と同じように入退団に出る。札は「自由契約」（k-free）、絞り込みのボタン、説明、名簿にいない選手は一覧の守備位置の色
+      { const keep = DATA.offseason.items, t0 = CL[0];
+        DATA.offseason.items = [...keep, { t: t0, n: 'テスト自由', no: '', dev: false, kind: 'free', date: '2026-06-04', url: 'u', title: 'x', src: 'bbc', pos: '外野手' }];
+        S.offCat = 'all'; setTab('off'); renderOff();
+        const r = [...document.querySelectorAll('#offList .ofr')].find(e => e.textContent.includes('テスト自由'));
+        if (!r) ng.push('自由契約の選手が入退団に出ない');
+        else { const tg = r.querySelector('.offtag'); if (!tg || tg.textContent !== '自由契約' || !tg.classList.contains('k-free')) ng.push(`自由契約の札が出ない（${tg && tg.outerHTML}）`);
+          if (!/自由契約/.test(r.querySelector('.omain').textContent)) ng.push('自由契約の説明がない');
+          if (isPawa() && !r.querySelector('.ptile.po')) ng.push('名簿にいない自由契約の選手の名前が、守備位置（外野手）の色になっていない');
+          { const kc = document.querySelector('#offList .offtag.k-cut'), bg = e => getComputedStyle(e).backgroundColor + getComputedStyle(e).backgroundImage; if (kc && bg(kc) === bg(tg)) ng.push('自由契約の札が戦力外と同じ色'); } }
+        if (![...document.querySelectorAll('#offCats button')].some(b => b.dataset.oc === 'free' && b.textContent === '自由契約')) ng.push('入退団の絞り込みに「自由契約」がない');
+        DATA.offseason.items = keep; renderOff(); }
       jst = () => ({ y: 2026, m: 10, d: 1, iso: '2026-10-01' }); renderAll(); setTab('off'); renderOff();
       document.querySelectorAll('#offList .ofteam').forEach(e => (e.style.contentVisibility = 'visible'));   // 画面の外は並べるのを後回しにしているので、読む前に並べる
       if (!/育成から支配下登録/.test(document.getElementById('offList').innerText)) ng.push('オフの一覧に「育成から支配下登録」が出ない');
@@ -4890,6 +4960,7 @@ async def main():
         await bottom_line_check(browser)
         await last_game_day_check(browser)
         await mark_contrast_check(browser)
+        await off_tag_color_check(browser)
         await radius_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)

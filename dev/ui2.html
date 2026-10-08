@@ -131,7 +131,7 @@ html.lg-p #v-std .jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}
 .lamp.ng i{font-style:normal;background:var(--ng);color:#fff;padding:4px 8px;font-size:15px;font-weight:900}
 .nm{display:flex;align-items:center;gap:8px;font-weight:900;font-size:17px}
 .nm .rk{display:none}
-.badge{width:28px;height:28px;display:inline-grid;place-items:center;font-size:15px;font-weight:900;color:var(--ti,#000);background:var(--tc);flex:0 0 auto}
+.badge{width:28px;height:28px;display:inline-grid;place-items:center;font-size:15px;font-weight:900;color:var(--ti,#000);background:var(--tb,var(--tc));flex:0 0 auto}
 .rec{margin-top:3px;font-size:14.5px;font-weight:700;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;color:#D6D6D6}
 .rec .pct{font-size:20px;font-weight:900;color:#fff}
 .meta{font-size:12.5px;color:var(--muted);margin-top:1px;display:flex;gap:12px}
@@ -543,7 +543,7 @@ h2{font-weight:700;margin-top:30px}
 .hero.now{box-shadow:inset 0 0 0 1px rgba(255,59,59,.45)}
 .hero.done{box-shadow:inset 0 0 0 1px rgba(255,59,59,.8)}
 .hero.none{grid-template-columns:1fr;border-left-color:#333;background:#0E0E0E}
-.hero .hb{width:40px;height:40px;display:grid;place-items:center;background:var(--tc);color:var(--ti);font-size:20px;font-weight:700;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.hero .hb{width:40px;height:40px;display:grid;place-items:center;background:var(--tb,var(--tc));color:var(--ti);font-size:20px;font-weight:700;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%)}
 .hero .hm{min-width:0}
 .hero .hl{font-size:11px;color:#FF6B6B;font-weight:700;letter-spacing:.08em}
 .hero.none .hl{color:var(--muted)}
@@ -693,7 +693,7 @@ html.theme-pawa.pawa-dark .pnbox .pnm:not(#z){color:#FFD84D !important}
 .se-mp{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.03em}
 .se-mt{display:flex;align-items:center;gap:7px;min-width:0}
 .se-mt b{font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.se-bd{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;background:var(--tc);color:var(--ti) !important;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.se-bd{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;background:var(--tb,var(--tc));color:var(--ti) !important;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
 .se-m small{font-size:11px;color:var(--muted)}
 html.theme-pawa .se-h{color:#13264A}
 html.theme-pawa.pawa-dark .se-h{color:#DEE5F2}
@@ -916,7 +916,7 @@ html.theme-pawa .pupd{color:#4A6390}
 .bteams{flex:1;display:flex;flex-direction:column}
 .bt{position:relative;display:flex;align-items:center;gap:10px;height:44px;padding-right:12px;background:linear-gradient(90deg,color-mix(in srgb,var(--tc) 34%,#0A0A0A) 0%,#0A0A0A 62%)}
 .bt+.bt{border-top:1px solid #1C1C1C}
-.bt .bk{width:40px;align-self:stretch;display:grid;place-items:center;background:var(--tc);color:var(--ti);font-weight:700;font-size:16px;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%)}
+.bt .bk{width:40px;align-self:stretch;display:grid;place-items:center;background:var(--tb,var(--tc));color:var(--ti);font-weight:700;font-size:16px;clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%)}
 .bt .bn{font-size:16px;font-weight:700;letter-spacing:.02em}
 .bt .bs2{margin-left:auto;font-size:26px;font-weight:700;min-width:30px;text-align:right}
 .bt.atk::after{content:"";position:absolute;left:44px;top:50%;width:0;height:0;border-left:6px solid #fff;border-top:5px solid transparent;border-bottom:5px solid transparent;transform:translate(-2px,-50%);opacity:.9}
@@ -1307,7 +1307,7 @@ html.theme-pawa .ytab .mt.mx{font-size:8.5px}
 .race{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
 .race th,.race td{white-space:nowrap}
 .race th,.race td{text-align:center;padding:7px 2px;border-bottom:1px solid var(--soft-line)}
-.race .rcT{background:var(--tc);color:var(--ti,#000);font-size:15px;font-weight:700;padding:8px 2px}
+.race .rcT{background:var(--tb,var(--tc));color:var(--ti,#000);font-size:15px;font-weight:700;padding:8px 2px}
 .race .rcR th{background:color-mix(in srgb,var(--tc) 30%,#111);color:#fff;font-size:12px;font-weight:600}
 .race .rcH th{font-size:11.5px;color:var(--muted);font-weight:600}
 .race .rcC td{background:rgba(255,255,255,.08);font-weight:700}
@@ -1544,14 +1544,14 @@ html:not(.theme-pawa) .sp-b .sof{background:rgba(255,255,255,.06);color:#fff;bor
 html:not(.theme-pawa) .sp-b .sgo{background:#fff;color:#000;border:0}
 /* 球団マーク：パワプロ風は帽子のワッペンのような丸い形（チームカラーの丸＋白と紺の二重のふち＋ツヤ） */
 html.theme-pawa .badge{border-radius:50% !important;aspect-ratio:1/1;
-  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.6),rgba(255,255,255,0) 42%),radial-gradient(circle at 50% 120%,rgba(0,0,0,.22),rgba(0,0,0,0) 55%),var(--tc) !important;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.6),rgba(255,255,255,0) 42%),radial-gradient(circle at 50% 120%,rgba(0,0,0,.22),rgba(0,0,0,0) 55%),var(--tb,var(--tc)) !important;
   color:var(--ti,#fff) !important;font-weight:900 !important;letter-spacing:-.03em;
   box-shadow:0 0 0 2px #fff,0 0 0 3.5px #13264A,0 3px 4px rgba(19,38,74,.3) !important;margin:3px}
 html.theme-pawa .ytab td.tnm .badge{margin:3px 4px}
 html.theme-pawa .htab td.rk5 .badge{margin:3px 2px}
 @media (max-width:374px){html.theme-pawa .htab td.rk5 .badge{width:16px;height:16px;font-size:8px;margin:3px 1px;box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px #13264A !important}}
 html.theme-pawa .hero .hb{border-radius:50% !important;clip-path:none !important;aspect-ratio:1/1;
-  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.6),rgba(255,255,255,0) 42%),radial-gradient(circle at 50% 120%,rgba(0,0,0,.22),rgba(0,0,0,0) 55%),var(--tc) !important;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.6),rgba(255,255,255,0) 42%),radial-gradient(circle at 50% 120%,rgba(0,0,0,.22),rgba(0,0,0,0) 55%),var(--tb,var(--tc)) !important;
   color:var(--ti,#fff) !important;box-shadow:0 0 0 3px #fff,0 0 0 5px #13264A,0 4px 6px rgba(19,38,74,.3) !important;margin:5px}
 /* ===== 選手の成績の画面 ===== */
 #songSheet .sheet-card{max-height:86vh;overflow:auto}
@@ -1652,7 +1652,7 @@ html:not(.theme-pawa) .th-p{display:none !important}
 .ykl{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-right:2px}
 .ykp{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:#F2F2F4}
 .ykp.none{color:var(--muted);font-weight:500;font-size:12px}
-.ykb{font-style:normal;display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 4px;border-radius:5px;background:var(--tc);color:var(--ti,#fff);font-size:10.5px;font-weight:800}
+.ykb{font-style:normal;display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 4px;border-radius:5px;background:var(--tb,var(--tc));color:var(--ti,#fff);font-size:10.5px;font-weight:800}
 .ykv{font-size:11px;color:var(--muted)}
 .ykp[data-pl]{cursor:pointer}
 html:not(.theme-pawa) .ykp[data-pl]{text-decoration:underline;text-decoration-color:rgba(255,255,255,.18);text-underline-offset:3px}
@@ -1673,11 +1673,9 @@ html.theme-pawa .bck{color:#4A6390}
 html.theme-pawa .bcv{color:#13264A}
 /* スタメン（発表されたら） */
 .stm{margin:8px 0 2px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);overflow:hidden}
-.stm summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;font-size:13px;font-weight:800;color:#F2F2F4}
-.stm summary::-webkit-details-marker{display:none}
-.stm summary small{font-size:10.5px;font-weight:600;color:var(--muted)}
-.stm summary::after{content:"＋";margin-left:auto;color:var(--muted)}
-.stm[open] summary::after{content:"－"}
+/* スタメン発表・ベンチ入り：たたまない（見出しはそのまま、開け閉めの印なし） */
+.stm .stmh{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;font-size:13px;font-weight:800;color:#F2F2F4}
+.stm .stmh small{font-size:10.5px;font-weight:600;color:var(--muted)}
 .stw{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 8px 10px}
 .stc{min-width:0}
 .sth{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;margin:0 0 4px;color:#F2F2F4}
@@ -1701,6 +1699,7 @@ html.theme-pawa .stl li .posic{width:24px;min-width:24px}
 .stp{display:inline-grid;place-items:center;height:18px;border-radius:5px;color:#13264A;font-size:10.5px;font-weight:800}
 /* スタイリッシュ：今までどおり（スタメンは色の四角、打順の表は文字だけ） */
 html:not(.theme-pawa) .posic{font-style:normal}
+html:not(.theme-pawa) .stl li .posic.stp{box-sizing:border-box;width:20px;min-width:20px}   /* スタメン・ベンチの守備の札：字の幅まで縮まない（パワプロ風と同じく決まった幅） */
 html:not(.theme-pawa) .posic.stp.pz-pp{background:#F9B3C7}html:not(.theme-pawa) .posic.stp.pz-pc{background:#6FD3F0}html:not(.theme-pawa) .posic.stp.pz-pi{background:#F9D564}html:not(.theme-pawa) .posic.stp.pz-po{background:#84D877}html:not(.theme-pawa) .posic.stp.pz-pn{background:#C9CED8}
 /* パワプロ風：守備位置は名前の札と同じ札（字・色・枠・光）を、名前の札と同じ高さの四角にしたもの */
 html.theme-pawa .ptile.sptile.posic{box-sizing:border-box;width:26px;min-width:26px;height:26px;padding:0;border-radius:7px;flex:none;justify-content:center;cursor:inherit}
@@ -1714,8 +1713,8 @@ html.theme-pawa .ptile.sptile.pschip b{font-size:12px}
 .sta{font-size:11px;color:var(--muted)}
 .stn{font-size:11.5px;color:var(--muted);margin:4px 0}
 html.theme-pawa .stm{background:#F4F9FF;border:2px solid #DCE7F5}
-html.theme-pawa .stm summary,html.theme-pawa .sth,html.theme-pawa .stnm{color:#13264A}
-html.theme-pawa .stm summary small,html.theme-pawa .sto,html.theme-pawa .sta,html.theme-pawa .stk,html.theme-pawa .stn,html.theme-pawa .stm summary::after{color:#4A6390}
+html.theme-pawa .stm .stmh,html.theme-pawa .sth,html.theme-pawa .stnm{color:#13264A}
+html.theme-pawa .stm .stmh small,html.theme-pawa .sto,html.theme-pawa .sta,html.theme-pawa .stk,html.theme-pawa .stn{color:#4A6390}
 html.theme-pawa .stpit{border-top-color:#C9D8EC}
 /* 名前の枠は全員同じ大きさ（列の幅いっぱい）。長い名前は文字を小さくして収める */
 html.theme-pawa .stnm{container-type:inline-size;overflow:visible}
@@ -2104,7 +2103,7 @@ html.theme-pawa.pawa-dark .jump button{background:rgba(16,30,62,.92);border-colo
 .find-list .fi .fnm{flex:1;min-width:0;font-weight:800;font-size:14.5px}
 .find-list .fi .fno{font-size:12px;color:var(--muted);white-space:nowrap}
 .find-list .fmsg{padding:18px 6px;text-align:center;color:var(--muted);font-size:13px}
-.find-list .ventm{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;background:var(--tc);color:var(--ti) !important}
+.find-list .ventm{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;background:var(--tb,var(--tc));color:var(--ti) !important}
 html.theme-pawa .find-in{background:#F4F9FF;color:#13264A}
 html.theme-pawa.pawa-dark .find-in{background:#13213F;color:#DEE5F2}
 html.theme-pawa .find-bar input{background:#fff;border:2px solid #1D3E7C;color:#13264A}
@@ -2113,11 +2112,11 @@ html.theme-pawa .find-bar button,html.theme-pawa .find-list .fi .fno,html.theme-
 html.theme-pawa.pawa-dark .find-bar button,html.theme-pawa.pawa-dark .find-list .fi .fno,html.theme-pawa.pawa-dark .find-list .fmsg{color:#B8C6E0}
 /* ===== 読みやすさ：字は11px未満にしない（丸の中の球団の印など、字ではなく印として描いているものは除く） ===== */
 #v-cal .day span.mu:not(#z),#v-cal .day span.ps:not(#z),#v-game .bi.pre small:not(#z),
-#v-magic td.fr small:not(#z),#v-magic td.num small:not(#z),#v-magic td.tnm small:not(#z),#v-magic th:not(#z),
+:is(#v-magic,#v-std) td.fr small:not(#z),#v-magic td.num small:not(#z),#v-magic td.tnm small:not(#z),#v-magic th:not(#z),
 #v-off .ofr .offtag:not(#z),.srcnote:not(#z),#v-rec td.rp .yr:not(#z),#v-rec td.pnm .recact:not(#z),#v-rec th:not(#z),
 #v-song .ptile em.tpos:not(#z),#v-song .ptile small.num:not(#z),#v-song .ptile .offtag:not(#z),
-#v-stats th:not(#z),:is(#v-std,#payBlk) .ytag:not(#z),#v-std .bk-w small:not(#z),:is(#v-std,#payBlk) .ynm small:not(#z),:is(#v-std,#payBlk) td.num small:not(#z),
-#payBlk td.rk5 small:not(#z),:is(#v-std,#payBlk) td.tnm small:not(#z),#payBlk td.ya small:not(#z),:is(#v-std,#payBlk) th:not(#z),#v-stdh th:not(#z),#v-ven th:not(#z){font-size:11px !important}
+#v-stats th:not(#z),:is(#v-std,#payBlk,#seasonEnd) .ytag:not(#z),#v-std .bk-w small:not(#z),:is(#v-std,#payBlk,#seasonEnd) .ynm small:not(#z),:is(#v-std,#payBlk,#seasonEnd) td.num small:not(#z),
+#payBlk td.rk5 small:not(#z),:is(#v-std,#payBlk,#seasonEnd) td.tnm small:not(#z),:is(#payBlk,#seasonEnd) td.ya small:not(#z),:is(#v-std,#payBlk,#seasonEnd) th:not(#z),#v-stdh th:not(#z),#v-ven th:not(#z){font-size:11px !important}
 /* 球団の切り替え（6つ並び）：幅の狭いiPhoneでは3つ×2段にして、球団名も11pxで1行に */
 /* 名前は押せる（選手の画面・NPBの選手のページ） */
 .ventab td.vn[data-pl],.rectab td.pnm[data-pl],.rectab td.pnm[data-npb]{cursor:pointer}
@@ -2129,7 +2128,7 @@ html.theme-pawa.pawa-dark .find-bar button,html.theme-pawa.pawa-dark .find-list 
 .venkey{display:flex !important;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin:0 0 8px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:100% !important;max-width:100% !important;min-width:0;box-sizing:border-box}   /* 画面の幅の中で横にすべらせる（ページ全体をはみ出させない） */
 .venkey::-webkit-scrollbar{display:none}
 .venkey button{flex:0 0 auto;white-space:nowrap}
-.ventab .ventm{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-style:normal;font-size:9.5px;font-weight:900;background:var(--tc);color:var(--ti) !important;margin:0 4px 0 0;vertical-align:middle;flex:none}
+.ventab .ventm{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-style:normal;font-size:9.5px;font-weight:900;background:var(--tb,var(--tc));color:var(--ti) !important;margin:0 4px 0 0;vertical-align:middle;flex:none}
 .ventab td.vn{white-space:nowrap}
 /* 規定未満の区切りと、その下の選手（少し薄く） */
 .ventab tr.vdiv td{text-align:left !important;font-size:11px !important;font-weight:800;color:var(--muted);padding:10px 8px 6px !important;background:transparent}
@@ -2449,10 +2448,10 @@ html.theme-pawa .pn3 .sptile{--fs:14px !important}
 html.theme-pawa #offList .ptile.otl{width:116px !important;min-width:0 !important;max-width:none !important;padding:0 6px !important;box-sizing:border-box}
 html.theme-pawa .sp-h .pstile{width:128px !important;min-width:0 !important;padding:0 6px !important;box-sizing:border-box}
 /* 行の中の札 */
-html.theme-pawa .ptile.sptile:not(.pn3 .sptile),html.theme-pawa .ptile.rtile,html.theme-pawa #hist .ptile.otile,html.theme-pawa #tot .ptile.otile{height:26px !important;min-height:26px !important}
+html.theme-pawa .ptile.sptile:not(.pn3 .sptile),html.theme-pawa .ptile.rtile,html.theme-pawa #hist .ptile.otile,html.theme-pawa .tot .ptile.otile{height:26px !important;min-height:26px !important}
 html.theme-pawa .pn3 .ptile.sptile{height:34px !important}
 html.theme-pawa .stnm .sptile b{font-size:min(13px, calc((100cqw - 10px) / (var(--n, 3) * 1.08))) !important}
-html.theme-pawa #hist .ptile.otile b,html.theme-pawa #tot .ptile.otile b{font-size:13px !important}
+html.theme-pawa #hist .ptile.otile b,html.theme-pawa .tot .ptile.otile b{font-size:13px !important}
 
 /* ===== 同じ種類の部品は、どの画面でも同じ大きさ ===== */
 /* 切り替えボタン（戦況の月度・成績の打者／投手・オフの種類など）：文字14px */
@@ -2526,7 +2525,7 @@ html.theme-pawa.pawa-dark .pbox.cmp .pc3 .pnx3.up:not(#z){background:rgba(255,21
 .pgauge .pgnote:not(#z){white-space:normal}
 /* 同じく11px未満にしない：投手成績の勝・敗・S・Hの札、放送予定の「テレビ・ネット・ラジオ」、スタメン・ベンチ（試合前の発表・試合中のベンチ）の見出しの小さい字・球団の丸・守備位置の札・打率・「先発」 */
 .putab .dec:not(#z){width:18px;height:18px;font-size:11px}
-.bck:not(#z),.stm summary small:not(#z),.ykb:not(#z),.stp:not(#z),.stl li .sta:not(#z),.stpit .sta:not(#z),.stpit .stk:not(#z){font-size:11px;letter-spacing:0}
+.bck:not(#z),.stm .stmh small:not(#z),.ykb:not(#z),.stp:not(#z),.stl li .sta:not(#z),.stpit .sta:not(#z),.stpit .stk:not(#z){font-size:11px;letter-spacing:0}
 @media (max-width:374px){.stpit .stk:not(#z){grid-column:1/-1;grid-row:1;line-height:1.2}.stpit .stnm:not(#z),.stpit .sta:not(#z){grid-row:2}}
 /* 隠れている所も11px未満にしない：選手の画面の守備位置の札（スタイリッシュ）、上の「hobby baseball」（見出し・スクロール中の帯）、長押しの中（順位・残り・回避などの小見出し、閉じ方の一言）、次戦の日付 */
 html:not(.theme-pawa) .ps-pos:not(#z),html:not(.theme-pawa) #kicker:not(#z),.minibar .mk:not(#z),.pk-hint:not(#z),.pk-row small:not(#z),.ts-h small:not(#z){font-size:11px}
@@ -2651,6 +2650,7 @@ html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),ht
 #detail .dd:not(#z){display:flex;align-items:center;gap:8px}
 #detail .dd .ddt:not(#z){flex:1 1 auto;min-width:0}
 #detail .dd .res:not(#z){flex:0 0 auto;margin-left:auto}
+html.theme-pawa:not(.pawa-dark) .swcap:not(#z){color:#13264A}
 /* 選手名鑑の球団の見出し：どの球団も1行（球団名と応援歌のボタン） */
 .sh:not(#z){flex-wrap:nowrap}.sh b:not(#z),.sh a:not(#z){white-space:nowrap}
 /* 戦況の切り替え（順位推移｜直近5試合、月度別 支払い｜担当者別 年間成績）：見出しの代わりに、横いっぱいのボタン */
@@ -2961,15 +2961,10 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <div class="cards" id="cards"></div>
     <div class="excl" id="excl"></div>
     <button class="shot cl-only" id="shotBtn" type="button">画像にしてLINEで送る</button>
-    <section class="blk" id="mh2hBlk">
-      <h2>対戦成績<small id="mh2hNote"></small></h2>
-      <div class="seg" id="mh2hSeg" role="tablist" aria-label="対戦成績の期間"></div>
-      <div id="mh2h"></div>
-    </section>
     <section class="blk swb" id="moreBlk">
-      <div class="seg sseg" role="tablist" data-sw="more"><button type="button" role="tab" data-sw="more" data-sp="trend">順位推移</button><button type="button" role="tab" data-sw="more" data-sp="form">直近5試合</button></div>
+      <div class="seg sseg" role="tablist" data-sw="more"><button type="button" role="tab" data-sw="more" data-sp="trend">順位推移</button><button type="button" role="tab" data-sw="more" data-sp="h2h">対戦成績</button></div>
       <div class="spane" data-sw="more" data-sp="trend" id="trendBlk"><div class="trend" id="trend"></div></div>
-      <div class="spane" data-sw="more" data-sp="form" id="formBlk"><div class="form" id="form"></div></div>
+      <div class="spane" data-sw="more" data-sp="h2h" id="mh2hBlk"><div id="mh2h"></div><p class="tcap swcap" id="mh2hNote"></p></div>
     </section>
     <section class="blk swb cl-only" id="payBlk">
       <div class="seg sseg" role="tablist" data-sw="pay" id="histTop"><button type="button" role="tab" data-sw="pay" data-sp="hist">月度別 支払い</button><button type="button" role="tab" data-sw="pay" data-sp="tot">担当者別 年間成績</button></div>
@@ -3006,6 +3001,12 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
     <h2 id="stdTop"><span id="stdTtl">セ・リーグ順位表</span><small id="stdNote"></small></h2>
     <div id="std"></div>
     <div id="raceBox"></div>
+    <section class="blk swb" id="seasonBlk">
+      <div class="seg sseg" role="tablist" data-sw="season"><button type="button" role="tab" data-sw="season" data-sp="strend">順位推移</button><button type="button" role="tab" data-sw="season" data-sp="form">直近5試合</button><button type="button" role="tab" data-sw="season" data-sp="sh2h">対戦成績</button></div>
+      <div class="spane" data-sw="season" data-sp="strend" id="sTrendBlk"><div class="trend" id="sTrend"></div></div>
+      <div class="spane" data-sw="season" data-sp="form" id="formBlk"><div class="form" id="form"></div></div>
+      <div class="spane" data-sw="season" data-sp="sh2h" id="sH2hBlk"><div id="sH2h"></div><p class="tcap swcap">今季　勝数-負数（引分数）</p></div>
+    </section>
   </section>
   <section class="view" id="v-post" aria-label="CS・日本シリーズ" hidden>
     <div id="bracketBox"></div>
@@ -3219,7 +3220,10 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const tc = t => (TEAM[t] ? TEAM[t].c : "#777");
 // その月度の支払い額（9・10月度は2か月分）
 const feeOf = p => CONFIG.fee * ((CONFIG.feeMonths || {})[p && p.id] || 1);
-const tv = t => `--tc:${tc(t)};--ti:${TEAM[t] && TEAM[t].i ? TEAM[t].i : "#000"}`;
+// 球団マーク（字が乗る小さい札）の地の色：チームカラーのままだと字が読みにくい球団だけ少し濃く（ヤクルトの緑に白い字は明るさの差が足りない）。線や帯はチームカラーのまま
+const TB = { S: "#00804A" };
+const tb = t => TB[t] || tc(t);
+const tv = t => `--tc:${tc(t)};--ti:${TEAM[t] && TEAM[t].i ? TEAM[t].i : "#000"};--tb:${tb(t)}`;
 const sn = t => (TEAM[t] ? TEAM[t].s : t);
 const fn = t => (TEAM[t] ? TEAM[t].n : t);
 const pctOf = (w, l) => fmtPct(w, l);
@@ -3486,7 +3490,7 @@ function renderSubNav() {
 // スワイプ：ページの順（グループの中のページも1つずつ）
 const tabOrder = () => TAB_GROUPS.flatMap(x => x.pages.map(([p]) => p)).filter(pageShown);
 const tabSwiper = makeSwiper({
-  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE + ", .spane")) && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
+  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)) && !e.target.closest(".spane") && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
   els: () => [$("v-" + S.tab)],
   edge: dx => { const t = tabOrder(), i = t.indexOf(S.tab); return (dx > 0 && i === 0) || (dx < 0 && i === t.length - 1); },
   target: dir => { const t = tabOrder(), i = t.indexOf(S.tab); return t[i + dir] || null; },
@@ -3506,7 +3510,7 @@ makeSwiper({
 });
 // 月度のスワイプの案内：戦況を初めて開いたときに、月度ボタンの下に一度だけ出す
 function showSwipeHint() {
-  if (store("hintMonthSwipe") || $("swHint") || periods().length < 2) return;
+  if (store("hintMonthSwipe") || $("swHint") || periods().length < 2 || seasonOver()) return;
   $("chips").insertAdjacentHTML("afterend", `<p class="swhint" id="swHint">順位表のあたりを左右にスワイプでも月度を切り替えられます</p>`);
   setTimeout(hideSwipeHint, 6000);
 }
@@ -3584,7 +3588,7 @@ function monthLast(hist, pay) {
     ${pay ? `<small>${esc(fn(t))}・${yen(feeOf(p))}</small>` : ""}</div>`).join("")}</div></div>`;
 }
 function renderSeasonEnd() {
-  const on = seasonOver() && S.period && S.period.id === defaultPeriod(periods()).id;
+  const on = seasonOver();   // シーズンが終わったら、どの月度を見ていても上に最終結果（月度を切り替えても画面がずれない）
   $("seasonEnd").hidden = !on;
   if (!on) return;
   const list = periods(), cur = defaultPeriod(list);
@@ -3595,23 +3599,21 @@ function renderSeasonEnd() {
     const rs = per.map(a => a.rows.findIndex(r => r.t === t) + 1);
     return { t, n: paid[t] || 0, yen: amt[t] || 0, avg: rs.length ? rs.reduce((s, x) => s + x, 0) / rs.length : 9 };
   }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
-  const champ = seasonTable(DATA.games, calOrder())[0];
-  const total = Object.values(amt).reduce((s, n) => s + n, 0);
-  const year = DATA.season || new Date().getFullYear();
+  const total = Object.values(amt).reduce((s, n) => s + n, 0), times = Object.values(paid).reduce((s, n) => s + n, 0);
+  // リーグ優勝は順位タブ（いちばん上の札）。ここは月度の遊びの最終結果だけ
   if (isPL() || !people.length) {
-    $("seasonEnd").innerHTML = `<div class="se-grid">
-      <div class="se-box" style="${tv(champ.t)}"><span class="se-l">${year} ${isPL() ? "パ" : "セ"}・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
-    </div>
-    ${monthLast(hist, false)}`;
+    $("seasonEnd").innerHTML = monthLast(hist, false);
+    $("seasonEnd").hidden = !hist.length;
     return;
   }
+  const payeeT = Object.keys(CONFIG.owners).find(t => CONFIG.owners[t] === CONFIG.payee) || people[0].t;
   $("seasonEnd").innerHTML = `<div class="se-grid">
       <div class="se-box" style="${tv(people[0].t)}"><span class="se-l">年間MVP</span><b>${ownT(people[0].t)}</b><small>${fn(people[0].t)}・支払い${people[0].n}回・平均${people[0].avg.toFixed(1)}位</small></div>
-      <div class="se-box" style="${tv(champ.t)}"><span class="se-l">${year} セ・リーグ優勝</span><b>${fn(champ.t)}</b><small>${champ.w}勝${champ.l}敗${champ.d}分</small></div>
+      <div class="se-box se-yen" style="${tv(payeeT)}"><span class="se-l">J SPORTS代 合計</span><b class="num">${yen(total)}</b><small>支払い${times}回 → ${esc(CONFIG.payee)}</small></div>
     </div>
-    <div class="ywrap"><table class="ytab se-tab"><thead><tr><th>順位</th><th class="tnm">担当</th><th>支払い</th><th>金額</th></tr></thead><tbody>${people.map((x, i) => `<tr style="${tv(x.t)}" data-tm="${x.t}"><td class="num">${i + 1}</td><td class="tnm">${own(x.t)}<small>${fn(x.t)}</small></td><td class="num">${x.n}回</td><td class="num">${x.n ? yen(x.yen) : "-"}</td></tr>`).join("")}</tbody></table></div>
-    ${monthLast(hist, true)}
-    <p class="se-sum">庄村のもとに集まったJ SPORTS代　<b class="num">${yen(total)}</b></p>`;
+    <h3 class="se-h">担当者別 年間成績</h3>
+    <div class="tot">${totHTML(list, paid, amt)}</div>
+    ${monthLast(hist, true)}`;
 }
 // 戦況の試合速報：今日のこのリーグの試合（今の月度を見ているときだけ）。試合中→これから→終了→中止の順。
 // 両方とも最下位争いが決まっていない（回避・支払いが確定していない）球団どうしは「直接対決」
@@ -3669,6 +3671,7 @@ function renderMagic() {
   const now = Date.now(); if (!heroAt) heroAt = now;
   const el = now - heroAt, hs = el > 700 ? " hstill" : "", hd = el > 700 || el === 0 ? "" : `;animation-delay:-${el}ms`;
   if (S.tab === "magic") setTimeout(showSwipeHint, 0);
+  if (seasonOver() && $("swHint")) $("swHint").remove();   // シーズンが終わったら案内は出さない（出ていたら消す）
   const list = periods();
   if (!S.period || !list.some(p => p.id === S.period.id)) S.period = defaultPeriod(list);
   magicTitle();
@@ -3706,9 +3709,11 @@ function renderMagic() {
   }
 
   const lastIdx = a.rows.length - 1;
-  // あなたの状況
+  // あなたの状況（シーズンが終わったら出さない：上の最終結果と月度の帯で分かる）。支払いの切り替えも、上の最終結果にまとめる
   const me = ME();
-  if (!me) $("meCard").innerHTML = S.me === "none" || isPL() ? "" : `<button type="button" class="mecard pick" data-mepick>あなたの担当を選ぶと、自分の状況がここに出ます<i></i></button>`;
+  $("payBlk").hidden = seasonOver();
+  if (seasonOver()) $("meCard").innerHTML = "";
+  else if (!me) $("meCard").innerHTML = S.me === "none" || isPL() ? "" : `<button type="button" class="mecard pick" data-mepick>あなたの担当を選ぶと、自分の状況がここに出ます<i></i></button>`;
   else {
     const i = a.rows.findIndex(r => r.t === me), r = a.rows[i];
     const paid = r.eliminated || (monthDone(a) && i === lastIdx);
@@ -3745,7 +3750,7 @@ function renderMagic() {
   const isCur = S.period.id === defaultPeriod(periods()).id;
   $("cards").insertAdjacentHTML("beforeend", isCur && !monthDone(a) ? pendingHTML(a.rows.map(r => r.t)) : "");
   renderMH2H();
-  renderTrend(a); renderForm();
+  renderTrend(a);
   // 確定の条件（まとめて1か所）
   const open = a.rows.filter(r => !r.safe && !r.eliminated);
   $("conds").hidden = monthDone(a) || !open.length;
@@ -3835,7 +3840,7 @@ async function pollLive() {
 }
 
 /* ---------- 対戦成績（スポナビ形式：勝数-負数（引分数）） ---------- */
-function h2hTable(rowsT, colsT, filter) {
+function h2hTable(rowsT, colsT, filter, allEq) {
   const M = {};
   for (const g of DATA.games) {
     if (g.st !== "final" || (filter && !filter(g))) continue;
@@ -3850,18 +3855,17 @@ function h2hTable(rowsT, colsT, filter) {
     return `<td class="num"><b>${w} - ${l}</b><small>(${d})</small></td>`;
   };
   return `<div class="ywrap"><table class="ytab h2h"><thead><tr><th class="rh"></th>${colsT.map(t => `<th>${calSn(t)}</th>`).join("")}</tr></thead><tbody>` +
-    rowsT.map(t => `<tr class="${CONFIG.excluded.includes(t) ? "ex" : ""}" style="${tv(t)}"><th class="rh">${calSn(t)}</th>${colsT.map(o => cell(t, o)).join("")}</tr>`).join("") + `</tbody></table></div>`;
+    rowsT.map(t => `<tr class="${!allEq && CONFIG.excluded.includes(t) ? "ex" : ""}" style="${tv(t)}"><th class="rh">${calSn(t)}</th>${colsT.map(o => cell(t, o)).join("")}</tr>`).join("") + `</tbody></table></div>`;
 }
-// 対戦成績は戦況の1か所に：この月度（前年の順位順・広島も参考として含む）｜今季（今の順位順）を切り替える
-S.h2hSpan = "m";
+// 対戦成績：戦況はその月度（前年の順位順・広島も参考として薄く）。今季の分は順位タブ（今の順位順・全球団同じ扱い）
 function renderMH2H() {
-  const season = S.h2hSpan === "s";
-  $("mh2hSeg").innerHTML = [["m", S.period.label], ["s", "今季"]].map(([k, l]) => `<button type="button" role="tab" data-k="${k}" aria-pressed="${(k === "s") === season}">${esc(l)}</button>`).join("");
-  const order = season ? seasonTable(DATA.games, calOrder(), pendingMakeups()).map(r => r.t) : calOrder();
-  $("mh2h").innerHTML = h2hTable(order, order, season ? null : g => S.period.months.includes(monthOf(g.d)));
-  $("mh2hNote").textContent = `${season ? "今季" : S.period.label}　勝数-負数（引分数）`;
+  $("mh2h").innerHTML = h2hTable(calOrder(), calOrder(), g => S.period.months.includes(monthOf(g.d)));
+  $("mh2hNote").textContent = `${S.period.label}　勝数-負数（引分数）`;
 }
-$("mh2hSeg").addEventListener("click", e => { const b = e.target.closest("button[data-k]"); if (!b || (b.dataset.k === "s") === (S.h2hSpan === "s")) return; S.h2hSpan = b.dataset.k; renderMH2H(); });
+function renderSH2H() {
+  const order = seasonTable(DATA.games, calOrder(), pendingMakeups()).map(r => r.t);
+  $("sH2h").innerHTML = h2hTable(order, order, null, true);
+}
 
 /* ---------- 振替待ち（中止になって、まだ振替日が決まっていない試合） ---------- */
 // セ・リーグは同一カード25試合・交流戦18試合。日程に入っている試合（中止を除く）が足りない分が振替待ち
@@ -4080,7 +4084,6 @@ async function loadStarters(force) {
   } catch {} finally { ykBusy = false; }
 }
 const ykOf = g => YK[`${g.d}|${g.h}|${g.a}`] || null;
-document.addEventListener("toggle", e => { const d = e.target; if (d && d.matches && d.matches("details.stm")) S.stmOpen[d.dataset.stm] = d.open; }, true);
 
 // ===== 長押しでのぞく（iPhone の「触覚タッチ」のように） =====
 // 選手の名前・試合のカード・順位表のチーム・日程の日にちを長押しすると、中身を小さく先に見せる。指を離すと閉じる（タップは今まで通り）
@@ -4194,7 +4197,6 @@ document.addEventListener("click", e => { if (Date.now() < PEEK.until) { e.preve
 document.addEventListener("contextmenu", e => { if (peekTarget(e.target)) e.preventDefault(); });
 // ===== 今日の試合の放送予定・スタメン（スポナビの試合トップ。スタメンは発表されたら） =====
 let PRE = restoreLive("pre-v1"), preAt = 0, preBusy = false;
-S.stmOpen = S.stmOpen || {};   // スタメンの折りたたみ（試合ごと。閉じたら覚える）
 async function loadPre(force) {
   if (!CONFIG.liveApi || preBusy || (!force && Date.now() - preAt < 60e3)) return;
   // 今日、まだ終わっていない試合があるときだけ
@@ -4232,13 +4234,12 @@ function preHTML(g) {
   const lu = p.lu || {};
   let st = "";
   if (g.st === "sched" && ((lu.h && (lu.h.bat || []).length) || (lu.a && (lu.a.bat || []).length))) {
-    const k = g.d + gkey(g), open = S.stmOpen[k] !== false;   // 最初は開いておく（ベンチ入りは閉じておく）
     const col = (t, x) => !x || !(x.bat || []).length ? `<div class="stc" style="${tv(t)}"><div class="sth"><i class="ykb">${sn(t)}</i>${fn(t)}</div><p class="stn">まだ発表されていません</p></div>`
       : `<div class="stc" style="${tv(t)}"><div class="sth"><i class="ykb">${sn(t)}</i>${fn(t)}</div>
         <ol class="stl">${x.bat.map(b => `<li data-pl="${t}|${esc(b.n)}|"><span class="sto num">${b.o}</span><span class="stnm">${pwName(t, b.n, POS_GR[b.pos] || "内野手")}</span>${posIcon(b.pos, "stp")}<span class="sta num">${esc(b.avg || "")}</span></li>`).join("")}</ol>
         ${x.p ? `<div class="stpit" data-pl="${t}|${esc(x.p.n)}|pit"><span class="stk">先発</span><span class="stnm">${pwName(t, x.p.n, "投手")}</span><span class="sta num">${esc(x.p.era || "")}</span></div>` : ""}</div>`;
-    st = `<details class="stm"${open ? " open" : ""} data-stm="${k}"><summary>スタメン発表<small>打順・守備・打率</small></summary>
-      <div class="stw">${col(g.h, lu.h)}${col(g.a, lu.a)}</div></details>`;
+    st = `<section class="stm"><div class="stmh">スタメン発表<small>打順・守備・打率</small></div>
+      <div class="stw">${col(g.h, lu.h)}${col(g.a, lu.a)}</div></section>`;
   }
   return st + (g.st === "sched" ? benchHTML(g) : "") + bc;
 }
@@ -4247,7 +4248,6 @@ const BENCH_GR = [["投手", "投"], ["捕手", "捕"], ["内野手", "内"], ["
 function benchHTML(g) {
   const p = preOf(g), b = p && p.bench;
   if (!b || (!b.h && !b.a)) return "";
-  const k = "b|" + g.d + gkey(g), open = S.stmOpen[k] === true;   // 最初は閉じておく
   // 試合が始まったら：もう出た選手（登板した投手・打席に立った／守った野手）は外して、ベンチに残っている選手だけ
   const d = GD[g.d + gkey(g)], started = g.st === "live" || g.st === "final";
   const usedOf = t => {
@@ -4263,8 +4263,8 @@ function benchHTML(g) {
     const none = started ? "ベンチに残っている選手はいません" : "まだ発表されていません";
     return `<div class="stc" style="${tv(t)}"><div class="sth"><i class="ykb">${sn(t)}</i>${fn(t)}</div>${rows ? `<ol class="stl">${rows}</ol>` : `<p class="stn">${none}</p>`}</div>`;
   };
-  return `<details class="stm bench"${open ? " open" : ""} data-stm="${k}"><summary>${started ? "ベンチ（残り）" : "ベンチ入り"}<small>${started ? "まだ出ていない選手" : "投手・捕手・内野手・外野手"}</small></summary>
-    <div class="stw">${col(g.h, b.h)}${col(g.a, b.a)}</div></details>`;
+  return `<section class="stm bench"><div class="stmh">${started ? "ベンチ（残り）" : "ベンチ入り"}<small>${started ? "まだ出ていない選手" : "投手・捕手・内野手・外野手"}</small></div>
+    <div class="stw">${col(g.h, b.h)}${col(g.a, b.a)}</div></section>`;
 }
 // 予告先発の行（どの画面でもホームが左。「阪神 vs ヤクルト」の対戦カードの順）
 function ykHTML(g, homeFirst = true) {
@@ -5140,22 +5140,16 @@ $("shotShare").onclick = async () => {
 };
 
 /* ---------- 順位の推移 ---------- */
-function renderTrend(a) {
-  const targets = CL.filter(t => !CONFIG.excluded.includes(t));
-  const exT = CONFIG.excluded.filter(t => CL.includes(t));
-  const gs = DATA.games.filter(g => g.st === "final" && S.period.months.includes(monthOf(g.d)) && ([...targets, ...exT].includes(g.h) || [...targets, ...exT].includes(g.a)))
-    .sort((x, y) => x.d < y.d ? -1 : 1);
-  const days = [...new Set(gs.map(g => g.d))];
-  $("trendBlk").classList.toggle("off", days.length < 2);   // 月度の最初の日は推移がないので、切り替えから外す
-  paintSw("more");
-  if (days.length < 2) return;
+// 順位推移のグラフ：targets＝順位をつける球団、exT＝参考（点線・勝率の位置）、band＝最下位の赤い帯、hi＝太くする球団
+function trendSVG(targets, exT, gs, band, hi) {
+  const days0 = [...new Set(gs.map(g => g.d))];
   const W = {}, L = {};
   [...targets, ...exT].forEach(t => { W[t] = 0; L[t] = 0; });
   const exHist = {}; exT.forEach(t => (exHist[t] = []));
   let prev = targets.slice();
   const hist = [];
   let k = 0;
-  for (const d of days) {
+  for (const d of days0) {
     while (k < gs.length && gs[k].d === d) {
       const g = gs[k++];
       if (g.hs === g.as) continue;
@@ -5174,16 +5168,25 @@ function renderTrend(a) {
       exHist[x].push(at - 0.5);
     }
   }
+  // シーズン全体（70日より長い）：毎日の入れ替わりで線がギザギザにならないよう、週の終わり（日曜）と最後の日の順位だけを結ぶ
+  let days = days0;
+  if ((Date.parse(days0[days0.length - 1]) - Date.parse(days0[0])) > 70 * 864e5) {
+    const keep = days0.map((d, i) => i === days0.length - 1 || new Date(d + "T00:00:00Z").getUTCDay() === 0 || (days0[i + 1] && (Date.parse(days0[i + 1]) - Date.parse(d)) > 6 * 864e5));
+    const h2 = [], e2 = {}; exT.forEach(t => (e2[t] = []));
+    days = days0.filter((d, i) => keep[i]);
+    hist.forEach((o, i) => { if (keep[i]) { h2.push(o); exT.forEach(t => e2[t].push(exHist[t][i])); } });
+    hist.length = 0; hist.push(...h2); exT.forEach(t => (exHist[t] = e2[t]));
+  }
   const VW = 358, VH = 226, pl = 26, pr = 40, pt = 18, pb = 32;
   const pw = VW - pl - pr, ph = VH - pt - pb, n = hist.length;
   const X = i => pl + (n === 1 ? pw / 2 : (i * pw) / (n - 1));
   const Y = r => pt + (r * ph) / (targets.length - 1);
   const lowY = Y(targets.length - 1);
   let svg = `<svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="順位推移">`;
-  svg += `<rect x="${pl - 6}" y="${lowY - ph / 8}" width="${pw + 12}" height="${ph / 4}" fill="rgba(255,43,43,.14)"/>`;
+  if (band) svg += `<rect x="${pl - 6}" y="${lowY - ph / 8}" width="${pw + 12}" height="${ph / 4}" fill="rgba(255,43,43,.14)"/>`;
   targets.forEach((_, r) => {
     svg += `<line x1="${pl}" x2="${pl + pw}" y1="${Y(r)}" y2="${Y(r)}" stroke="#222" stroke-width="1"/>`;
-    svg += `<text x="${pl - 12}" y="${Y(r) + 4}" text-anchor="end" font-size="12" font-weight="900" fill="${r === targets.length - 1 ? "#FF2B2B" : "#777"}">${r + 1}</text>`;
+    svg += `<text x="${pl - 12}" y="${Y(r) + 4}" text-anchor="end" font-size="12" font-weight="900" fill="${band && r === targets.length - 1 ? "#FF2B2B" : "#777"}">${r + 1}</text>`;
   });
   // 広島（参考）の点線
   for (const x of exT) {
@@ -5196,7 +5199,7 @@ function renderTrend(a) {
       ? `<g opacity=".6"><circle cx="${X(n - 1) + 18}" cy="${y}" r="10" fill="#13264A"/><circle cx="${X(n - 1) + 18}" cy="${y}" r="8.8" fill="#fff"/><circle cx="${X(n - 1) + 18}" cy="${y}" r="7.6" fill="${tc(x)}"/><text x="${X(n - 1) + 18}" y="${y + 3.5}" text-anchor="middle" font-size="9" font-weight="900" fill="#fff">${sn(x)}</text></g>`
       : `<rect x="${X(n - 1) + 9}" y="${y - 9}" width="18" height="18" rx="4" fill="${tc(x)}" opacity=".6"/><text x="${X(n - 1) + 18}" y="${y + 4}" text-anchor="middle" font-size="10.5" font-weight="900" fill="#fff" opacity=".9">${sn(x)}</text>`;
   }
-  const low = a.rows[a.rows.length - 1].t;
+  const low = hi;
   const drawOrder = targets.slice().sort((x, y) => (x === low) - (y === low));
   for (const t of drawOrder) {
     const pts = hist.map((o, i) => `${X(i).toFixed(1)},${Y(o.indexOf(t)).toFixed(1)}`).join(" ");
@@ -5206,20 +5209,49 @@ function renderTrend(a) {
     const r = hist[n - 1].indexOf(t), x = X(n - 1), y = Y(r);
     svg += `<circle cx="${x}" cy="${y}" r="4.5" fill="${tc(t)}" stroke="#000" stroke-width="1.5"/>`;
     svg += document.documentElement.classList.contains("theme-pawa")
-      ? `<circle cx="${x + 20}" cy="${y}" r="12.5" fill="#13264A"/><circle cx="${x + 20}" cy="${y}" r="11" fill="#fff"/><circle cx="${x + 20}" cy="${y}" r="9.5" fill="${tc(t)}"/><circle cx="${x + 17}" cy="${y - 3.5}" r="4" fill="#fff" opacity=".35"/><text x="${x + 20}" y="${y + 4}" text-anchor="middle" font-size="${sn(t).length > 1 ? 9.5 : 11}" font-weight="900" fill="${TEAM[t].i || "#000"}">${sn(t)}</text>`
-      : `<rect x="${x + 9}" y="${y - 11}" width="22" height="22" rx="5" fill="${tc(t)}"/><text x="${x + 20}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="900" fill="${TEAM[t].i || "#000"}">${sn(t)}</text>`;
+      ? `<circle cx="${x + 20}" cy="${y}" r="12.5" fill="#13264A"/><circle cx="${x + 20}" cy="${y}" r="11" fill="#fff"/><circle cx="${x + 20}" cy="${y}" r="9.5" fill="${tb(t)}"/><circle cx="${x + 17}" cy="${y - 3.5}" r="4" fill="#fff" opacity=".35"/><text x="${x + 20}" y="${y + 4}" text-anchor="middle" font-size="${sn(t).length > 1 ? 9.5 : 11}" font-weight="900" fill="${TEAM[t].i || "#000"}">${sn(t)}</text>`
+      : `<rect x="${x + 9}" y="${y - 11}" width="22" height="22" rx="5" fill="${tb(t)}"/><text x="${x + 20}" y="${y + 5}" text-anchor="middle" font-size="13" font-weight="900" fill="${TEAM[t].i || "#000"}">${sn(t)}</text>`;
   }
   const md = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}`;
-  const ticks = n > 2 ? [0, Math.floor((n - 1) / 2), n - 1] : [0, n - 1];
-  ticks.forEach((i, j) => svg += `<text x="${X(i)}" y="${VH - 6}" text-anchor="${j === 0 ? "start" : j === ticks.length - 1 ? "end" : "middle"}" font-size="11" font-weight="700" fill="#777">${md(days[i])}</text>`);
+  // 日付の目盛り：月度（1〜2か月）は最初・真ん中・最後。シーズン全体は月の初め（「4月」など。前の目盛りと近すぎるものは出さない）
+  const long = days.length > 1 && (Date.parse(days[days.length - 1]) - Date.parse(days[0])) > 70 * 864e5;
+  if (long) {
+    let lastX = -99;
+    days.forEach((d, i) => { if (i && d.slice(5, 7) === days[i - 1].slice(5, 7)) return; if (i === 0 && +d.slice(8) > 20) return; const x = X(i); if (x - lastX < 34 || x > pl + pw - 14) return; lastX = x;
+      svg += `<text x="${x}" y="${VH - 6}" text-anchor="${i === 0 ? "start" : "middle"}" font-size="11" font-weight="700" fill="#777">${Number(d.slice(5, 7))}月</text>`; });
+  } else {
+    const ticks = n > 2 ? [0, Math.floor((n - 1) / 2), n - 1] : [0, n - 1];
+    ticks.forEach((i, j) => svg += `<text x="${X(i)}" y="${VH - 6}" text-anchor="${j === 0 ? "start" : j === ticks.length - 1 ? "end" : "middle"}" font-size="11" font-weight="700" fill="#777">${md(days[i])}</text>`);
+  }
   svg += `</svg>`;
-  $("trend").innerHTML = svg;
-  $("trend").insertAdjacentHTML("beforeend", `<p class="tcap"><i></i>赤い帯が最下位${exT.length ? `<u></u>点線は広島（参考）` : ""}</p>`);
+  return svg;
+}
+// 戦況：その月度の5球団（広島は参考の点線）。最下位の帯
+function renderTrend(a) {
+  const targets = CL.filter(t => !CONFIG.excluded.includes(t));
+  const exT = CONFIG.excluded.filter(t => CL.includes(t));
+  const gs = DATA.games.filter(g => g.st === "final" && S.period.months.includes(monthOf(g.d)) && ([...targets, ...exT].includes(g.h) || [...targets, ...exT].includes(g.a)))
+    .sort((x, y) => x.d < y.d ? -1 : 1);
+  const n = new Set(gs.map(g => g.d)).size;
+  $("trendBlk").classList.toggle("off", n < 2);   // 月度の最初の日は推移がないので、切り替えから外す
+  paintSw("more");
+  if (n < 2) return;
+  $("trend").innerHTML = trendSVG(targets, exT, gs, true, a.rows[a.rows.length - 1].t) + `<p class="tcap"><i></i>赤い帯が最下位${exT.length ? `<u></u>点線は広島（参考）` : ""}</p>`;
+}
+// 順位タブ：今季の6球団（全試合）。首位を太く
+function renderSeasonTrend() {
+  const gs = DATA.games.filter(g => g.st === "final" && (CL.includes(g.h) || CL.includes(g.a))).sort((x, y) => x.d < y.d ? -1 : 1);
+  const n = new Set(gs.map(g => g.d)).size;
+  $("sTrendBlk").classList.toggle("off", n < 2);
+  paintSw("season");
+  if (n < 2) return;
+  const top = seasonTable(DATA.games, calOrder(), pendingMakeups())[0];
+  $("sTrend").innerHTML = trendSVG(calOrder(), [], gs, false, top && top.t);
 }
 
 /* ---------- 直近の調子 ---------- */
 function renderForm() {
-  const targets = CL.slice(); // 広島も参考として入れる（行は薄く）
+  const targets = CL.slice();
   const fin = DATA.games.filter(g => g.st === "final").sort((x, y) => x.d < y.d ? -1 : 1);
   const rows = targets.map(t => {
     const mine = fin.filter(g => g.h === t || g.a === t);
@@ -5234,10 +5266,10 @@ function renderForm() {
     }
     return { t, last: res.slice(-5), streak, kind };
   });
-  const ord = calOrder();
-  rows.sort((x, y) => ord.indexOf(x.t) - ord.indexOf(y.t)); // 前年の順位順
+  const ord = seasonTable(DATA.games, calOrder(), pendingMakeups()).map(r => r.t);
+  rows.sort((x, y) => ord.indexOf(x.t) - ord.indexOf(y.t)); // 今の順位順（順位表と同じ並び）
   $("form").innerHTML = `<div class="ywrap"><table class="ytab ftab"><thead><tr><th class="tnm">チーム名</th><th colspan="5">最近5試合（右が最新）</th><th>連続</th></tr></thead><tbody>` +
-    rows.map(x => `<tr class="${CONFIG.excluded.includes(x.t) ? "ex" : ""}" style="${tv(x.t)}"><td class="tnm"><a href="${TEAM_URL[x.t]}" target="_blank" rel="noopener">${fn(x.t)}</a></td>${[0, 1, 2, 3, 4].map(k => {
+    rows.map(x => `<tr style="${tv(x.t)}" data-tm="${x.t}"><td class="tnm"><a href="${TEAM_URL[x.t]}" target="_blank" rel="noopener">${fn(x.t)}</a></td>${[0, 1, 2, 3, 4].map(k => {
       const v = x.last[x.last.length - 5 + k];
       return v ? `<td class="fr ${v.r}"><b>${v.r === "w" ? "○" : v.r === "l" ? "●" : "△"}</b><small>${calSn(v.o)}</small></td>` : `<td class="fr"></td>`;
     }).join("")}<td class="fsk ${x.kind || ""}">${x.streak ? `${x.streak}${x.kind === "w" ? "連勝" : "連敗"}` : "-"}</td></tr>`).join("") + `</tbody></table></div>`;
@@ -5676,7 +5708,7 @@ function ranksFixed(a) {
 }
 // 月度が決まったか（全試合が終わった、または順位がもう動かない）
 const monthDone = a => !!a && (a.finished || ranksFixed(a));
-// 切り替えて見る（戦況の「順位推移｜直近5試合」「月度別 支払い｜担当者別 年間成績」）：上のボタンを押すか、中身を左右にスワイプ。端まで来たらタブの切り替えに引き継ぐ
+// 切り替えて見る（戦況の「順位推移｜対戦成績」「月度別 支払い｜担当者別 年間成績」、順位タブの「順位推移｜直近5試合｜対戦成績」）：上のボタンを押すか、中身を左右にスワイプ。端まで来たらタブの切り替えに引き継ぐ
 const swList = g => [...document.querySelectorAll(`.spane[data-sw="${g}"]`)].filter(p => !p.classList.contains("off")).map(p => p.dataset.sp);
 function paintSw(g) {
   S.sw = S.sw || {};
@@ -5687,7 +5719,7 @@ function paintSw(g) {
   seg.querySelectorAll("button").forEach(b => { const on = b.dataset.sp === cur; b.hidden = !l.includes(b.dataset.sp); b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-selected", String(on)); });
 }
 function pickSw(g, id) { S.sw = S.sw || {}; S.sw[g] = id; paintSw(g); }
-["more", "pay"].forEach(paintSw);
+["more", "pay", "season"].forEach(paintSw);
 document.addEventListener("click", e => {
   const b = e.target.closest(".sseg button[data-sp]");
   if (!b || b.getAttribute("aria-pressed") === "true") return;
@@ -5696,7 +5728,7 @@ document.addEventListener("click", e => {
 let swKey = null;
 const swCur = () => { const p = document.querySelector(`.spane[data-sw="${swKey}"]:not([hidden])`); return p ? p.dataset.sp : null; };
 makeSwiper({
-  canStart: e => { const p = S.tab === "magic" && e.target.closest(".spane"); swKey = p ? p.dataset.sw : null; return !!p && !hScrollableAt(e.target); },
+  canStart: e => { const p = e.target.closest(`#v-${S.tab} .spane`); swKey = p ? p.dataset.sw : null; return !!p && !hScrollableAt(e.target); },
   els: () => [...document.querySelectorAll(`.spane[data-sw="${swKey}"]:not([hidden])`)],
   edge: dx => { const l = swList(swKey), i = l.indexOf(swCur()); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
   target: dir => { const l = swList(swKey), i = l.indexOf(swCur()); return i < 0 ? null : l[i + dir] || null; },
@@ -5712,6 +5744,23 @@ function monthPayer(a) {
 }
 // 月度別 支払い・担当者別 年間成績（戦況タブのいちばん下。セ・リーグだけ）
 let PAY_KEY = "";
+// 担当者別 年間成績の表（月度ごとの順位・支払い）。paid/amt：担当ごとの支払い回数・金額
+function totHTML(list, paid, amt) {
+  const per = list.map(p => ({ p, a: analyze(DATA.games, p, CONFIG) })).filter(x => x.a.played);
+  const people = Object.keys(CONFIG.owners).map(t => {
+    const ranks = per.map(({ p, a }) => ({ p, r: a.rows.findIndex(x => x.t === t) + 1, done: monthDone(a), pay: monthPayer(a) === t }));
+    const fin = ranks.filter(x => x.done);
+    return { t, n: paid[t] || 0, yen: amt[t] || 0, ranks, avg: fin.length ? fin.reduce((s, x) => s + x.r, 0) / fin.length : 9, tops: fin.filter(x => x.r === 1).length };
+  }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
+  const best = people[0], maxN = Math.max(...people.map(x => x.n));
+  const short = lbl => lbl.replace("月度", "");
+  return `<div class="ywrap"><table class="ytbl ytab"><colgroup><col class="cn">${per.map(() => `<col class="cm">`).join("")}<col class="cp"></colgroup><thead><tr><th class="yn">担当</th>${per.map(({ p, a }) => `<th class="${monthDone(a) ? "" : "cur"}">${short(p.label)}</th>`).join("")}<th class="ya">支払い</th></tr></thead><tbody>` +
+    people.map(x => `<tr style="${tv(x.t)}" data-tm="${x.t}">
+      <td class="yn"><span class="badge">${sn(x.t)}</span><span class="ynm"><b>${ownT(x.t)}${x === best ? `<span class="ytag mvp">MVP</span>` : ""}</b><small class="num">平均${x.avg < 9 ? x.avg.toFixed(1) : "-"}位</small></span></td>
+      ${x.ranks.map(v => `<td class="yc2${v.done && v.r === 1 ? " first" : ""}${(v.done && v.r === 5) || v.pay ? " last" : ""}${v.done ? "" : " now"}"><b class="num">${v.r}</b></td>`).join("")}
+      <td class="ya num">${x.n ? `<b>${yen(x.yen)}</b><small>${x.n}回${maxN > 0 && x.n === maxN ? `<span class="ytag bad">最多</span>` : ""}</small>` : `<small>なし</small>`}</td>
+    </tr>`).join("") + `</tbody></table></div>`;
+}
 function renderPay() {
   paintSw("pay");
   const key = hashStr(JSON.stringify(DATA.games.map(g => [g.d, g.h, g.a, g.st, g.hs, g.as]))) + "|" + jst().iso + "|" + JSON.stringify(CONFIG.owners);
@@ -5728,20 +5777,7 @@ function renderPay() {
     return `<tr${payT ? ` style="${tv(payT)}"` : ""}><td class="mo">${p.label.replace("月度", "")}</td><td class="rk5">${ranks}</td>
       <td class="tnm">${!a.played ? "—" : payT ? `${ownT(payT)}${monthDone(a) ? "" : `<small class="hfix">確定</small>`}` : `<span class="muted">集計中</span>`}</td><td class="num">${payT ? yen(feeOf(p)) : "-"}</td></tr>`;
   }).join("") + `</tbody></table></div>`;
-  const per = list.map(p => ({ p, a: analyze(DATA.games, p, CONFIG) })).filter(x => x.a.played);
-  const people = Object.keys(CONFIG.owners).map(t => {
-    const ranks = per.map(({ p, a }) => ({ p, r: a.rows.findIndex(x => x.t === t) + 1, done: monthDone(a), pay: monthPayer(a) === t }));
-    const fin = ranks.filter(x => x.done);
-    return { t, n: paid[t] || 0, yen: amt[t] || 0, ranks, avg: fin.length ? fin.reduce((s, x) => s + x.r, 0) / fin.length : 9, tops: fin.filter(x => x.r === 1).length };
-  }).sort((x, y) => (x.n - y.n) || (x.avg - y.avg));
-  const best = people[0], maxN = Math.max(...people.map(x => x.n));
-  const short = lbl => lbl.replace("月度", "");
-  $("tot").innerHTML = `<div class="ywrap"><table class="ytbl ytab"><colgroup><col class="cn">${per.map(() => `<col class="cm">`).join("")}<col class="cp"></colgroup><thead><tr><th class="yn">担当</th>${per.map(({ p, a }) => `<th class="${monthDone(a) ? "" : "cur"}">${short(p.label)}</th>`).join("")}<th class="ya">支払い</th></tr></thead><tbody>` +
-    people.map(x => `<tr style="${tv(x.t)}" data-tm="${x.t}">
-      <td class="yn"><span class="badge">${sn(x.t)}</span><span class="ynm"><b>${ownT(x.t)}${x === best ? `<span class="ytag mvp">MVP</span>` : ""}</b><small class="num">平均${x.avg < 9 ? x.avg.toFixed(1) : "-"}位</small></span></td>
-      ${x.ranks.map(v => `<td class="yc2${v.done && v.r === 1 ? " first" : ""}${(v.done && v.r === 5) || v.pay ? " last" : ""}${v.done ? "" : " now"}"><b class="num">${v.r}</b></td>`).join("")}
-      <td class="ya num">${x.n ? `<b>${yen(x.yen)}</b><small>${x.n}回${maxN > 0 && x.n === maxN ? `<span class="ytag bad">最多</span>` : ""}</small>` : `<small>なし</small>`}</td>
-    </tr>`).join("") + `</tbody></table></div>`;
+  $("tot").innerHTML = totHTML(list, paid, amt);
 }
 function renderStd() {
   renderPennant();   // リーグ優勝・優勝マジックの札は順位タブのいちばん上
@@ -5753,6 +5789,8 @@ function renderStd() {
   $("std").innerHTML = pendingHTML() + yTable(rows.map((r, i) => ({ t: r.t, g: r.g, w: r.w, l: r.l, d: r.d, gb: i === 0 ? null : r.gb, rem: remS[r.t] || 0,
     first: r.magic === 0 ? "優勝" : r.magic != null ? `M${r.magic}` : "-" })));
   $("stdNote").textContent = "全試合";
+  // 順位表の下：今季の 順位推移｜直近5試合｜対戦成績（スワイプで切り替え）
+  renderSeasonTrend(); renderForm(); renderSH2H(); paintSw("season");
 
 }
 
@@ -7101,6 +7139,8 @@ document.addEventListener("click", e => {
 // 開いたときの最初の画面：シーズン中は戦況。公式戦が終わったら、CS・日本シリーズのあいだは試合タブの「CS・日本S」、そのあとは入退団
 function landingTab() {
   if (!DATA || !seasonOver()) return null;
+  // 公式戦の最終戦の日は、いつもどおり戦況から（その日の試合の結果がいちばん見たいもの。CS・日本シリーズは次の日から）
+  if (DATA.games.some(g => g.d === jst().iso && inLg(g) && g.st !== "canc")) return null;
   const post = (DATA.post || []).map(p => p.d).filter(Boolean).sort();
   if (post.length && jst().iso <= post[post.length - 1]) return { tab: "post" };
   if (offSeason() || offItems().length) return { tab: "off" };

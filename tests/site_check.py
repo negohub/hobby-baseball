@@ -1507,7 +1507,7 @@ async def swipe_check(browser):
             elif len(cats) >= 3:
                 await pg.evaluate(SWIPE_JS, ["#offList", -160, 0])
                 await pg.wait_for_timeout(800)
-                r = await pg.evaluate("[S.tab, S.offCat, document.querySelector('#offCats button[aria-pressed=\"true\"]')?.dataset.oc]")
+                r = await pg.evaluate("[S.tab, S.offCat, document.getElementById('offCats').hidden ? document.getElementById('offSel').value : document.querySelector('#offCats button[aria-pressed=\"true\"]')?.dataset.oc]")
                 if r != ["off", cats[1], cats[1]]:
                     bad(f"{label} 入退団の一覧を左へスワイプしても次の種類（{cats[1]}）にならない（{r}）")
                 await pg.evaluate(SWIPE_JS, ["#offList", 160, 0])
@@ -3303,6 +3303,21 @@ async def live_off_check(browser):
           if (isPawa() && !r.querySelector('.ptile.po')) ng.push('名簿にいない自由契約の選手の名前が、守備位置（外野手）の色になっていない');
           { const kc = document.querySelector('#offList .offtag.k-cut'), bg = e => getComputedStyle(e).backgroundColor + getComputedStyle(e).backgroundImage; if (kc && bg(kc) === bg(tg)) ng.push('自由契約の札が戦力外と同じ色'); } }
         if (![...document.querySelectorAll('#offCats button')].some(b => b.dataset.oc === 'free' && b.textContent === '自由契約')) ng.push('入退団の絞り込みに「自由契約」がない');
+        // 種類のボタンは3つずつ。数がいくつでも最後の段が欠けない（10/9 7つのとき「首脳陣」だけ1段に残っていた）
+        { const kinds = [{ kind: 'cut' }, { kind: 'free' }, { kind: 'retire' }, { kind: 'out', via: 'trade', to: 'G' }, { kind: 'fa_decl' }, { kind: 'out', via: 'move' }, { kind: 'draft', round: '1位' }, { kind: 'in', via: 'newfor' }, { kind: 'promote' }, { kind: 'coach_out', role: 'コーチ' }];
+          for (let n = 2; n <= kinds.length; n++) {
+            DATA.offseason.items = kinds.slice(0, n).map((x, i) => ({ t: CL[0], n: 'テスト' + i, no: '', dev: false, date: '2026-10-01', url: 'u', title: 'x', ...x })); S.offCat = 'all'; renderOff();
+            const bs = [...document.querySelectorAll('#offCats button')].filter(b => b.getClientRects().length); if (bs.length < 3) continue;
+            const rows = new Map(); bs.forEach(b => { const r = b.getBoundingClientRect(), t = Math.round(r.top), c = rows.get(t) || [9e9, -9e9]; rows.set(t, [Math.min(c[0], r.left), Math.max(c[1], r.right)]); });
+            const ws = [...rows.values()].map(([l, r]) => r - l); if (Math.abs(ws[ws.length - 1] - ws[0]) > 2) ng.push(`入退団の種類のボタンが${bs.length}つのとき、最後の段が欠ける（各段の幅 ${ws.map(Math.round)}）`);
+            if (bs.length > 6) ng.push(`入退団の種類が${bs.length}つなのにボタンで並んでいる（7つ以上は選ぶ欄）`); }
+          // 7つ以上：選ぶ欄に全部の種類。選ぶとその種類になる
+          DATA.offseason.items = kinds.map((x, i) => ({ t: CL[0], n: 'テスト' + i, no: '', dev: false, date: '2026-10-01', url: 'u', title: 'x', ...x })); S.offCat = 'all'; renderOff();
+          const sel = document.getElementById('offSel');
+          if (document.getElementById('offSelW').hidden || document.getElementById('offCats').getClientRects().length) ng.push('入退団の種類が7つ以上のとき、選ぶ欄になっていない');
+          else { if (sel.options.length !== S.offCatList.length) ng.push(`選ぶ欄の種類の数が違う（${sel.options.length} / ${S.offCatList.length}）`);
+            sel.value = 'free'; sel.dispatchEvent(new Event('change')); if (S.offCat !== 'free' || document.getElementById('offSel').value !== 'free') ng.push('選ぶ欄で選んでもその種類にならない');
+            const sr = document.getElementById('offSelW').getBoundingClientRect(); if (sr.height < 43.5) ng.push('入退団の選ぶ欄が押しにくい（44px未満）'); } }
         DATA.offseason.items = keep; renderOff(); }
       jst = () => ({ y: 2026, m: 10, d: 1, iso: '2026-10-01' }); renderAll(); setTab('off'); renderOff();
       document.querySelectorAll('#offList .ofteam').forEach(e => (e.style.contentVisibility = 'visible'));   // 画面の外は並べるのを後回しにしているので、読む前に並べる
@@ -4395,6 +4410,8 @@ async def ux_check(browser):
                   const pn = document.getElementById('postNext');
                   if (pn.hidden || !pn.textContent.includes(STAGE[first.stage][1]) ) ng.push('CS・日本シリーズの前の日に、試合タブに次戦が出ない');
                   if (pn.querySelector('[data-gobk], .pn-go')) ng.push('次戦の箱に「勝ち上がり表を見る」が残っている（隣のタブにあるのでいらない）');
+                  { const tn = [...pn.querySelectorAll('.pn-g')].find(x => x.textContent.includes(fn(first.h)) && x.textContent.includes(fn(first.a))); const names = tn ? [...tn.querySelectorAll('.pn-t b')].map(b => b.textContent) : [];
+                    if (names[0] !== fn(first.h)) ng.push(`次戦の箱でホームのチーム（${fn(first.h)}）が左にない（${names}）`); }
                   jst = () => ({ y: y0, m: m0, d: d0, iso: first.d }); LIVEPOST[first.d + first.h + first.a] = { st: 'live', hs: 1, as: 0, inn: '3回裏' };
                   S.period = defaultPeriod(periods()); renderAll(); setTab('magic');
                   const ts = document.getElementById('todayStrip'), c = ts.querySelector('.ts-g[data-pk]');

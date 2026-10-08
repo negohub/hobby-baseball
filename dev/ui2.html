@@ -98,7 +98,8 @@ html.lg-p #v-std .jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:374px){.jump:not(#z){grid-template-columns:repeat(2,minmax(0,1fr))}}
 #venKey:not(#z){display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;width:100% !important}
 #venKey button:not(#z){width:100%;min-width:0;justify-content:center}
-#offCats:not(#z){display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;width:100% !important}
+#offCats[hidden]:not(#z){display:none !important}
+#offCats:not([hidden]):not(#z){display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible;width:100% !important}
 #offCats button:not(#z){width:100%;min-width:0;justify-content:center;white-space:nowrap}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;border:0;background:none;padding:10px 12px 11px;font-size:14.5px;font-weight:800;cursor:pointer;color:var(--dim);display:flex;align-items:center;gap:6px;position:relative}
@@ -2341,6 +2342,7 @@ html.theme-pawa .bi.fin.canc b{color:#C62828}
 .offtag.k-retire{background:#5F6670}   /* 白い字が読める濃さ */
 .offtag.k-mgr{background:#3B5BA9}
 .offcats{margin:10px 0 0}
+.offsel:not(#z){display:block;margin:10px 0 0}
 .offtag.k-out{background:#8E44AD}
 /* 自由契約：戦力外（赤に白い字）と見分けがつくよう、薄いピンクに濃い字 */
 .offtag.k-free{background:#F48FB1;color:#4A0D25}
@@ -3032,6 +3034,7 @@ html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
   <section class="view" id="v-off" aria-label="入退団" hidden>
     <h2 id="offHead">入退団情報<small id="offAsof"></small></h2>
     <div class="chips2 offcats" id="offCats"></div>
+    <label class="catsel offsel" id="offSelW" hidden><select id="offSel" aria-label="種類"></select></label>
     <div id="offList"></div>
   </section>
 
@@ -4063,7 +4066,7 @@ function postNextHTML() {
   const d = up[0].d, [y, m, dd] = d.split("-").map(Number);
   const team = t => t ? `<span class="pn-t" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b>${fn(t)}</b></span>` : `<span class="pn-t"><b class="pn-tbd">未定</b></span>`;
   return { post: true, html: `<h3 class="ts-h">次戦<small>${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）</small></h3>
-    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.a)}<i>vs</i>${team(g.h)}</div></div>`).join("")}` };   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
+    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div></div>`).join("")}` };   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
 }
 document.addEventListener("click", e => { if (!e.target.closest("[data-gobk]")) return; setTab("post"); requestAnimationFrame(() => { const b = $("bracketBox"); if (b) b.scrollIntoView({ block: "start" }); }); });
 // ===== 予告先発 =====
@@ -6462,7 +6465,7 @@ makeSwiper({
   els: () => [$("offList")],
   edge: dx => { const l = S.offCatList || [], i = offCatIdx(); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
   target: dir => { const l = S.offCatList || [], i = offCatIdx(); return i < 0 ? null : l[i + dir] || null; },
-  commit: k => { S.offCat = k; renderOff(); const c = $("offCats"); if (c && c.getBoundingClientRect().top < 0) window.scrollTo({ top: Math.max(0, c.getBoundingClientRect().top + scrollY - 70) }); },   // 種類のボタンが見えるところへ
+  commit: k => { S.offCat = k; renderOff(); const c = $("offCats").hidden ? $("offSelW") : $("offCats"); if (c && c.getBoundingClientRect().top < 0) window.scrollTo({ top: Math.max(0, c.getBoundingClientRect().top + scrollY - 70) }); },   // 種類のボタンが見えるところへ
   fallback: tabSwiper,
 });
 // 名前（名簿の名前・NPBの表の名前・名字だけ）から、その選手の発表を探す
@@ -6522,9 +6525,16 @@ function renderOff() {
   if (!syncOffTab()) return;
   const cut = items.filter(x => x.kind === "cut" || x.kind === "offer").length, ret = items.filter(x => x.kind === "retire").length, mg = items.filter(x => x.kind === "mgr").length;
   $("offHead").firstChild.textContent = isPL() ? "パ・リーグ 入退団情報" : "セ・リーグ 入退団情報";
-  $("offCats").hidden = cats.length < 3;   // 種類が1つだけなら出さない
-  $("offCats").innerHTML = cats.map(([k, l]) => `<button type="button" data-oc="${k}" aria-pressed="${k === S.offCat}">${l}</button>`).join("");
+  // 種類の切り替え：6つまでは全部見えるボタン、7つ以上は選ぶ欄（ほかのページと同じ決まり）。1つだけ（すべて＋1）なら出さない
+  const useSel = cats.length > 6;
+  $("offCats").hidden = cats.length < 3 || useSel;
+  $("offSelW").hidden = !useSel;
+  if (useSel) { const sel = $("offSel"), html = cats.map(([k, l]) => `<option value="${k}">${l}</option>`).join(""); if (sel.innerHTML !== html) sel.innerHTML = html; sel.value = S.offCat; }
+  // 3つずつ並べて、最後の段が欠けないように「すべて」の幅で調整（7つなら「すべて」を1段まるごと、5つなら2つ分）
+  const span = (cats.length - 1) % 3 === 0 ? 3 : 3 - ((cats.length - 1) % 3);
+  $("offCats").innerHTML = cats.map(([k, l], i) => `<button type="button" data-oc="${k}" aria-pressed="${k === S.offCat}"${i === 0 && span > 1 ? ` style="grid-column:span ${span}"` : ""}>${l}</button>`).join("");
   $("offCats").querySelectorAll("button").forEach(b => (b.onclick = () => { S.offCat = b.dataset.oc; renderOff(); }));
+  $("offSel").onchange = e => { S.offCat = e.target.value; renderOff(); };
   const nIn = items.filter(x => OFF_IN.has(x.kind)).length, nOut = items.filter(x => ["out"].includes(x.kind)).length, nFa = items.filter(x => x.kind === "fa_decl").length;
   const o = (DATA && DATA.offseason) || {};
   $("offAsof").textContent = [o.checked_at ? `${Number(o.checked_at.slice(5, 7))}/${Number(o.checked_at.slice(8, 10))} ${o.checked_at.slice(11, 16)} 更新` : ""].filter(Boolean).join("　");

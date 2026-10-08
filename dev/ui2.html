@@ -2337,22 +2337,25 @@ html.theme-pawa .bi.fin.canc b{color:#C62828}
 /* ページの切り替えなので、中の「打撃｜投手」より大きく・画面の幅いっぱいに（同じ形のボタンで、段の違いが分かるように） */
 .subnav{display:grid !important;grid-template-columns:repeat(var(--n,2),1fr);width:100%;box-sizing:border-box;margin:2px 0 14px}
 .subnav button{width:100%;min-height:42px;font-size:15px !important;justify-content:center;text-align:center}
-.offtag{display:inline-flex;align-items:center;height:18px;padding:0 6px;margin-left:6px;border-radius:5px;font-size:10.5px;font-weight:800;letter-spacing:0;vertical-align:2px;white-space:nowrap;background:#E5484D;color:#fff}
-.offtag.k-retire{background:#8A8F98}
+.offtag{display:inline-flex;align-items:center;height:18px;padding:0 6px;margin-left:6px;border-radius:5px;font-size:10.5px;font-weight:800;letter-spacing:0;vertical-align:2px;white-space:nowrap;background:#E12D33;color:#fff}
+.offtag.k-retire{background:#5F6670}   /* 白い字が読める濃さ */
 .offtag.k-mgr{background:#3B5BA9}
 .offcats{margin:10px 0 0}
 .offtag.k-out{background:#8E44AD}
+/* 自由契約：戦力外（赤に白い字）と見分けがつくよう、薄いピンクに濃い字 */
+.offtag.k-free{background:#F48FB1;color:#4A0D25}
+html.theme-pawa .offtag.k-free{color:#4A0D25;text-shadow:0 1px 0 rgba(255,255,255,.6);background:linear-gradient(180deg,#FFD6E5,#F48FB1);border-color:#AD1457;box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 2px 0 rgba(173,20,87,.4)}
 .offtag.k-coach_out{background:#3B5BA9}.offtag.k-coach_in{background:#16A085}.offtag.k-coach_move{background:#7F8C8D}
 html.theme-pawa .offtag.k-coach_out{color:#fff;background:linear-gradient(180deg,#5B7FD6,#1D3E7C);border-color:#0F2350}
 html.theme-pawa .offtag.k-coach_in{color:#fff;background:linear-gradient(180deg,#48C9B0,#138D75);border-color:#0B5345}
-html.theme-pawa .offtag.k-coach_move{color:#fff;background:linear-gradient(180deg,#AAB7B8,#707B7C);border-color:#4D5656}.offtag.k-fa_decl{background:#E67E22}.offtag.k-in{background:#16A085}.offtag.k-draft{background:#2E9E44}
+html.theme-pawa .offtag.k-coach_move{color:#fff;background:linear-gradient(180deg,#AAB7B8,#707B7C);border-color:#4D5656}.offtag.k-fa_decl{background:#B35900}.offtag.k-in{background:#16A085}.offtag.k-draft{background:#1E7B34}
 #offList .ofsec{padding:6px 12px;font-size:11.5px;font-weight:800;color:var(--muted,#8B8B95);border-top:1px solid var(--line,#2A2A2A);background:rgba(255,255,255,.03)}
 html.theme-pawa #offList .ofsec{color:#1D3E7C;background:#E3ECF7;border-top:2px solid #1D3E7C}
 html.theme-pawa .offtag.k-out{color:#fff;background:linear-gradient(180deg,#B57BD1,#7D3C98);border-color:#4A235A}
 html.theme-pawa .offtag.k-fa_decl{color:#fff;background:linear-gradient(180deg,#F6B26B,#D35400);border-color:#873600}
 html.theme-pawa .offtag.k-in{color:#fff;background:linear-gradient(180deg,#48C9B0,#138D75);border-color:#0B5345}
 html.theme-pawa .offtag.k-draft{color:#fff;background:linear-gradient(180deg,#6FD17F,#1E8449);border-color:#145A32}
-.offtag.k-offer,.offtag.k-leave{background:#E5484D}
+.offtag.k-offer,.offtag.k-leave{background:#E12D33}
 #offList .ofteam{margin:10px 0 0;border-radius:var(--r-md,14px);overflow:hidden;background:rgba(255,255,255,.04);border:1px solid var(--line,#2A2A2A)}
 #offList .ofh{display:flex;align-items:center;gap:8px;padding:9px 12px;font-weight:800;font-size:14px;border-left:4px solid var(--tc)}
 #offList .ofh small{margin-left:auto;font-size:11.5px;color:var(--muted,#8B8B95);font-weight:700}
@@ -3490,7 +3493,7 @@ function renderSubNav() {
 // スワイプ：ページの順（グループの中のページも1つずつ）
 const tabOrder = () => TAB_GROUPS.flatMap(x => x.pages.map(([p]) => p)).filter(pageShown);
 const tabSwiper = makeSwiper({
-  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)) && !e.target.closest(".spane") && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
+  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)) && !e.target.closest(".spane") && !(S.tab === "off" && (S.offCatList || []).length > 1 && e.target.closest("#offList")) && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
   els: () => [$("v-" + S.tab)],
   edge: dx => { const t = tabOrder(), i = t.indexOf(S.tab); return (dx > 0 && i === 0) || (dx < 0 && i === t.length - 1); },
   target: dir => { const t = tabOrder(), i = t.indexOf(S.tab); return t[i + dir] || null; },
@@ -5996,7 +5999,10 @@ function rosterOf(t, name) {
 // 名簿にいない選手の守備位置：発表に書いてあればそれ、過去の一軍の役割があれば投手。どの画面も同じ決め方
 function guessPos(t, name) {
   const o = typeof offOf === "function" ? offOf(t, name) : null;
-  return (o && o.pos) || (o && o.role ? "投手" : "内野手");
+  if (o && o.pos) return o.pos;
+  // 支配下登録・自由契約などほかの発表に守備位置が書いてあればそれ（一覧の札と選手の画面で同じ色に）
+  const k = nkOff(name), p = typeof offItems === "function" ? offItems().find(x => x.t === t && x.pos && nkOff(x.n) === k) : null;
+  return p ? p.pos : o && o.role ? "投手" : "内野手";
 }
 function findRow(tbl, name, t) {
   if (!tbl) return null;
@@ -6361,7 +6367,7 @@ async function liveStats(key) {
   if (res.some(Boolean) && S.tab === "stats") renderStats(true);
 }
 // ================= 今オフの戦力外・引退（各球団の公式発表を自動で集めたもの） =================
-const OFF_LABEL = { promote: "支配下", cut: "戦力外", offer: "戦力外", leave: "退団", retire: "引退", mgr: "退任", out: "移籍", fa_decl: "FA宣言", in: "加入", draft: "ドラフト",
+const OFF_LABEL = { promote: "支配下", cut: "戦力外", offer: "戦力外", free: "自由契約", leave: "退団", retire: "引退", mgr: "退任", out: "移籍", fa_decl: "FA宣言", in: "加入", draft: "ドラフト",
   coach_out: "退団", coach_in: "就任", coach_move: "配置転換" };
 const OFF_IN = new Set(["in", "draft", "coach_in"]);
 const OFF_STAFF = new Set(["mgr", "coach_out", "coach_in", "coach_move"]);   // 首脳陣（監督・コーチ）   // 入団する選手（ほかは退団・残るかどうか未定）
@@ -6376,9 +6382,11 @@ let OFF_MEMO = null;
 function offItems() {
   const o = (DATA && DATA.offseason) || {}, its = o.items || [], ro = DATA && DATA.rosters;
   const m = OFF_MEMO;
-  if (m && m.o === o && m.its === its && m.n === its.length && m.live === LIVE_OFF.items && m.ln === LIVE_OFF.items.length && m.ro === ro && m.lg === LEAGUE) return m.res;
-  const res = offUniq(offMerged()).filter(x => OFF_LABEL[x.kind] && TEAM[x.t] && !/\/announce\//.test(x.url || ""));
-  OFF_MEMO = { o, its, n: its.length, live: LIVE_OFF.items, ln: LIVE_OFF.items.length, ro, lg: LEAGUE, res };
+  if (m && m.o === o && m.its === its && m.n === its.length && m.live === LIVE_OFF.items && m.ln === LIVE_OFF.items.length && m.ro === ro && m.lg === LEAGUE && m.d === jst().iso) return m.res;
+  // 一覧（ベースボールチャンネル）から読んだ日付が今日より後のもの（年の読み違い）は出さない（10/8 2月の自由契約が「2027年」で、いちばん新しい発表のように出ていた）
+  const today = jst().iso;
+  const res = offUniq(offMerged()).filter(x => OFF_LABEL[x.kind] && TEAM[x.t] && !/\/announce\//.test(x.url || "") && !((x.src === "bbc" || x.src === "live") && (x.date || "") > today));
+  OFF_MEMO = { o, its, n: its.length, live: LIVE_OFF.items, ln: LIVE_OFF.items.length, ro, lg: LEAGUE, d: today, res };
   return res;
 }
 // 今オフの退団：GitHub の自動更新（15分ごとの予定だが、GitHub の都合で1〜数時間あくことがある）を待たずに、
@@ -6441,12 +6449,22 @@ function offMerged() {
     if (!TEAM[x.t] || have.has(key)) continue;
     have.add(key);   // 同じ選手が2回以上来ても1回だけ
     const ro0 = rosterOf(x.t, x.n), ro = ro0 && nkOff(ro0.n) === nkOff(x.n) ? ro0 : null;
-    add.push({ t: x.t, n: ro ? ro.n : x.n, no: ro ? ro.no : "", dev: ro ? !!ro.dev : !!x.dev, kind: x.kind, date: x.date,
+    add.push({ t: x.t, n: ro ? ro.n : x.n, no: ro ? ro.no : "", dev: ro ? !!ro.dev : !!x.dev, kind: x.kind, date: x.date, pos: x.pos || "",
       url: x.url || "https://baseball.yahoo.co.jp/npb/transfer", title: x.src === "bbc" ? "ベースボールチャンネル 戦力外・引退一覧" : "スポーツナビ 入退団情報", src: "live" });
   }
   return add.length ? base.concat(add) : base;
 }
 setInterval(() => { if (!document.hidden && (S.tab === "off" || S.tab === "song" || S.tab === "stats")) loadLiveOff(); }, 60e3);
+// 入退団：一覧を左右にスワイプすると、種類（すべて・戦力外・自由契約・引退…）を切り替える（ボタンの順）。端まで来たらタブの切り替えに引き継ぐ
+const offCatIdx = () => (S.offCatList || []).indexOf(S.offCat);
+makeSwiper({
+  canStart: e => S.tab === "off" && (S.offCatList || []).length > 1 && !!e.target.closest("#offList") && !hScrollableAt(e.target),
+  els: () => [$("offList")],
+  edge: dx => { const l = S.offCatList || [], i = offCatIdx(); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
+  target: dir => { const l = S.offCatList || [], i = offCatIdx(); return i < 0 ? null : l[i + dir] || null; },
+  commit: k => { S.offCat = k; renderOff(); const c = $("offCats"); if (c && c.getBoundingClientRect().top < 0) window.scrollTo({ top: Math.max(0, c.getBoundingClientRect().top + scrollY - 70) }); },   // 種類のボタンが見えるところへ
+  fallback: tabSwiper,
+});
 // 名前（名簿の名前・NPBの表の名前・名字だけ）から、その選手の発表を探す
 const offOf = memoBy(() => typeof offItems === "function" ? offItems() : null, offOfRaw);
 function offOfRaw(t, name) {
@@ -6466,10 +6484,11 @@ const offTag = (t, name) => { const o = offOf(t, name); return o ? `<span class=
 function offSeason() { const j = jst(); return (j.m === 9 && j.d >= 15) || j.m >= 10; }
 // オフの動きの種類（上のボタンで絞り込む）
 // 並び：出ていく人（戦力外・引退）→ 球団を移る人（トレード・FA・そのほか）→ 入ってくる人（ドラフト・新外国人・支配下登録）→ 首脳陣
-const OFF_CATS = [["all", "すべて"], ["cut", "戦力外"], ["retire", "引退"], ["trade", "トレード"], ["fa", "FA"], ["move", "そのほかの移籍"], ["draft", "ドラフト"], ["newfor", "新外国人"], ["promote", "支配下登録"], ["staff", "首脳陣"]];
+const OFF_CATS = [["all", "すべて"], ["cut", "戦力外"], ["free", "自由契約"], ["retire", "引退"], ["trade", "トレード"], ["fa", "FA"], ["move", "そのほかの移籍"], ["draft", "ドラフト"], ["newfor", "新外国人"], ["promote", "支配下登録"], ["staff", "首脳陣"]];
 function offCat(x) {
   if (x.kind === "promote") return "promote";
   if (x.kind === "cut" || x.kind === "offer" || x.kind === "leave") return "cut";
+  if (x.kind === "free") return "free";
   if (OFF_STAFF.has(x.kind)) return "staff";
   if (x.kind === "retire" || x.kind === "draft") return x.kind;
   if (x.kind === "fa_decl" || x.via === "fa") return "fa";
@@ -6498,6 +6517,7 @@ function renderOff() {
   // 種類のボタン：その種類の発表があるものだけ
   const cats = OFF_CATS.filter(([k]) => k === "all" || allItems.some(x => offCat(x) === k));
   if (!cats.some(([k]) => k === S.offCat)) S.offCat = "all";
+  S.offCatList = cats.length >= 3 ? cats.map(([k]) => k) : [];   // スワイプで切り替える順（ボタンの順）
   const items = S.offCat === "all" ? allItems : allItems.filter(x => offCat(x) === S.offCat);
   if (!syncOffTab()) return;
   const cut = items.filter(x => x.kind === "cut" || x.kind === "offer").length, ret = items.filter(x => x.kind === "retire").length, mg = items.filter(x => x.kind === "mgr").length;
@@ -6519,7 +6539,7 @@ function renderOff() {
     : x.kind === "coach_in" ? `${x.role || "コーチ"}に就任`
     : x.kind === "coach_move" ? `${x.role || "コーチ"}から配置転換`
     : x.kind === "promote" ? (x.no_dev && x.no ? `育成の背番号 ${esc(x.no_dev)} → ${esc(x.no)}` : "育成から支配下登録")
-    : x.kind === "mgr" ? (x.mid ? "シーズン途中で辞任" : "今季限りで退任") : x.kind === "retire" ? "現役引退" : x.kind === "leave" ? "退団" : x.kind === "offer" ? "来季の契約を結ばない（育成で再契約を打診）" : x.dev ? "育成選手の来季の契約を結ばない" : "来季の契約を結ばない";
+    : x.kind === "mgr" ? (x.mid ? "シーズン途中で辞任" : "今季限りで退任") : x.kind === "retire" ? "現役引退" : x.kind === "leave" ? "退団" : x.kind === "offer" ? "来季の契約を結ばない（育成で再契約を打診）" : x.kind === "free" ? (x.offer ? "自由契約（育成で再契約を打診）" : "自由契約") : x.dev ? "育成選手の来季の契約を結ばない" : "来季の契約を結ばない";
   const teams = calOrder().filter(t => CL.includes(t));
   const has = teams.filter(t => items.some(x => x.t === t)), none = teams.filter(t => !items.some(x => x.t === t));
   // パワプロ風：名前は守備位置の色のタイル（2つ以上守る選手は塗り分け）
@@ -6528,7 +6548,7 @@ function renderOff() {
     if (OFF_STAFF.has(x.kind)) return pawa ? mgrTile(x.n, "otl mg") : esc(x.n);
     if (!pawa) return esc(x.n);
     const ro = rosterOf(x.t, x.n);
-    const gr = posGroups(x.t, ro ? ro.n : x.n, ro ? ro.p : guessPos(x.t, x.n));
+    const gr = posGroups(x.t, ro ? ro.n : x.n, ro ? ro.p : x.pos || guessPos(x.t, x.n));   // 名簿にもういない選手（シーズン途中の自由契約など）は一覧の守備位置
     return `<span class="ptile otl ${TILEC[gr[0]] || "pp"}${nmCls(x.n)}" style="${tileStyle(gr)}"><b>${esc(x.n)}</b></span>`;
   };
   // 1行目：札・名前・背番号、2行目：内容・発表日

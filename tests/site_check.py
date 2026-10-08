@@ -1319,6 +1319,25 @@ async def off_tag_color_check(browser):
         await pg.close()
 
 
+async def hidden_check(browser):
+    """隠しているもの（hidden）が、CSSの強い指定で出てしまっていないか（10/9 戦況で、切り替えのない上の段が空の枠で残っていた）。全タブ・両テーマ・両リーグ・シーズン中と後"""
+    for th in ["", "pawa"]:
+        pg, errs = await open_page(browser, 390, th)
+        for lg in "CP":
+            await pg.evaluate(f"switchLeague('{lg}')")
+            await pg.wait_for_timeout(200)
+            for so in [False, True]:
+                if so:
+                    await pg.evaluate("seasonOver = () => true; renderAll()")
+                r = await pg.evaluate("""() => { const out = new Set(); for (const t of ['magic', 'game', 'cal', 'post', 'std', 'stdh', 'stats', 'rec', 'ven', 'song', 'off']) { setTab(t);
+                  for (const e of document.querySelectorAll('[hidden]')) { if (e.parentElement && e.parentElement.closest('[hidden]')) continue; if (getComputedStyle(e).display !== 'none') out.add(`${t}：${e.id ? '#' + e.id : e.className}`); } } return [...out]; }""")
+                for m in r:
+                    bad(f"[隠したものが出ている {'パワプロ風' if th else 'スタイリッシュ'} {lg}{' シーズン後' if so else ''}] {m}")
+        for e in errs:
+            bad(f"[隠したもの]: 画面のエラー {e}")
+        await pg.close()
+
+
 async def month_done_check(browser):
     """月度の順位がもう動かないときは、試合が残っていても「確定」として扱う（10/7 の9・10月度：残りは広島－ヤクルトの1試合だけ）。
     戦況の帯は「9・10月度の支払い」、月度のボタンに集計中の印なし、月度別 支払いに「順位は暫定」「確定」の小さい札なし、担当者別の9・10月度は点線でない。
@@ -3663,6 +3682,8 @@ async def tab_group_check(browser):
           if (names !== '戦況,試合,順位,データ,選手') ng.push(`下のタブの並び・名前が違う（${names}）`);
           const click = g => document.querySelector(`.tabbar button[data-grp="${g}"]`).click();
           const sub = () => [...document.querySelectorAll('#subNav:not([hidden]) button')].map(b => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join();
+          // 開いた日によって最初の画面がCS・日本Sになり、それが「最後に開いたページ」として残る（10/9 公式戦の後）。ここでは何も開いていない状態から確かめる
+          for (const k of Object.keys(SUB_LAST)) delete SUB_LAST[k]; localStorage.removeItem('sub-v1'); setTab('magic');
           const ps = POST_SHOWN ? ',CS・日本S' : '';   // CS・日本Sは、CSの3週間前から日本シリーズの1か月後まで
           click('game'); if (S.tab !== 'game' || sub() !== '今日*,日程' + ps) ng.push(`試合：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="cal"]').click(); if (S.tab !== 'cal' || sub() !== '今日,日程*' + ps) ng.push(`日程に切り替わらない（${S.tab} ${sub()}）`);
@@ -3897,7 +3918,7 @@ async def pitch_count_check(browser):
       x = one(P[0].n, 50, false, true); if (!x || !/先発/.test(x.label)) ng.push(`予告先発の投手が先発にならない：${JSON.stringify(x)}`);
       x = one(P[1].n, 10, false, true); if (!x || !/中継ぎ/.test(x.label)) ng.push(`予告先発でない投手が中継ぎにならない：${JSON.stringify(x)}`);
       // 実際の画面の幅で：バーが細くつぶれない（先発・中継ぎの説明はバーの下）
-      one(P[1].n, 22, true); setTab('game'); const box = document.createElement('div'); box.className = 'tg'; box.innerHTML = pitchHTML(g); document.getElementById('today').prepend(box);
+      one(P[1].n, 22, true); setTab('game'); const box = document.createElement('div'); box.className = 'tg'; box.innerHTML = pitchHTML(g); document.getElementById('v-game').prepend(box);   // 今日の試合の欄は試合のない日は隠れているので、タブそのものに入れて測る
       const bw = box.querySelector('.pgauge i').getBoundingClientRect().width, nb = box.querySelector('.pgnote').getBoundingClientRect(), ib = box.querySelector('.pgauge i').getBoundingClientRect();
       if (bw < 50) ng.push(`球数のバーが細すぎる（${Math.round(bw)}px）`);
       if (nb.top < ib.bottom - 1) ng.push('先発・中継ぎの説明がバーの下にない');
@@ -4313,17 +4334,16 @@ async def ux_check(browser):
                 if (!se.hidden && document.getElementById('ttl').textContent !== '最終結果') ng.push(`最終結果の見出しが違う（${document.getElementById('ttl').textContent}）`);
                 const cut = [...se.querySelectorAll('.se-mt b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent);
                 if (cut.length) ng.push(`月度別の最下位の名前が切れる（${cut}）`);
-                // シーズン後の戦況（10/8）：上に 年間MVP・J SPORTS代の合計・担当者別 年間成績・月度別の最下位。リーグ優勝は順位タブだけ。重なるもの（簡単な順位の表・下の支払いの切り替え・あなた・スワイプの案内）は出さない
+                // シーズン後の戦況（10/8・10/9）：上に 担当者別 年間成績（MVPの印・支払いつき）・月度別の最下位だけ。年間MVP・合計の札は出さない（10/9）。
+                // リーグ優勝は順位タブだけ。重なるもの（簡単な順位の表・下の支払いの切り替え・あなた・スワイプの案内）は出さない
                 if (!isPL()) {
-                  const boxes = [...se.querySelectorAll('.se-box .se-l')].map(x => x.textContent);
-                  if (!boxes.includes('年間MVP') || !se.querySelector('.se-yen')) ng.push(`最終結果の上に年間MVPと合計がない（${boxes}）`);
+                  if (se.querySelector('.se-box, .se-grid')) ng.push('最終結果に年間MVP・合計の札が残っている');
+                  if (se.firstElementChild?.textContent !== '担当者別 年間成績') ng.push(`最終結果のいちばん上が担当者別 年間成績でない（${se.firstElementChild?.textContent}）`);
+                  if (!se.querySelector('.tot .ytag.mvp')) ng.push('担当者別 年間成績にMVPの印がない');
                   if (!se.querySelector('.tot .ytbl tbody tr')) ng.push('最終結果に担当者別 年間成績がない');
                   if (se.querySelector('.se-tab')) ng.push('最終結果に担当者の簡単な順位の表が残っている（年間成績と重なる）');
                   if (!document.getElementById('payBlk').hidden) ng.push('シーズン後も下に「月度別 支払い｜担当者別 年間成績」が残っている');
                   if (document.getElementById('meCard').textContent.trim()) ng.push('シーズン後も「あなた」の札が出ている');
-                  const yen = se.querySelector('.se-yen b').textContent.replace(/[^\d]/g, '');
-                  const tot = [...se.querySelectorAll('.tot td.ya b')].reduce((n, b) => n + (parseInt(b.textContent.replace(/[^\d]/g, ''), 10) || 0), 0);
-                  if (+yen !== tot) ng.push(`J SPORTS代の合計（${yen}）が担当者別の合計（${tot}）と違う`);
                 }
                 if ([...se.querySelectorAll('.se-l')].some(x => /優勝/.test(x.textContent))) ng.push('戦況の最終結果にリーグ優勝が残っている（順位タブのいちばん上にある）');
                 if (document.getElementById('swHint')) ng.push('シーズン後もスワイプの案内が出ている');
@@ -4984,6 +5004,7 @@ async def main():
         await last_game_day_check(browser)
         await mark_contrast_check(browser)
         await off_tag_color_check(browser)
+        await hidden_check(browser)
         await radius_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)

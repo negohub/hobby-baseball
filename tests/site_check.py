@@ -208,6 +208,9 @@ async def open_page(browser, width, theme, me="S", touch=False):
         else:
             GAME.pop("h2", None)
     y, m, d = GAME["d"].split("-")
+    # 検査の日の1試合目（試合中にする試合）が、データではもう終わっている（シーズンの最終戦の日など）ときは「試合前」に戻す。
+    # 試合中の速報（pollLive）は試合前・試合中の試合にしか入らないので、終わったままだと試合中の検査ができない
+    await pg.evaluate("""([d, h, a]) => { let ch = false; DATA.games.filter(g => g.d === d && g.h === h && g.a === a && g.st === 'final').forEach(g => { g.st = 'sched'; delete g.hs; delete g.as; g.t = g.t || '18:00'; ch = true; }); if (ch) renderAll(); }""", [GAME["d"], GAME["h"], GAME["a"]])
     await pg.evaluate(f"CONFIG.recUrl='{LIVE}records.json'; loadRec(true); CONFIG.venUrl='{LIVE}venues.json'; loadVen(true);")
     await pg.evaluate(f"CONFIG.liveApi='{LIVE}'; jst=()=>({{y:{int(y)},m:{int(m)},d:{int(d)},iso:'{GAME['d']}'}}); liveWanted=()=>true; autoGame=false; S.gpaneAll=true;")   # gpaneAll：開いた試合の中（一球速報・打順・投手・ベンチ）を全部縦に並べて、ほかの検査がすべてを見られるように（切り替えそのものは pane_check）
     return pg, errs
@@ -645,7 +648,7 @@ async def pane_check(browser):
                   const [gd, gh, ga] = card().dataset.gk.split('|'), gg = DATA.games.find(x => x.d === gd && x.h === gh && x.a === ga);
                   const bench = t => { const ro = DATA.rosters[t] || []; const pk = (p, k) => ro.filter(x => x.p === p).slice(0, k).map(x => ({ n: x.n, bt: '右右', st: '.250' }));
                     return { '投手': pk('投手', 8), '捕手': pk('捕手', 2), '内野手': pk('内野手', 4), '外野手': pk('外野手', 3) }; };
-                  PRE[`${gd}|${gh}|${ga}`] = { bench: { h: bench(gh), a: bench(ga) } }; S.stmOpen = S.stmOpen || {}; S.stmOpen['b|' + gd + gkey(gg)] = true; renderGame();
+                  PRE[`${gd}|${gh}|${ga}`] = { bench: { h: bench(gh), a: bench(ga) } }; renderGame();
                   if (!seg()) return ['切り替えのボタンがない'];
                   const ids = [...seg().querySelectorAll('button')].map(b => b.dataset.gp), labs = [...seg().querySelectorAll('button')].map(b => b.textContent);
                   if (ids.join(',') !== 'pitch,lu,pu,bench' || labs.join(',') !== '一球速報,打順,投手,ベンチ') ng.push(`切り替えの並びが違う：${labs}`);
@@ -1278,6 +1281,25 @@ async def last_game_day_check(browser):
     await pg.close()
 
 
+async def mark_contrast_check(browser):
+    """球団マーク（字が乗る小さい札）：12球団どれも、地の色と字の色の明るさの差が4.5以上（10/8 ヤクルトの緑に白い字が足りなかった）。
+    パワプロ風の丸いマークはグラデーションで自動の読みやすさの検査が測れないので、色の組み合わせそのものを確かめる。マークは --tb の色を使う"""
+    pg, errs = await open_page(browser, 390, "pawa")
+    r = await pg.evaluate("""() => { const ng = [];
+      const lum = h => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const f = c => { c /= 255; return c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; };
+        return .2126 * f(parseInt(h.slice(0, 2), 16)) + .7152 * f(parseInt(h.slice(2, 4), 16)) + .0722 * f(parseInt(h.slice(4, 6), 16)); };
+      const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+      for (const t of Object.keys(TEAM)) { const c = cr(tb(t), TEAM[t].i || '#000'); if (c < 4.5) ng.push(`${fn(t)}のマークの字が読みにくい（${c.toFixed(2)}）`); }
+      setTab('magic'); const b = [...document.querySelectorAll('.badge')].find(e => e.getClientRects().length);
+      if (b && !/--tb/.test(b.closest('[style*="--tc"]')?.getAttribute('style') || '')) ng.push('マークの色（--tb）が渡っていない');
+      return ng; }""")
+    for m in r:
+        bad(f"[球団マーク] {m}")
+    for e in errs:
+        bad(f"[球団マーク]: 画面のエラー {e}")
+    await pg.close()
+
+
 async def month_done_check(browser):
     """月度の順位がもう動かないときは、試合が残っていても「確定」として扱う（10/7 の9・10月度：残りは広島－ヤクルトの1試合だけ）。
     戦況の帯は「9・10月度の支払い」、月度のボタンに集計中の印なし、月度別 支払いに「順位は暫定」「確定」の小さい札なし、担当者別の9・10月度は点線でない。
@@ -1425,32 +1447,41 @@ async def swipe_check(browser):
             await pg.evaluate("setTab('magic'); window.scrollTo(0, 0)")
             await pg.wait_for_timeout(300)
         # 順位推移｜直近5試合：中身を左へスワイプで直近5試合、右へで順位推移。直近5試合（いちばん右）で左へ → 試合タブへ
-        await pg.evaluate("S.gpaneAll = false; S.sw = {}; ['more', 'pay'].forEach(paintSw)")
+        await pg.evaluate("S.gpaneAll = false; S.sw = {}; ['more', 'pay', 'season'].forEach(paintSw)")
         sw = await pg.evaluate("swList('more')")
         if len(sw) == 2:
             await pg.evaluate(SWIPE_JS, ["#trendBlk", -160, 0])
             await pg.wait_for_timeout(800)
-            r = await pg.evaluate("[S.tab, !document.getElementById('formBlk').hidden, document.getElementById('trendBlk').hidden, document.querySelector('.sseg[data-sw=more] button[data-sp=form]').getAttribute('aria-pressed')]")
+            r = await pg.evaluate("[S.tab, !document.getElementById('mh2hBlk').hidden, document.getElementById('trendBlk').hidden, document.querySelector('.sseg[data-sw=more] button[data-sp=h2h]').getAttribute('aria-pressed')]")
             if r != ["magic", True, True, "true"]:
-                bad(f"{label} 順位推移を左へスワイプしても直近5試合にならない（{r}）")
-            await pg.evaluate(SWIPE_JS, ["#formBlk", 160, 0])
+                bad(f"{label} 順位推移を左へスワイプしても対戦成績にならない（{r}）")
+            await pg.evaluate(SWIPE_JS, ["#mh2hBlk", 160, 0])
             await pg.wait_for_timeout(800)
             if await pg.evaluate("[S.tab, document.getElementById('trendBlk').hidden]") != ["magic", False]:
-                bad(f"{label} 直近5試合を右へスワイプしても順位推移に戻らない")
-            await pg.evaluate("pickSw('more', 'form')")
-        if await pg.evaluate("swList('pay').length") == 2:
+                bad(f"{label} 対戦成績を右へスワイプしても順位推移に戻らない")
+            await pg.evaluate("pickSw('more', 'h2h')")
+        if await pg.evaluate("swList('pay').length") == 2 and not await pg.evaluate("seasonOver()"):
             await pg.evaluate(SWIPE_JS, ["#hist", -160, 0])
             await pg.wait_for_timeout(800)
             if await pg.evaluate("[S.tab, document.getElementById('totBlk').hidden]") != ["magic", False]:
                 bad(f"{label} 月度別 支払いを左へスワイプしても担当者別 年間成績にならない")
         await pg.evaluate("setTab('magic')")
-        await pg.evaluate(SWIPE_JS, ["#formBlk", -160, 0])   # 切り替えの最後で左へ：タブが変わる
+        await pg.evaluate("setTab('magic'); pickSw('more', 'h2h')")
+        await pg.evaluate(SWIPE_JS, ["#mh2hBlk", -160, 0])   # 切り替えの最後で左へ：タブが変わる
         await pg.wait_for_timeout(800)
         if await pg.evaluate("S.tab") != "game":
-            bad(f"{label} 直近5試合（切り替えの最後）を左へスワイプしても試合タブへ進まない")
+            bad(f"{label} 対戦成績（切り替えの最後）を左へスワイプしても試合タブへ進まない")
+        # 順位タブ：順位推移｜直近5試合｜対戦成績 をスワイプで
+        await pg.evaluate("setTab('std'); S.sw.season = 'strend'; paintSw('season'); window.scrollTo(0, 0)")
+        await pg.wait_for_timeout(300)
+        await pg.evaluate(SWIPE_JS, ["#sTrendBlk", -160, 0])
+        await pg.wait_for_timeout(800)
+        if await pg.evaluate("[S.tab, document.getElementById('formBlk').hidden]") != ["std", False]:
+            bad(f"{label} 順位タブの順位推移を左へスワイプしても直近5試合にならない")
+        await pg.evaluate("setTab('magic')")
         await pg.evaluate("setTab('magic'); window.scrollTo(0, 0)")
         await pg.wait_for_timeout(300)
-        await pg.evaluate(SWIPE_JS, ["#mh2hBlk h2", -160, 0])   # 順位表・切り替え以外：タブが変わる
+        await pg.evaluate(SWIPE_JS, ["#chips", -160, 0])   # 順位表・切り替え以外（月度のボタンの段）：タブが変わる
         await pg.wait_for_timeout(800)
         if await pg.evaluate("S.tab") != "game":
             bad(f"{label} 順位表以外の場所を左へスワイプしてもタブが変わらない")
@@ -1647,9 +1678,9 @@ async def tabbar_check(browser):
     r = await pg.evaluate("""async () => {
       const bar = document.querySelector('.tabbar'), P = () => window.__tabbarP().p, ng = [];
       setTab('magic');
-      const el = document.getElementById('formBlk'), wait = ms => new Promise(r => setTimeout(r, ms));
+      const el = document.getElementById('trendBlk'), wait = ms => new Promise(r => setTimeout(r, ms));
       const f = (type, y) => { const t = new Touch({ identifier: 7, target: el, clientX: 200, clientY: y }); el.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true })); };
-      window.scrollTo(0, 1200); await wait(900);
+      window.scrollTo(0, Math.max(0, Math.min(1200, document.documentElement.scrollHeight - innerHeight - 400))); await wait(900);   // 下にまだ読み進められる所から
       f('touchstart', 300); for (let i = 1; i <= 8; i++) { f('touchmove', 300 - i * 15); window.scrollBy(0, 15); await wait(30); }
       if (P() < .99) ng.push(`下へ読み進めてもタブバーが小さくならない（${P()}）`);
       f('touchend', 180);
@@ -3040,12 +3071,15 @@ async def pre_game_check(browser):
                 return { '投手': pk('投手', 8), '捕手': pk('捕手', 2), '内野手': pk('内野手', 4), '外野手': pk('外野手', 3) }; };
               PRE = {}; PRE[`${g.d}|${g.h}|${g.a}`] = { tv: 'サンテレビ1、GAORA SPORTS', net: 'DAZN、虎テレ', radio: 'MBSラジオ、ABCラジオ',
                 lu: { h: { p: pit(g.h), bat: nine(g.h) }, a: { p: pit(g.a), bat: nine(g.a) } }, bench: { h: bench(g.h), a: bench(g.a) } };
-              S.stmOpen = {}; S.stmOpen['b|' + g.d + gkey(g)] = true;   // ベンチ入りを開いた状態で
               setTab('game'); renderGame();
               const card = [...document.querySelectorAll('#today .tg')].find(c => c.querySelector('.stm'));
               if (!card) return ['スタメンが出ない'];
               if (card.querySelectorAll('.stm:not(.bench) .stl li').length !== 18) ng.push(`打順の数が違う（${card.querySelectorAll('.stm:not(.bench) .stl li').length}）`);
               if (!card.querySelector('.stm.bench .stl li')) ng.push('ベンチ入りが出ない');
+              // スタメン発表・ベンチ入りはたたまない（10/8）：押さなくても最初から全部見える
+              if (card.querySelector('details.stm, .stm summary')) ng.push('スタメン発表・ベンチ入りがたためる形のまま');
+              for (const st of card.querySelectorAll('.stm')) { const li = st.querySelector('.stl li'); if (li && !li.getClientRects().length) ng.push(`${st.classList.contains('bench') ? 'ベンチ入り' : 'スタメン発表'}が最初から見えていない`); }
+              { const sq = [...card.querySelectorAll('.stl li .posic')].filter(e => { const r = e.getBoundingClientRect(); return r.width < r.height - .5; }); if (sq.length) ng.push(`守備の札が細く縮んでいる（${sq.length}個：${Math.round(sq[0].getBoundingClientRect().width)}px）`); }
               // 字は11px未満にしない（見出しの小さい字・球団の丸・守備位置の札・打率・「先発」も）
               { const wk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT); let n; const sm = new Set();
                 while ((n = wk.nextNode())) { const el = n.parentElement; if (!n.textContent.trim() || !el.offsetParent || el.closest('.badge')) continue;
@@ -4126,6 +4160,9 @@ async def ux_check(browser):
               jst = () => ({ y: 2026, m: 10, d: 12, iso: '2026-10-12' }); const a1 = landingTab();
               jst = () => ({ y: 2026, m: 11, d: 5, iso: '2026-11-05' }); const a2 = landingTab();
               seasonOver = () => false; const a3 = landingTab();
+              // 公式戦の最終戦の日：いつもどおり戦況から
+              seasonOver = () => true; { const lastD = DATA.games.filter(g => inLg(g) && g.st !== 'canc').map(g => g.d).sort().pop(); const [y, m, d] = lastD.split('-').map(Number); jst = () => ({ y, m, d, iso: lastD }); DATA.post = [{ d: '2026-12-30', stage: 'CS1', lg: 'C' }];
+                const a4 = landingTab(); if (a4) ng.push(`公式戦の最終戦の日なのに最初の画面が戦況でない（${JSON.stringify(a4)}）`); }
               seasonOver = so; jst = jj; DATA.post = post0;
               if (!a1 || a1.tab !== 'post') ng.push(`CS・日本シリーズのあいだの最初の画面が勝ち上がり表でない（${JSON.stringify(a1)}）`);
               if (!a2 || a2.tab !== 'off') ng.push(`日本シリーズのあとの最初の画面が入退団でない（${JSON.stringify(a2)}）`);
@@ -4141,11 +4178,13 @@ async def ux_check(browser):
               document.getElementById('songSheet').classList.remove('open'); document.getElementById('songSheet').hidden = true; await new Promise(r => setTimeout(r, 100));
               const fb = document.getElementById('findBtn').getBoundingClientRect(); if (fb.width < 44 || fb.height < 44) ng.push('さがすボタンが小さい');
               // ③ 戦況はすっきり（10/8）：目次の段・たたむ見出しはなし。「順位推移｜直近5試合」「月度別 支払い｜担当者別 年間成績」はボタン（とスワイプ）で切り替え
-              setTab('magic'); window.scrollTo(0, 0); S.gpaneAll = false; S.sw = {}; ['more', 'pay'].forEach(paintSw);
+              setTab('magic'); window.scrollTo(0, 0); S.gpaneAll = false; S.sw = {}; ['more', 'pay', 'season'].forEach(paintSw);
               if (document.querySelector('#v-magic .jump')) ng.push('戦況に目次の段が残っている');
               if (document.querySelector('#v-magic .fold, #v-magic .shut')) ng.push('戦況にたたむ見出しが残っている');
-              for (const [g, ids] of [['more', ['trend', 'form']], ['pay', ['hist', 'tot']]]) {
+              for (const [g, ids] of [['more', ['trend', 'h2h']], ['pay', ['hist', 'tot']], ['season', ['strend', 'form', 'sh2h']]]) {
                 const seg = document.querySelector(`.sseg[data-sw="${g}"]`), blk = seg && seg.closest('.blk');
+                if (g === 'pay' && seasonOver()) { if (!blk.hidden) ng.push('シーズン後も支払いの切り替えが出ている'); continue; }
+                setTab(g === 'season' ? 'std' : 'magic');
                 if (!seg) { ng.push(`${g} の切り替えボタンがない`); continue; }
                 const shown = () => [...document.querySelectorAll(`.spane[data-sw="${g}"]`)].filter(p => !p.hidden).map(p => p.dataset.sp);
                 if (ids.some(id => !document.querySelector(`.spane[data-sw="${g}"][data-sp="${id}"]`) || !seg.querySelector(`button[data-sp="${id}"]`))) ng.push(`${g}：切り替えの中身かボタンが足りない`);
@@ -4153,13 +4192,13 @@ async def ux_check(browser):
                 if (JSON.stringify(shown()) !== JSON.stringify([l[0]])) ng.push(`${g}：最初に1つだけ（${l[0]}）が出ていない（${shown()}）`);
                 const sr = seg.getBoundingClientRect(), br = blk.getBoundingClientRect();
                 if (Math.abs(sr.width - br.width) > 1) ng.push(`${g}：切り替えボタンが横いっぱいでない`);
-                { const h2 = document.querySelector('#mh2hBlk > h2'); if (h2 && getComputedStyle(seg).marginTop !== getComputedStyle(h2).marginTop) ng.push(`${g}：切り替えボタンの上のあきが見出しと違う（${getComputedStyle(seg).marginTop}）`); }
+                { const h2 = document.querySelector('#v-std #stdTop'); if (h2 && getComputedStyle(seg).marginTop !== getComputedStyle(h2).marginTop) ng.push(`${g}：切り替えボタンの上のあきが見出しと違う（${getComputedStyle(seg).marginTop}）`); }
                 for (const b of seg.querySelectorAll('button:not([hidden])')) { const r = b.getBoundingClientRect(); if (r.height < 43.5) ng.push(`${b.textContent}のボタンが押しにくい（44px未満）`); if (b.scrollWidth > b.clientWidth + 1) ng.push(`${b.textContent}のボタンの字がはみ出す`); }
                 for (const id of l) { const b = seg.querySelector(`button[data-sp="${id}"]`); b.click();
                   if (JSON.stringify(shown()) !== JSON.stringify([id]) || b.getAttribute('aria-pressed') !== 'true') ng.push(`${b.textContent}を押しても切り替わらない（${shown()}）`); }
                 seg.querySelector(`button[data-sp="${l[0]}"]`).click();
               }
-              S.gpaneAll = true; ['more', 'pay'].forEach(paintSw);
+              S.gpaneAll = true; ['more', 'pay', 'season'].forEach(paintSw);
               // 「画像にしてLINEで送る」は小さく右下に
               { const sb = document.getElementById('shotBtn'); if (sb && sb.getClientRects().length && sb.getBoundingClientRect().width > innerWidth * .7) ng.push('「画像にしてLINEで送る」が画面いっぱいの大きさのまま'); }
               // 広島の行に「対象外」の札は出さない（行が薄く・順位が「-」で分かる）
@@ -4183,6 +4222,21 @@ async def ux_check(browser):
                 if (!se.hidden && document.getElementById('ttl').textContent !== '最終結果') ng.push(`最終結果の見出しが違う（${document.getElementById('ttl').textContent}）`);
                 const cut = [...se.querySelectorAll('.se-mt b')].filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent);
                 if (cut.length) ng.push(`月度別の最下位の名前が切れる（${cut}）`);
+                // シーズン後の戦況（10/8）：上に 年間MVP・J SPORTS代の合計・担当者別 年間成績・月度別の最下位。リーグ優勝は順位タブだけ。重なるもの（簡単な順位の表・下の支払いの切り替え・あなた・スワイプの案内）は出さない
+                if (!isPL()) {
+                  const boxes = [...se.querySelectorAll('.se-box .se-l')].map(x => x.textContent);
+                  if (!boxes.includes('年間MVP') || !se.querySelector('.se-yen')) ng.push(`最終結果の上に年間MVPと合計がない（${boxes}）`);
+                  if (!se.querySelector('.tot .ytbl tbody tr')) ng.push('最終結果に担当者別 年間成績がない');
+                  if (se.querySelector('.se-tab')) ng.push('最終結果に担当者の簡単な順位の表が残っている（年間成績と重なる）');
+                  if (!document.getElementById('payBlk').hidden) ng.push('シーズン後も下に「月度別 支払い｜担当者別 年間成績」が残っている');
+                  if (document.getElementById('meCard').textContent.trim()) ng.push('シーズン後も「あなた」の札が出ている');
+                  const yen = se.querySelector('.se-yen b').textContent.replace(/[^\d]/g, '');
+                  const tot = [...se.querySelectorAll('.tot td.ya b')].reduce((n, b) => n + (parseInt(b.textContent.replace(/[^\d]/g, ''), 10) || 0), 0);
+                  if (+yen !== tot) ng.push(`J SPORTS代の合計（${yen}）が担当者別の合計（${tot}）と違う`);
+                }
+                if ([...se.querySelectorAll('.se-l')].some(x => /優勝/.test(x.textContent))) ng.push('戦況の最終結果にリーグ優勝が残っている（順位タブのいちばん上にある）');
+                if (document.getElementById('swHint')) ng.push('シーズン後もスワイプの案内が出ている');
+                { const p0 = periods()[0]; pickPeriod(p0); if (se.hidden) ng.push('シーズン後に前の月度を選ぶと最終結果が消える（画面がずれる）'); pickPeriod(defaultPeriod(periods())); }
                 seasonOver = so2; renderAll(); }
               // ⑧ 月度：全部の月度のボタン（「月度」付き）が画面に収まる。押すとその月度になる
               { setTab('magic'); const cs = [...document.querySelectorAll('#chips .chip')];
@@ -4242,14 +4296,19 @@ async def ux_check(browser):
                 setTab('magic'); window.scrollTo(0, 99999); await new Promise(r => setTimeout(r, 120));
                 if (!document.getElementById('miniSeg').hidden) ng.push('切り替えのないページ（戦況）の小さいヘッダーに切り替えが出ている');
                 window.scrollTo(0, 0); }
-              // ⑬ 対戦成績は戦況の1か所：この月度｜今季を切り替えられる（順位タブには出さない）
-              { setTab('magic'); const sg = [...document.querySelectorAll('#mh2hSeg button')];
-                if (sg.length !== 2) ng.push('戦況の対戦成績に「月度｜今季」の切り替えがない');
-                else { sg[1].click(); const note = document.getElementById('mh2hNote').textContent;
-                  const first = document.querySelector('#mh2h tbody tr th')?.textContent, top = seasonTable(DATA.games, calOrder(), pendingMakeups())[0].t;
-                  if (!/今季/.test(note) || first !== calSn(top)) ng.push(`対戦成績を「今季」にしても今季の表にならない（${note}・${first}）`);
-                  document.querySelectorAll('#mh2hSeg button')[0].click(); if (!/月度/.test(document.getElementById('mh2hNote').textContent)) ng.push('対戦成績を月度に戻せない'); }
-                if (document.querySelector('#v-std #h2h, #v-std .h2h')) ng.push('順位タブにも対戦成績が残っている'); }
+              // ⑬ 対戦成績（10/8）：戦況は「順位推移｜対戦成績」の切り替えの中で、その月度だけ。今季の分は順位タブの「順位推移｜直近5試合｜対戦成績」
+              { setTab('magic'); if (document.getElementById('mh2hSeg')) ng.push('戦況の対戦成績に「月度｜今季」の切り替えが残っている');
+                if (!/月度/.test(document.getElementById('mh2hNote').textContent)) ng.push(`戦況の対戦成績がその月度になっていない（${document.getElementById('mh2hNote').textContent}）`);
+                if (document.querySelector('#v-magic #form')) ng.push('戦況に直近5試合が残っている（順位タブへ）');
+                setTab('std'); const top = seasonTable(DATA.games, calOrder(), pendingMakeups());
+                const first = document.querySelector('#sH2h tbody tr th')?.textContent;
+                if (first !== calSn(top[0].t)) ng.push(`順位タブの対戦成績が今の順位順でない（${first}）`);
+                if (document.querySelector('#sH2h tr.ex')) ng.push('順位タブの対戦成績で広島が薄い（順位タブは全球団同じ扱い）');
+                const fr = [...document.querySelectorAll('#form tbody tr')].map(r => r.dataset.tm);
+                if (fr.join() !== top.map(r => r.t).join()) ng.push(`順位タブの直近5試合が順位順でない（${fr}）`);
+                if (document.querySelector('#form tr.ex')) ng.push('順位タブの直近5試合で広島が薄い');
+                if (!document.querySelector('#sTrend svg polyline')) ng.push('順位タブに今季の順位推移が出ない');
+                if (document.querySelectorAll('#sTrend svg polyline').length !== CL.length) ng.push('順位タブの順位推移に全球団の線がない'); }
               // ⑭ 時期で中身を入れ替える：CS・日本シリーズの時期は、試合がない日に次戦、試合の日は戦況のいちばん上に今日の試合。全部終わったらそう書く
               { const so4 = seasonOver, jj4 = jst; seasonOver = () => true;
                 const first = postGames().filter(g => g.h && g.a).sort((x, y) => (x.d < y.d ? -1 : 1))[0];
@@ -4642,7 +4701,7 @@ async def runner_request_check(browser):
       PRE[`${g.d}|${g.h}|${g.a}`] = Object.assign({}, PRE[`${g.d}|${g.h}|${g.a}`] || {}, { bench: { h: { '投手': bp.map(x => ({ n: x.n, st: '2.00' })), '内野手': bf.map(x => ({ n: x.n, st: '.250' })) }, a: {} } });
       d.pitchers = d.pitchers || [[], []]; d.pitchers[1] = (d.pitchers[1] || []).concat([{ name: bp[0].n, ip: '1', np: 15 }]);
       d.lineups = d.lineups || [[], []]; d.lineups[1] = (d.lineups[1] || []).concat([{ name: bf[0].n, order: '7', pos: '代打', results: ['中飛'] }]);
-      S.stmOpen['b|' + g.d + gkey(g)] = true; renderGame();
+      renderGame();
       const bnames = [...document.querySelectorAll('.tgd .stm.bench .stl li')].map(e => e.dataset.pl.split('|')[1]);
       if (bnames.includes(bp[0].n)) ng.push(`登板した投手（${bp[0].n}）がベンチに残っている`);
       if (bnames.includes(bf[0].n)) ng.push(`代打で出た野手（${bf[0].n}）がベンチに残っている`);
@@ -4830,6 +4889,7 @@ async def main():
         await team_btn_sel_check(browser)
         await bottom_line_check(browser)
         await last_game_day_check(browser)
+        await mark_contrast_check(browser)
         await radius_check(browser)
         await rec_check(browser)
         await tab_group_check(browser)

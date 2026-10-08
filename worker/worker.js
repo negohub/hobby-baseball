@@ -1008,7 +1008,8 @@ function parseTransfer(html, year) {
   return out;
 }
 // ベースボールチャンネルの「今季の戦力外通告・現役引退・自由契約・退団選手一覧」（発表の当日に更新される）。記事の場所はタグの一覧から探す
-const BBC_KIND = [[/引退/, "retire"], [/戦力外/, "cut"], [/自由契約/, "cut"], [/退団/, "leave"]];
+// 自由契約は戦力外とは別の種類（free）。シーズン途中の自由契約も、その年の分はすべて
+const BBC_KIND = [[/引退/, "retire"], [/戦力外/, "cut"], [/自由契約/, "free"], [/退団/, "leave"]];
 function parseBbc(html, year) {
   const out = [];
   for (const part of html.split(/<h[2-4][^>]*>/).slice(1)) {
@@ -1021,10 +1022,14 @@ function parseBbc(html, year) {
       const m = c[0].match(/(\d{1,2})月(\d{1,2})日/), t = SHORT[c[1]];
       if (!m || !t) continue;
       const mo = +m[1], d = +m[2]; if (mo < 1 || mo > 12 || d < 1 || d > 31) continue;
-      const date = `${mo >= 3 ? year : year + 1}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      if (date < `${year}-09-01`) continue;
+      // 年がない日付：1・2月は翌年とみなす。ただし今日より後になるなら今年（2月の自由契約が「来年」になっていた）
+      const mmdd = `${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`, today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+      let date = `${mo >= 3 ? year : year + 1}-${mmdd}`;
+      if (date > today) date = `${year}-${mmdd}`;
+      if (date < (k[1] === "free" ? `${year}-01-01` : `${year}-09-01`)) continue;
       const name = c[2].replace(/※/g, "").trim();
-      if (name) out.push({ t, n: name, dev: /※/.test(c[2]), kind: k[1], date, src: "bbc" });
+      const pos = /^(投手|捕手|内野手|外野手)$/.test(c[3] || "") ? c[3] : "";
+      if (name) out.push({ t, n: name, dev: /※/.test(c[2]), kind: k[1], date, src: "bbc", pos });
     }
   }
   return out;

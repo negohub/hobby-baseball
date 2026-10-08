@@ -914,6 +914,25 @@ def parse_registered(html, season):
     return out
 
 
+def parse_released(html, season):
+    """NPBの公示「自由契約選手」の表：日付｜球団（正式名）｜名前｜守備｜背番号｜備考（ウエイバー不請求・球団による契約解除など）
+    （10/9 ヤクルトのセデーニョの自由契約が、ベースボールチャンネルの12球団の一覧にまだ載っていなかったので、公示も元にする）"""
+    out = []
+    for tr in BeautifulSoup(html, "html.parser").find_all("tr"):
+        cells = [norm(c.get_text(" ", strip=True)) for c in tr.find_all(["td", "th"])]
+        if len(cells) < 4:
+            continue
+        m = re.match(r"^(\d{4})/(\d{1,2})/(\d{1,2})$", cells[0])
+        tm = TRADE_TEAM_RE.search(cells[1])
+        if not m or int(m.group(1)) != season or not tm:
+            continue
+        pos = re.sub(r"\s+", "", cells[3])
+        out.append({"t": TRADE_TEAM[tm.group()], "n": re.sub(r"\s+", " ", cells[2]).strip(), "pos": pos if pos in ("投手", "捕手", "内野手", "外野手") else "",
+                    "no": cells[4] if len(cells) > 4 and re.fullmatch(r"\d{1,3}", cells[4]) else "", "note": cells[5] if len(cells) > 5 else "",
+                    "d": f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"})
+    return out
+
+
 def parse_staff(html):
     """NPBの「監督・コーチ一覧」の表（位置・番号・氏名）。「〜以降の動き」の表は読まない"""
     soup = BeautifulSoup(html, "html.parser")
@@ -1308,6 +1327,23 @@ def fetch_offseason(season, old, rosters, force=False, any_month=False):
                       "url": reg_url, "title": "新規支配下選手登録（NPB公示）"}
     if promos:
         print(f"[支配下登録] {len(promos)}人（NPB公示）")
+    # 自由契約選手（NPB公式の公示）：シーズン途中の自由契約（外国人選手のウエイバー不請求など）。すでに戦力外・引退などで出ている選手はそのまま
+    # （12月の公示には戦力外の選手もまとめて載るが、戦力外のまま。自由契約には上書きしない）
+    rel_url = f"https://npb.jp/announcement/{season}/pn_released.html"
+    html = fetch(rel_url)
+    rels = parse_released(html, season) if html else []
+    for x in rels:
+        key = (x["t"], x["n"])
+        same = next((k for k, v in items.items() if k[0] == x["t"] and okey(k[1]) == okey(x["n"])), None)
+        cur = items.get(same) if same else None
+        if cur and not (cur.get("kind") == "promote" and (cur.get("date") or "") <= x["d"]):
+            continue
+        if same and same != key:
+            items.pop(same, None)
+        items[key] = {"t": x["t"], "n": x["n"], "no": x["no"], "dev": False, "kind": "free", "date": x["d"], "pos": x["pos"],
+                      "url": rel_url, "title": "自由契約選手（NPB公示）"}
+    if rels:
+        print(f"[自由契約] {len(rels)}人（NPB公示）")
     # ドラフト会議の指名選手（10月〜）
     draft_st = {}
     if now.month >= 10 or any_month:

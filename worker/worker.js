@@ -196,29 +196,12 @@ async function cachedFetch(cache, key, sec, fn) {
   return v;
 }
 
-// スポナビのプロ野球トップにある試合ページのリンクを拾い、各試合ページのタイトル
-// （例：「2026年9月27日 読売ジャイアンツvs.東京ヤクルトスワローズ」）から日付と対戦カードを読む
+// 試合ページのタイトル（例：「2026年9月27日 読売ジャイアンツvs.東京ヤクルトスワローズ」）の球団名
 const FULL = { "読売ジャイアンツ": "G", "横浜DeNAベイスターズ": "DB", "阪神タイガース": "T", "中日ドラゴンズ": "D",
   "広島東洋カープ": "C", "東京ヤクルトスワローズ": "S", "福岡ソフトバンクホークス": "H", "北海道日本ハムファイターズ": "F",
   "オリックス・バファローズ": "B", "東北楽天ゴールデンイーグルス": "E", "埼玉西武ライオンズ": "L", "千葉ロッテマリーンズ": "M" };
 const UA = { headers: { "User-Agent": "Mozilla/5.0 (jsports-live)" } };
 
-async function todayIds() {
-  const now = new Date(Date.now() + 9 * 3600e3);
-  const today = `${now.getUTCFullYear()}年${now.getUTCMonth() + 1}月${now.getUTCDate()}日`;
-  const top = await (await fetch("https://baseball.yahoo.co.jp/npb/", UA)).text();
-  const ids = [...new Set([...top.matchAll(/\/npb\/game\/(\d{8,12})\//g)].map(m => m[1]))].slice(0, 20);
-  const map = {};
-  await Promise.all(ids.map(async id => {
-    try {
-      const html = await (await fetch(`https://baseball.yahoo.co.jp/npb/game/${id}/text`, UA)).text();
-      const t = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || "";
-      const m = t.normalize("NFKC").match(/(\d{4}年\d{1,2}月\d{1,2}日)\s*(.+?)vs\.(.+?)\s/);
-      if (m && m[1] === today && FULL[m[2]] && FULL[m[3]]) map[`${FULL[m[2]]}-${FULL[m[3]]}`] = id;
-    } catch {}
-  }));
-  return map;
-}
 
 function kindOf(t) {
   if (/ホームラン|本塁打|ランニングホーマー/.test(t)) return "本塁打";
@@ -952,28 +935,42 @@ function parsePre(html) {
   }
   return out;
 }
+// その日の試合（スポナビの日程ページ https://baseball.yahoo.co.jp/npb/schedule/first/all?date=YYYY-MM-DD にある試合ページ）の放送予定・スタメン。
+// CS・日本シリーズも同じページに出る。試合ページ（/top）のタイトルの日付がその日のものだけ使う
+async function preOn(date) {
+  const html = await fetch(`https://baseball.yahoo.co.jp/npb/schedule/first/all?date=${date}`, UA).then(r => (r.ok ? r.text() : "")).catch(() => "");
+  const ids = [...new Set([...html.matchAll(/\/npb\/game\/(\d{8,12})\//g)].map(m => m[1]))].slice(0, 14);
+  const [y, m, d] = date.split("-").map(Number), want = `${y}年${m}月${d}日`;
+  const games = {};
+  await Promise.all(ids.map(async id => {
+    try {
+      const page = await (await fetch(`https://baseball.yahoo.co.jp/npb/game/${id}/top`, UA)).text();
+      const t = ((page.match(/<title>([^<]*)<\/title>/) || [])[1] || "").normalize("NFKC").match(/(\d{4}年\d{1,2}月\d{1,2}日)\s*(.+?)vs\.(.+?)\s/);
+      if (!t || t[1] !== want || !FULL[t[2]] || !FULL[t[3]]) return;
+      const k = `${FULL[t[2]]}-${FULL[t[3]]}`, dd = parsePre(page);
+      if (dd.lu) {   // どちらがホームか：見出しの球団名で。なければ並び順（ホームが先）
+        const [h, a] = k.split("-");
+        const byT = {}; dd.lu.forEach((x, i) => (byT[x.t || (i === 0 ? h : a)] = x));
+        dd.lu = { h: byT[h] || null, a: byT[a] || null };
+      }
+      if (dd.bench) { const [b0, b1] = dd.bench; dd.bench = { h: b0, a: b1 }; }   // ホームが先
+      if (dd.tv || dd.net || dd.radio || dd.lu || dd.bench) games[k] = { id, ...dd };
+    } catch {}
+  }));
+  return games;
+}
+// 今日（スタメンが出るので1分ごと）と、あした（放送予定。30分ごと）
 async function preGame(cache, cors) {
   try {
     const now = new Date(Date.now() + 9 * 3600e3);
-    const today = now.toISOString().slice(0, 10);
-    const data = await cachedFetch(cache, `pre-${today}`, 60, async () => {
-      const ids = await todayIds();
-      const games = {};
-      await Promise.all(Object.entries(ids).map(async ([k, id]) => {
-        try {
-          const html = await (await fetch(`https://baseball.yahoo.co.jp/npb/game/${id}/top`, UA)).text();
-          const d = parsePre(html);
-          if (d.lu) {   // どちらがホームか：見出しの球団名で。なければ並び順（ホームが先）
-            const [h, a] = k.split("-");
-            const byT = {}; d.lu.forEach((x, i) => (byT[x.t || (i === 0 ? h : a)] = x));
-            d.lu = { h: byT[h] || null, a: byT[a] || null };
-          }
-          if (d.bench) { const [b0, b1] = d.bench; d.bench = { h: b0, a: b1 }; }   // ホームが先
-          if (d.tv || d.net || d.radio || d.lu || d.bench) games[k] = { id, ...d };
-        } catch {}
-      }));
-      return Object.keys(games).length ? { date: today, games } : {};
-    });
+    const today = now.toISOString().slice(0, 10), tomorrow = new Date(now.getTime() + 864e5).toISOString().slice(0, 10);
+    const [g0, g1] = await Promise.all([
+      cachedFetch(cache, `pre2-${today}`, 60, async () => { const g = await preOn(today); return Object.keys(g).length ? { games: g } : {}; }),
+      cachedFetch(cache, `pre2-${tomorrow}`, 1800, async () => { const g = await preOn(tomorrow); return Object.keys(g).length ? { games: g } : {}; }),
+    ]);
+    const data = {};
+    if (g0 && g0.games) Object.assign(data, { date: today, games: g0.games });
+    if (g1 && g1.games) data.next = { date: tomorrow, games: g1.games };
     return new Response(JSON.stringify(data), { headers: cors });
   } catch (e) { return new Response(JSON.stringify({ error: String(e) }), { headers: cors }); }
 }

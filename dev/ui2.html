@@ -2242,16 +2242,16 @@ html.theme-pawa .ptr{background:#fff;color:#13264A;border:2px solid #1D3E7C}
 
 /* タップの反応を速く（ダブルタップの拡大の待ち時間をなくす） */
 html{touch-action:manipulation}
-/* ===== 開いたときの演出：アイコンがぶわーんと大きくなって弾けて、サイトが出てくる ===== */
+/* ===== 開いたときの演出：アイコンがぶわーんと大きくなって弾けて、サイトが出てくる（10/10 速く：全体で約1秒） ===== */
 #splash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;pointer-events:none;
-  background:#000;animation:spBg 1.6s cubic-bezier(.2,.8,.2,1) forwards}   /* アイコン（X風）と同じ真っ黒の地。iPhone の起動画面（splash/launch-*.jpg）も同じ */
+  background:#000;animation:spBg 1s cubic-bezier(.2,.8,.2,1) forwards}   /* アイコン（X風）と同じ真っ黒の地。iPhone の起動画面（splash/launch-*.jpg）も同じ */
 #splash .sp-wrap{position:relative;width:132px;height:132px}
 #splash .sp-icon{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:30px;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.12);
-  transform:scale(.35);opacity:0;will-change:transform,opacity,filter;animation:spIcon 1.35s cubic-bezier(.3,.7,.2,1) forwards}
+  transform:scale(.35);opacity:0;will-change:transform,opacity,filter;animation:spIcon .85s cubic-bezier(.3,.7,.2,1) forwards}
 #splash .sp-ring{position:absolute;left:50%;top:50%;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;border:6px solid #FFB21E;box-shadow:0 0 18px rgba(255,178,30,.55);
-  transform:scale(.4);opacity:0;animation:spRing .7s cubic-bezier(.1,.8,.2,1) .98s forwards}
+  transform:scale(.4);opacity:0;animation:spRing .45s cubic-bezier(.1,.8,.2,1) .6s forwards}
 #splash .sp-dot{position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);border-radius:50%;background:var(--c);
-  opacity:0;transform:rotate(var(--a)) translate3d(0,0,0) scale(.4);animation:spDot .75s cubic-bezier(.1,.9,.2,1) .98s forwards}
+  opacity:0;transform:rotate(var(--a)) translate3d(0,0,0) scale(.4);animation:spDot .48s cubic-bezier(.1,.9,.2,1) .6s forwards}
 @keyframes spIcon{0%{transform:scale(.35);opacity:0}24%{transform:scale(1.1);opacity:1}34%{transform:scale(.94);opacity:1}44%{transform:scale(1.03);opacity:1}
   52%{transform:scale(1);opacity:1;filter:blur(0)}74%{transform:scale(3.4);opacity:1;filter:blur(0)}100%{transform:scale(8);opacity:0;filter:blur(10px)}}
 @keyframes spRing{0%{transform:scale(1);opacity:1}100%{transform:scale(6);opacity:0;border-width:1px}}
@@ -2472,7 +2472,7 @@ html.theme-pawa .ls td.now:not(#z){color:#E08A00 !important}
 .ls td.tot:not(#z){background:#1A1A1A !important;color:#fff !important;font-weight:900 !important}
 html.theme-pawa .ls td.tot:not(#z){background:#EAF2FB !important;color:#13264A !important}
 /* NEXT の打者の札：下線はなし */
-.pnx3 b[data-pl]:has(.ptile){text-decoration:none !important}
+html.theme-pawa .pnx3 b[data-pl]{text-decoration:none !important}   /* パワプロ風は名前の札（下線なし）。:has は重いので使わない */
 /* NEXT の打者の札：打順の札と同じ幅・同じ大きさ（長い名前は文字を小さくして札に収める） */
 html.theme-pawa .pnx3 .ptile.sptile{--w:84px;--fs:13px;width:var(--w);padding:0 4px;justify-content:center;box-sizing:border-box;overflow:hidden;flex:none}
 html.theme-pawa .pnx3 .ptile.sptile b{font-size:min(var(--fs), calc((var(--w) - 12px) / var(--n, 3))) !important}
@@ -2774,7 +2774,7 @@ html.sty-light:not(.theme-pawa),html.sty-light:not(.theme-pawa) body{background:
 html.sty-light:not(.theme-pawa) #detail .dtm{color:#15161A !important;box-shadow:none;padding:0}
 /* 選手の画面：今の対戦 */
 .ps-vs .ps-main + .ps-main{margin-top:8px}
-.ps-vs .ps-main > div:empty,.ps-vs .ps-main > div:has(small:empty){visibility:hidden}
+.ps-vs .ps-main > div:empty,.ps-vs .ps-main > div.pe{visibility:hidden}
 html.theme-pawa .ps-vs{background:#EAF4FF;border-radius:14px;padding:10px 12px;margin-bottom:10px}
 html.theme-pawa.pawa-dark .ps-vs{background:#1B2B4B}
 html.theme-pawa.pawa-dark .ps-today{background:#342F20}
@@ -2975,10 +2975,10 @@ html.theme-pawa :is(.ytab thead th,.putab th,.race .rcH th):not(#z):not(#y){back
 html.theme-pawa .pbox:not(#z):not(#y){border:1.5px solid #B8C7E2 !important;box-shadow:0 2px 8px rgba(19,38,74,.08) !important}
 html.theme-pawa .pbox .fldw:not(#z){margin:0 1.5px}   /* 枠を細くした分、球場の図が大きくならないように（一球速報を1画面に収める） */
 html.theme-pawa .tgx:not(#z):not(#y){border-width:1.5px !important;border-color:#8FA6CC !important;box-shadow:none !important}
-/* 6つの切り替え（2段）は、丸い帯でなく角の丸い枠 */
-.seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:20px !important}
-html.theme-pawa .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:16px !important}
-.seg:not(.subnav):has(> button:nth-child(4)) > button:not(#z):not(#y){border-radius:14px !important}
+/* 6つの切り替え（2段・球場別の項目）は、丸い帯でなく角の丸い枠 */
+.seg.venkey:not(#z):not(#y){border-radius:20px !important}
+html.theme-pawa .seg.venkey:not(#z):not(#y){border-radius:16px !important}
+.seg.venkey > button:not(#z):not(#y){border-radius:14px !important}
 /* データ「今季」：打撃｜投手はページのいちばん上に1つ（ほかのページの「打撃｜投手」と同じ大きさ。横いっぱいはリーグの切り替えだけ） */
 html body #v-stats > #stSeg + h2:not(#z):not(#y){margin-top:24px !important}
 html.theme-pawa #stSeg:not(#z):not(#y){display:flex;width:fit-content}   /* 下の見出しとの間を、スタイリッシュと同じ24pxに */
@@ -3028,7 +3028,35 @@ html.theme-pawa #songList .tno small:not(#z):not(#y){display:none}
 #v-magic > :is(#alert, #meCard, #todayStrip):not(:empty):not([hidden]):not(#z):not(#y){margin-top:0 !important;margin-bottom:12px !important}
 #v-magic > #cards:not(#z):not(#y){margin-top:0 !important}
 /* 選ぶ欄（1つだけの段）：横いっぱいにせず、中身に合った幅（ボタンと並ぶときは残りの幅） */
-:is(.view, .rkbar:not(:has(> .seg))) > .catsel:not(#z):not(#y){display:block;flex:0 0 auto;width:fit-content;min-width:200px;max-width:100%}
+.view > .catsel:not(#z):not(#y),.rkbar.one > .catsel:not(#z):not(#y){display:block;flex:0 0 auto;width:200px;max-width:100%}   /* 幅は決め打ち（中身に合わせると、開くたびに全部の項目の長さを測るので重い） */
+/* 速さ（10/10）：画面の外の大きなまとまりは、見えるところまで来てから組み立てる（タブを開いた瞬間の計算を減らす）。大きさの見込みは前に出たときの大きさ（auto） */
+:is(#rankList, #ptList, #songList .sgrp, #moreBlk, #payBlk, #seasonBlk, .rules, #trendBlk, #sTrendBlk, #detail, #offList .ofteam, #recTbl, #stdhTbl, #venTbl):not(#z){content-visibility:auto;contain-intrinsic-size:auto 600px}
+/* ===== 勝ち上がり表（全体の図）：クライマックスシリーズの発表の図のように。セは緑・パは紺の札、線は白、勝ち上がった線は金色 ===== */
+.cb:not(#z){position:relative;height:300px;margin:14px 0 10px;border-radius:20px;overflow:hidden;isolation:isolate;color:#fff;
+  background:radial-gradient(60% 50% at 50% 40%,rgba(255,255,255,.18),transparent 70%),linear-gradient(100deg,#11A08F 0%,#1678C8 52%,#4146D8 100%)}
+html.theme-pawa .cb:not(#z){border-radius:16px}
+.cb-svg{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.cb-svg path.on{filter:drop-shadow(0 0 4px rgba(255,213,74,.8))}
+.cb-band{position:absolute;left:10px;right:10px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:rgba(255,255,255,.14);z-index:2;pointer-events:none}
+.cb-bl{position:relative;z-index:3;display:inline-flex;align-items:baseline;gap:6px;height:24px;line-height:24px;padding:0 10px;border-radius:999px;background:#123E7A;box-shadow:0 0 0 1.5px rgba(255,255,255,.55)}
+.cb-bl b{font-size:12.5px;font-weight:900;letter-spacing:.06em;color:#fff}
+.cb-bl small{font-size:11px;font-weight:800;color:#FFE38A}
+.cb-js{position:absolute;left:50%;top:6px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:14px;white-space:nowrap;
+  background:linear-gradient(180deg,#FF6B6B,#E0303C);border:2px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.cb-js b{font-size:15px;font-weight:900;letter-spacing:.06em;color:#fff}
+.cb-js.on{background:linear-gradient(180deg,#FFE48A,#F5B70A);border-color:#fff}
+.cb-js.on b{color:#3A2600}
+.cb-cn{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:8px;background:var(--tc);color:var(--ti,#fff);font-size:14px;font-weight:900}
+.cb-w{position:absolute;z-index:2;transform:translate(-50%,-50%);min-width:20px;height:18px;padding:0 5px;border-radius:9px;background:#fff;color:#13264A;font-size:12px;font-weight:900;line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.cb-ts{position:absolute;left:0;right:0;top:226px;height:64px;z-index:2}
+.cb-t{position:absolute;top:0;width:calc(100% / 600 * 92);height:64px;display:flex;flex-direction:column;align-items:center;border-radius:8px;overflow:hidden;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.cb-seed{display:block;width:100%;height:20px;line-height:20px;text-align:center;font-size:11px;font-weight:900;color:#fff;letter-spacing:.02em}
+.cb-t.c .cb-seed{background:#17694F}.cb-t.p .cb-seed{background:#1F3F86}
+.cb-t .badge:not(#z){margin:auto;width:32px;height:32px;font-size:15px}
+.cb-tbd{margin:auto;font-size:12px;font-weight:800;color:#5B6E91}
+.cb-t.out{opacity:.5}
+.cb-t.champ{box-shadow:0 0 0 3px #FFD54A,0 3px 10px rgba(0,0,0,.3)}
+@media (max-width:374px){.cb-bl{padding:0 8px;gap:4px}.cb-bl b{font-size:12px;letter-spacing:.02em}.cb-js{padding:0 12px}.cb-t .badge:not(#z){width:28px;height:28px;font-size:13px}}
 /* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
 html.theme-pawa .seg:not(.subnav):not(.mseg):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
 html.theme-pawa .seg:not(.subnav):not(.mseg) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
@@ -3049,8 +3077,8 @@ html.theme-pawa .seg:not(.subnav):not(.mseg) button[aria-pressed="true"]:not(#z)
   // ホーム画面から開いたとき：iPhone の起動画面と同じ所にアイコンが出ている状態から始める（ポンと出る動きはなし）
   if (navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches)) sp.classList.add("sp-launch");
   document.documentElement.classList.add("splashing");
-  setTimeout(function () { var h = document.documentElement; h.classList.add("splash-out"); h.classList.remove("splashing"); setTimeout(function () { h.classList.remove("splash-out"); }, 700); }, 1050);
-  setTimeout(function () { sp.remove(); }, 1800);
+  setTimeout(function () { var h = document.documentElement; h.classList.add("splash-out"); h.classList.remove("splashing"); setTimeout(function () { h.classList.remove("splash-out"); }, 600); }, 640);   // 速く（10/10：1.05秒 → 0.64秒）
+  setTimeout(function () { sp.remove(); }, 1100);
 })();
 </script>
 <div class="ptr" id="ptr" aria-live="polite"><i class="ptr-ic"></i><span id="ptrTxt">引っぱって更新</span></div>
@@ -3162,11 +3190,11 @@ html.theme-pawa .seg:not(.subnav):not(.mseg) button[aria-pressed="true"]:not(#z)
     <h2>チーム成績<small id="stAsof"></small></h2>
     <div class="ywrap"><table class="ytab tst" id="tmTbl"></table></div>
     <h2>個人ランキング<small id="rkAsof"></small></h2>
-    <div class="rkbar"><label class="catsel"><select id="catSel" aria-label="項目"></select></label></div>
+    <div class="rkbar one"><label class="catsel"><select id="catSel" aria-label="項目"></select></label></div>
     <div id="rankList"></div>
     <h2>チーム別成績<small id="ptAsof"></small></h2>
     <div class="teams" id="ptTeams"></div>
-    <div class="rkbar"><label class="catsel"><select id="ptCat" aria-label="並べ替える項目"></select></label></div>
+    <div class="rkbar one"><label class="catsel"><select id="ptCat" aria-label="並べ替える項目"></select></label></div>
     <div id="ptList"></div>
   </section>
   <section class="view" id="v-rec" aria-label="歴代記録" hidden>
@@ -3693,7 +3721,6 @@ function setTab(t) {
   if (groupPages(grp).length > 1 && SUB_LAST[grp] !== t) { SUB_LAST[grp] = t; try { localStorage.setItem("sub-v1", JSON.stringify(SUB_LAST)); } catch {} }
   renderSubNav();
   ["magic", "game", "cal", "post", "std", "stdh", "song", "stats", "rec", "ven", "off"].forEach(k => { const v = $("v-" + k); v.hidden = k !== t; if (k !== t) v.classList.remove("swin"); });
-  if (t === "song") markWrapped();   // 見えてから測る（2行になった長い名前）
   window.scrollTo({ top: 0 });
 }
 let autoGame = true;
@@ -4281,7 +4308,7 @@ function peekTarget(el) {
 }
 // 成績の数字のマス：文字数（--n）に合わせて字を小さくし、1行に収める（「81-21」が2行にならない）
 const numB = v => { const x = v == null || v === "" ? "-" : String(v); return `<b class="num" style="--n:${[...x].length}">${esc(x)}</b>`; };
-const peekCell = (k, v) => `<div><small>${k}</small>${numB(v)}</div>`;
+const peekCell = (k, v) => `<div${k ? "" : ' class="pe"'}><small>${k}</small>${numB(v)}</div>`;   // 見出しのない空きのマスは pe（見えなくする）
 function peekPlayer(x, id) {
   const me = rosterOf(x.t, x.n);
   const full = me ? me.n : x.n, pit = x.pk === "pit" || (me && me.p === "投手");
@@ -5890,9 +5917,39 @@ function renderBracket() {
   const trophy = `<svg class="tb-cup" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="tbgold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF4C2"/><stop offset=".45" stop-color="#F5C542"/><stop offset="1" stop-color="#B8860B"/></linearGradient></defs>
       <path d="M18 8h28v10c0 9-6 16-14 16S18 27 18 18z" fill="url(#tbgold)"/><path d="M18 12H9c0 8 4 12 10 13M46 12h9c0 8-4 12-10 13" fill="none" stroke="url(#tbgold)" stroke-width="3.5" stroke-linecap="round"/>
       <path d="M28 34h8v8h-8z" fill="url(#tbgold)"/><path d="M20 46h24l3 8H17z" fill="url(#tbgold)"/><path d="M24 12l2 10" stroke="#fff" stroke-opacity=".6" stroke-width="2.5" stroke-linecap="round"/></svg>`;
-  const tree = `<div class="tb${champ ? " crowned" : ""}" aria-label="トーナメント表">
-    <div class="tb-top">${trophy}<div class="tb-champ${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}>${champ ? `<b>${fn(champ)}</b><span class="tb-cs">日本一</span>` : `<b>日本一</b>`}</div></div>
-    <div class="tb-join${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}><i class="l${js.win && js.win === seW ? " on" : ""}"${seW && js.win === seW ? ` style="${tv(seW)}"` : ""}></i><i class="r${js.win && js.win === paW ? " on" : ""}"${paW && js.win === paW ? ` style="${tv(paW)}"` : ""}></i></div>
+  // ===== 勝ち上がり表（全体の図）：下に6球団（セ3位・2位・1位｜パ1位・2位・3位）、上へ ファースト → ファイナル → 日本シリーズ。勝ち上がった線は金色 =====
+  const cbHTML = (() => {
+    const X = x => (x / 6).toFixed(3) + "%";   // 600 を 100% に
+    const GOLD = "#FFD54A", LN = "rgba(255,255,255,.82)";
+    const seg = (d, on) => `<path d="${d}" stroke="${on ? GOLD : LN}" stroke-width="${on ? 5 : 3}" fill="none" stroke-linecap="square" vector-effect="non-scaling-stroke"${on ? ' class="on"' : ""}/>`;
+    const side = (Y, x0, x1, x2) => {   // x0：3位、x1：2位、x2：1位（パは左右が逆）
+      const s1 = Y.s1.win, sf = Y.sf.win, m01 = (x0 + x1) / 2, mF = (m01 + x2) / 2;
+      return seg(`M${x0} 226V190H${m01}`, s1 && s1 === Y.rk[2]) + seg(`M${x1} 226V190H${m01}`, s1 && s1 === Y.rk[1]) + seg(`M${m01} 190V136H${mF}`, sf && s1 && sf === s1) + seg(`M${x2} 226V136H${mF}`, sf && sf === Y.rk[0]);
+    };
+    const mC = (100 + 250) / 2, mP = (350 + 500) / 2;
+    const svg = `<svg class="cb-svg" viewBox="0 0 600 300" preserveAspectRatio="none" aria-hidden="true">${side(C, 50, 150, 250)}${side(P2, 550, 450, 350)}
+      ${seg(`M${mC} 136V74H300`, champ && champ === seW)}${seg(`M${mP} 136V74H300`, champ && champ === paW)}${seg("M300 74V46", !!champ)}</svg>`;
+    const box = (t, lab, lgc, out, x) => `<div class="cb-t ${lgc}${out ? " out" : ""}${t && t === champ ? " champ" : ""}" style="left:${X(x - 46)};${t ? tv(t) : ""}"><span class="cb-seed">${lab}</span>${t ? `<span class="badge">${sn(t)}</span>` : `<b class="cb-tbd">未定</b>`}</div>`;
+    const lost = (Y, t) => !!t && ((Y.s1.win && (t === Y.rk[1] || t === Y.rk[2]) && t !== Y.s1.win) || (Y.sf.win && t !== Y.sf.win) || (js.win && t !== js.win && (t === seW || t === paW)));
+    const boxes = [[C.rk[2], "セ3位", "c", 50, C], [C.rk[1], "セ2位", "c", 150, C], [C.rk[0], "セ1位", "c", 250, C], [P2.rk[0], "パ1位", "p", 350, P2], [P2.rk[1], "パ2位", "p", 450, P2], [P2.rk[2], "パ3位", "p", 550, P2]]
+      .map(([t, lab, lgc, x, Y]) => box(t, lab, lgc, lost(Y, t), x)).join("");
+    // 勝ち数（試合が始まったら）：線の途中に小さく
+    const w = (n, x, y, show) => show ? `<span class="cb-w num" style="left:${X(x)};top:${y}px">${n}</span>` : "";
+    const started = gs => gs.some(g => g.st === "final" || (g.h && g.a && LIVEPOST[g.d + g.h + g.a]));
+    const wins = Y => { const [x0, x1, x2] = Y === C ? [50, 150, 250] : [550, 450, 350], m01 = (x0 + x1) / 2, f1 = started(Y.cs1), ff = started(Y.csf);
+      return w(Y.s1.wl, x0, 208, f1) + w(Y.s1.wh, x1, 208, f1) + w(Y.sf.wl, m01, 163, ff) + w(Y.sf.wh, x2, 163, ff); };
+    const jsOn = started(jsg);
+    const md2 = gs => gs.length ? `${md(gs[0].d)}〜` : "";
+    // ステージの名前と始まる日（セとパで違えば両方）：真ん中の札に。線はその後ろを通る
+    const band = (top, name, dl, dr) => `<div class="cb-band" style="top:${top}px"><span class="cb-bl"><b>${name}</b>${dl || dr ? `<small class="num">${dl === dr || !dr ? dl : !dl ? dr : `セ${dl} パ${dr}`}</small>` : ""}</span></div>`;
+    const jsLab = champ ? `<b>日本一</b><span class="cb-cn" style="${tv(champ)}">${fn(champ)}</span>` : `<b>日本シリーズ</b>`;
+    return `<div class="cb" aria-label="勝ち上がり表">${svg}
+      <div class="cb-js tb-champ${champ ? " on" : ""}"${champ ? ` style="${tv(champ)}"` : ""}>${jsLab}</div>
+      ${band(124, "ファイナルステージ", md2(C.csf), md2(P2.csf))}${band(178, "ファーストステージ", md2(C.cs1), md2(P2.cs1))}
+      ${wins(C)}${wins(P2)}${w(js.wh, mC, 99, jsOn)}${w(js.wl, mP, 99, jsOn)}
+      <div class="cb-ts">${boxes}</div></div>`;
+  })();
+  const tree = `${cbHTML}<div class="tb${champ ? " crowned" : ""}" aria-label="トーナメント表">
     <div class="tb-js"><div class="tb-mh tb-jsh"><span>日本シリーズ</span><small>先に4勝</small></div><div class="tb-jsr">${plate(seW, "セ", js.wh, js.win)}${plate(paW, "パ", js.wl, js.win)}</div>${seW && paW ? gtiles(jsg) : ""}</div>
     ${cols}</div>`;
   // 2026年からの決まり：ファイナルの相手が決まっていなければ、どちらの形になるかを1行だけ
@@ -6465,17 +6522,8 @@ function renderSong() {
   if (!roster.length) { $("songList").innerHTML = `<div class="rempty">選手一覧は次の自動更新のあとに表示されます。</div>` + html; return; }
   const nDev = all.filter(x => x.dev).length;
   $("songList").innerHTML = `<p class="scount num">支配下${all.length - nDev}人${nDev ? `・育成${nDev}人` : ""}<span class="sclg"><i class="tsong" aria-hidden="true">♪</i>応援歌あり</span></p>` + (html || `<div class="rempty">見つかりませんでした。</div>`);
-  markWrapped();
 }
 $("songQ").addEventListener("input", e => { S.songQ = e.target.value; renderSong(); });
-// 選手名鑑（パワプロ風）：2行になった長い名前は、タイルの上の方から並べる（1行の名前は背番号の下の高さ）
-function markWrapped() {
-  if (!isPawa()) return;
-  document.querySelectorAll("#songList .ptile").forEach(t => { const b = t.querySelector("b"); t.classList.toggle("w2", !!b && b.getClientRects().length > 0 && b.offsetHeight > parseFloat(getComputedStyle(b).fontSize) * 1.6); });
-}
-let mwT = 0;
-window.addEventListener("resize", () => { clearTimeout(mwT); mwT = setTimeout(() => { if (S.tab === "song") markWrapped(); }, 150); });
-document.addEventListener("toggle", e => { if (e.target.closest && e.target.closest("#songList")) markWrapped(); }, true);
 
 /* ---------- 成績 ---------- */
 // スポナビの個人成績と同じ全項目（打者24・投手27）

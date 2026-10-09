@@ -937,6 +937,35 @@ function parsePre(html) {
     }
     if (teams.length >= 1) out.lu = teams.slice(0, 2);
   }
+  // 予告先発（スポナビの「予告先発」）：球団の見出しごとに、背番号・投・選手名の表と、成績の表（CS・今季などの行：防御率・登板・勝利・敗戦）
+  const H = w => new RegExp(`<h([1-4])[^>]*>(?:\\s|<[^>]+>)*(?:${w})(?:\\s|<[^>]+>)*</h\\1>`);   // 見出し（中に span などがあっても）
+  const yh = html.search(H("予告先発"));
+  if (yh >= 0) {
+    const rest = html.slice(yh + 10), nx = rest.search(H("見どころ|放送予定|チーム対戦成績|最近の対戦結果"));
+    const seg = rest.slice(0, nx > 0 ? nx : 30000), yk = [];
+    for (const part of seg.split(/<h[1-4][^>]*>/).slice(1)) {
+      const code = SHORT[clean(part.split(/<\/h[1-4]>/)[0])];
+      if (!code) continue;
+      const p = { t: code, no: "", th: "", n: "", st: [] };
+      for (const tb of part.match(/<table[\s\S]*?<\/table>/g) || []) {
+        const rows = (tb.match(/<tr[\s\S]*?<\/tr>/g) || []).map(cells), h = rows[0] || [];
+        if (h.includes("選手名")) { const r = rows[1] || [], i = k => h.indexOf(k); if (r[i("選手名")]) { p.n = r[i("選手名")]; p.no = r[i("背番号")] || ""; p.th = r[i("投")] || ""; } }
+        else if (h.includes("防御率") && !h.some(x => /最近/.test(x))) {
+          const i = k => h.indexOf(k);
+          for (const r of rows.slice(1)) if (r[0]) p.st.push({ k: r[0], era: r[i("防御率")] || "", g: r[i("登板")] || "", w: r[i("勝利")] || "", l: r[i("敗戦")] || "" });
+        }
+      }
+      if (p.n) yk.push(p);
+    }
+    if (yk.length) out.yk = yk;
+  }
+  // 見どころ：見出しの次の文章
+  const mh = html.search(H("見どころ"));
+  if (mh >= 0) {
+    const rest = html.slice(mh).replace(/^<h[1-4][^>]*>[\s\S]*?<\/h[1-4]>/, ""), nx = rest.search(/<h[1-4][^>]*>/);
+    const txt = clean(rest.slice(0, nx > 0 ? nx : 4000)).replace(/\s+/g, " ").trim();
+    if (txt && txt.length >= 10) out.pt = txt.slice(0, 600);
+  }
   // ベンチ入り選手：守備位置の見出し（投手・捕手・内野手・外野手）ごとに、ホーム・ビジターの順で表が2つ
   const bi2 = html.indexOf("ベンチ入り選手");
   if (bi2 >= 0) {
@@ -974,7 +1003,8 @@ async function preOn(date) {
         dd.lu = { h: byT[h] || null, a: byT[a] || null };
       }
       if (dd.bench) { const [b0, b1] = dd.bench; dd.bench = { h: b0, a: b1 }; }   // ホームが先
-      if (dd.tv || dd.net || dd.radio || dd.lu || dd.bench) games[k] = { id, ...dd };
+      if (dd.yk) { const [h, a] = k.split("-"), by = {}; dd.yk.forEach(x => (by[x.t] = x)); dd.yk = { h: by[h] || null, a: by[a] || null }; }
+      if (dd.tv || dd.net || dd.radio || dd.lu || dd.bench || dd.yk || dd.pt) games[k] = { id, ...dd };
     } catch {}
   }));
   return games;

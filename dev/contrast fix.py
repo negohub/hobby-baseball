@@ -73,8 +73,13 @@ def adjust(c, bg, light, need=4.5):
 def build(css):
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
     out = []
+    rules = re.findall(r"([^{}@]+)\{([^{}]*)\}", css)
+    core = lambda s1: re.sub(r"^html(\.[\w-]+|:not\([^)]*\))*", "", s1).strip()
     for name, (applies, head, light, panel) in MODES.items():
-        for sel, body in re.findall(r"([^{}@]+)\{([^{}]*)\}", css):
+        # その見た目専用の指定（html.… で始まる）で文字の色を決めている部品は、共通の指定（頭なし）からは足さない
+        # （10/10：選手の画面の名前は、スタイリッシュでは白と決めてあるのに、共通の紺の指定から青い文字を足して見づらくしていた）
+        own = {core(s1) for sel, body in rules for s1 in (x.strip() for x in split_sel(sel.strip())) if s1.startswith("html") and applies(s1) and re.search(r"(^|;)\s*color\s*:", body)}
+        for sel, body in rules:
             sel = sel.strip()
             if not sel or sel.startswith(("from", "to")) or re.match(r"^\d", sel):
                 continue
@@ -91,6 +96,10 @@ def build(css):
             fg = m.group(0)
             bgv = " ".join(v for k, v in decls.items() if k.startswith("background")).replace("!important", "").strip()
             bgs = COL.findall(bgv)
+            if not bgs:   # 地のない文字の色：その見た目専用の色が決めてあれば、そちらにまかせる
+                parts = [s1 for s1 in parts if s1.startswith("html") or core(s1) not in own]
+                if not parts:
+                    continue
             l_fg = colorsys.rgb_to_hls(*rgb(fg))[1]
             if bgs:   # 同じ指定に地がある（札など）
                 bg = bgs[len(bgs) // 2]

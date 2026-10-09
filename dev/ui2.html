@@ -3016,6 +3016,9 @@ html.theme-pawa.pawa-dark body .ykc-th:not(#z):not(#y):not(#x):not(#w):not(#v){b
 .ykc-s .m:not(#z):not(#y){width:44px;font-size:12px !important;font-weight:800;border-left:1px solid var(--v3line);border-right:1px solid var(--v3line)}
 .subnav button:not(#z){white-space:nowrap}
 .ykc-pt:not(#z){margin:0;font-size:13.5px;line-height:1.75;color:var(--v3text)}
+/* 1文字の名前（東・牧など）の札：2文字の名前と同じ大きさ（字は真ん中） */
+html.theme-pawa .ptile.sptile.n1:not(.posic):not(#z){box-sizing:border-box;min-width:calc(13.5px * 2.7 + 22px);justify-content:center}
+@media (max-width:374px){html.theme-pawa .ptile.sptile.n1:not(.posic):not(#z){min-width:calc(12.5px * 2.7 + 16px)}}
 /* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
 html.theme-pawa .seg:not(.subnav):not(.mseg):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
 html.theme-pawa .seg:not(.subnav):not(.mseg) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
@@ -3518,7 +3521,7 @@ function makeSwiper(o) {
       lock = Math.abs(mx) > Math.abs(my) * 1.4 ? "x" : "y";   // 斜めの動きは縦のスクロールとして扱う
       if (lock === "y") { on = false; return; }
       // その向きにもう切り替える先がない（最初・最後の月度など）ときは、ほかのスワイプ（タブの切り替え）に引き継ぐ
-      if (o.fallback && o.edge(mx) && o.fallback.adopt(sx, sy, hist[0] ? hist[0][0] : e.timeStamp)) { on = false; return; }
+      if (o.fallback && o.edge(mx) && o.fallback.adopt(sx, sy, hist[0] ? hist[0][0] : e.timeStamp, mx)) { on = false; return; }
       els = o.els();
       els.forEach(el => { el.style.willChange = "transform,opacity"; el.style.transition = "none"; });
     }
@@ -3561,8 +3564,9 @@ function makeSwiper(o) {
   window.addEventListener("touchcancel", end, { passive: true });
   // ほかのスワイプから途中で引き継ぐ（指を置いた位置から、横の動きとして始める）
   return {
-    adopt(x0, y0, t0) {
+    adopt(x0, y0, t0, mx) {
       if (busy) return false;
+      if (mx != null && o.edge(mx)) return o.fallback ? o.fallback.adopt(x0, y0, t0, mx) : false;   // こちらも端なら、さらに次のスワイプへ（月度 → リーグ → ページ）
       sx = x0; sy = y0; dx = 0; hist = [[t0, 0]]; on = true; lock = "x";
       els = o.els();
       els.forEach(el => { el.style.willChange = "transform,opacity"; el.style.transition = "none"; });
@@ -3600,13 +3604,32 @@ function renderSubNav() {
 ["subNav", "miniSeg"].forEach(id => $(id).addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b || b.dataset.p === S.tab) return; autoGame = false; goPage(b.dataset.p); }));
 // スワイプ：ページの順（グループの中のページも1つずつ）
 const tabOrder = () => TAB_GROUPS.flatMap(x => x.pages.map(([p]) => p)).filter(pageShown);
+const SW_SKIP = e => e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") || hScrollableAt(e.target) || (S.tab === "magic" && e.target.closest(MONTH_ZONE)) || e.target.closest(".spane") || (S.tab === "off" && (S.offCatList || []).length > 1 && e.target.closest("#offList")) || (S.tab === "game" && e.target.closest(".gpane"));
+let lgCross = false;   // リーグのスワイプの端から、ページの切り替えに引き継いだ
+window.addEventListener("touchstart", () => (lgCross = false), { passive: true });
 const tabSwiper = makeSwiper({
-  canStart: e => !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)) && !e.target.closest(".spane") && !(S.tab === "off" && (S.offCatList || []).length > 1 && e.target.closest("#offList")) && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
+  canStart: e => !LG_PAGE.has(S.tab) && !e.target.closest(".tabbar, input, select, textarea, .fld, .fwrap") && !hScrollableAt(e.target) && !(S.tab === "magic" && e.target.closest(MONTH_ZONE)) && !e.target.closest(".spane") && !(S.tab === "off" && (S.offCatList || []).length > 1 && e.target.closest("#offList")) && !(S.tab === "game" && e.target.closest(".gpane")),   // 開いた試合の中身は、中の切り替え（一球速報・打順など）に使う
   els: () => [$("v-" + S.tab)],
   edge: dx => { const t = tabOrder(), i = t.indexOf(S.tab); return (dx > 0 && i === 0) || (dx < 0 && i === t.length - 1); },
   target: dir => { const t = tabOrder(), i = t.indexOf(S.tab); return t[i + dir] || null; },
-  commit: next => { autoGame = false; $("v-" + next).classList.add("swin"); goPage(next); },   // swin：いつもの「ふわっと」は出さない
+  commit: next => {
+    autoGame = false;
+    // リーグのページどうしをスワイプで行き来するときは、セ→パ→次のページのセ→パ…の順（戻るときは逆）
+    if (lgCross && LG_PAGE.has(next)) { const t = tabOrder(), lg = t.indexOf(next) > t.indexOf(S.tab) ? "C" : "P"; if (next === "magic") { S.magicLg = lg; store("magicLg", lg); } else { S.lgPref = lg; store("league", lg); } }
+    $("v-" + next).classList.add("swin"); goPage(next);   // swin：いつもの「ふわっと」は出さない
+  },
 });
+// リーグのページ（戦況・日程・順位・データ・選手）：左右にスワイプでセ・リーグ ⇄ パ・リーグ。端まで来たらページの切り替えに引き継ぐ
+const lgSwiper = makeSwiper({
+  canStart: e => LG_PAGE.has(S.tab) && !SW_SKIP(e),
+  els: () => [$("v-" + S.tab)],
+  edge: dx => (dx < 0 && lgNow() === "P") || (dx > 0 && lgNow() === "C"),
+  target: dir => (dir === 1 ? "P" : "C"),
+  commit: lg => { autoGame = false; if (S.tab === "magic") { S.magicLg = lg; store("magicLg", lg); setLeague(lg); } else switchLeague(lg); paintLgSeg(); },
+  fallback: { adopt: (...a) => { lgCross = true; return tabSwiper.adopt(...a); } },
+});
+// 中の切り替え（月度・種類・2〜3のページ）の端から：リーグのページならリーグへ、そうでなければページへ
+const swFallback = { adopt: (...a) => (LG_PAGE.has(S.tab) ? lgSwiper : tabSwiper).adopt(...a) };
 // ===== 戦況：順位表のあたり（帯・あなたの状況・順位表）を左右にスワイプすると月度を切り替える =====
 const MONTH_ZONE = "#alert, #meCard, #cards";
 function pickPeriod(p, still) { S.period = p; S.periodPicked = true; heroAt = still ? Date.now() - 1000 : 0; renderMagic(); }
@@ -3617,7 +3640,7 @@ makeSwiper({
   edge: dx => { const l = periods(), i = periodIdx(); return (dx > 0 && i <= 0) || (dx < 0 && i >= l.length - 1); },
   target: dir => { const l = periods(), i = periodIdx(); return i < 0 ? null : l[i + dir] || null; },
   commit: p => { pickPeriod(p, true); hideSwipeHint(); },   // 帯の登場の動きは出さない（すべり込む動きと重なるため）
-  fallback: tabSwiper,   // 最後の月度で左へ（次の月度がない）→ 試合タブへ。最初の月度で右へ → 何もしない（戦況が最初のタブ）
+  fallback: swFallback,   // 最後の月度で左へ → パ・リーグの戦況 → 試合タブへ。最初の月度で右へ → セ・リーグなら何もしない（戦況が最初のタブ）
 });
 // 月度のスワイプの案内：戦況を初めて開いたときに、月度ボタンの下に一度だけ出す
 function showSwipeHint() {
@@ -4428,13 +4451,13 @@ function ykHTML(g, homeFirst = true) {
     ? `<div class="yk"><span class="ykl">予告先発</span>${one(g.h, y.h)}<span class="ykv">vs</span>${one(g.a, y.a)}</div>`
     : `<div class="yk"><span class="ykl">予告先発</span>${one(g.a, y.a)}<span class="ykv">vs</span>${one(g.h, y.h)}</div>`;
 }
-// 予告先発（スポナビの試合のページから詳しく：背番号・投げる手・成績の表。ホームが左）。なければ今までの1行
+// 予告先発（スポナビの試合のページから詳しく：背番号・投げる手・成績の表。ホームが左）。なければ今までの1行。名前はスタイリッシュはフルネーム、パワプロ風は名前の札
 function ykCardHTML(g) {
   const p = preOf(g), y = p && p.yk;
   if (!y || (!y.h && !y.a) || g.st !== "sched") return ykHTML(g, true);
   if (p.lu && ((p.lu.h && p.lu.h.p) || (p.lu.a && p.lu.a.p))) return "";   // スタメンが出たら、先発はそちらに出す
   const col = (t, x) => `<div class="ykc-p" style="${tv(t)}"><div class="ykc-tm"><i class="ykb">${sn(t)}</i>${fn(t)}</div>${x
-    ? `<small>投手 ${esc(x.no || "")}</small><div class="ykc-n" data-pl="${t}|${esc(x.n)}|pit">${pwName(t, x.n, "投手")}${x.th ? `<span class="ykc-th">${esc(x.th)}</span>` : ""}</div>`
+    ? `<small>投手 ${esc(x.no || "")}</small><div class="ykc-n" data-pl="${t}|${esc(x.n)}|pit">${isPawa() ? pwName(t, x.n, "投手") : esc(x.n)}${x.th ? `<span class="ykc-th">${esc(x.th)}</span>` : ""}</div>`
     : `<div class="ykc-n none">未発表</div>`}</div>`;
   const ks = [...new Set([...((y.h || {}).st || []), ...((y.a || {}).st || [])].map(r => r.k))];
   const cell = (x, k) => { const r = x && (x.st || []).find(r => r.k === k); return (r ? [r.g, r.w, r.l, r.era] : ["", "", "", ""]).map(v => `<td>${esc(v || "")}</td>`).join(""); };
@@ -4845,7 +4868,7 @@ function callNameRaw(t, name) {
 }
 // 名前の長さの目印（パワプロ風の札は大きさをそろえ、長い名前は文字を小さくする）
 // 名前の札の字間・文字の大きさの目印（サイト全体で共通）：2文字以下 sp・3〜4文字 なし・5〜6文字 n5・7文字以上 n7（空白は数えない）
-const nmCls = nm => { const n = [...String(nm || "").replace(/\s+/g, "")].length; return n <= 2 ? " sp" : n >= 7 ? " n7" : n >= 5 ? " n5" : ""; };
+const nmCls = nm => { const n = [...String(nm || "").replace(/\s+/g, "")].length; return n === 1 ? " sp n1" : n <= 2 ? " sp" : n >= 7 ? " n7" : n >= 5 ? " n5" : ""; };   // n1：1文字の名前（東・牧など）も2文字の札と同じ大きさ
 function pwName(t, name, fallback) {
   if (!isPawa() || !name) return esc(callName(t, name));
   const gr = rosterGroups(t, name, fallback), nm = callName(t, name);
@@ -4977,7 +5000,7 @@ makeSwiper({
   edge: dx => { const l = paneList(paneKey), i = l.indexOf((document.querySelector(`.gpane[data-gk2="${paneKey}"]`) || {}).dataset?.gp); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
   target: dir => { const l = paneList(paneKey), i = l.indexOf((document.querySelector(`.gpane[data-gk2="${paneKey}"]`) || {}).dataset?.gp); return i < 0 ? null : l[i + dir] || null; },
   commit: id => pickPane(paneKey, id),
-  fallback: tabSwiper,
+  fallback: swFallback,
 });
 // 試合中に自分の球団の試合が開いたとき：一球速報が出たら、それが画面のいちばん上に来るように一度だけ送る（自分で触ったら送らない）
 function autoPaneScroll() {
@@ -5916,7 +5939,7 @@ makeSwiper({
   edge: dx => { const l = swList(swKey), i = l.indexOf(swCur()); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
   target: dir => { const l = swList(swKey), i = l.indexOf(swCur()); return i < 0 ? null : l[i + dir] || null; },
   commit: id => pickSw(swKey, id),
-  fallback: tabSwiper,
+  fallback: swFallback,
 });
 // その月度の支払い（最下位）の球団：終わっていればその月の最下位、終わっていなくても支払いが確定していればその球団。まだなら null
 function monthPayer(a) {
@@ -6643,7 +6666,7 @@ makeSwiper({
   edge: dx => { const l = S.offCatList || [], i = offCatIdx(); return i < 0 || (dx > 0 && i === 0) || (dx < 0 && i === l.length - 1); },
   target: dir => { const l = S.offCatList || [], i = offCatIdx(); return i < 0 ? null : l[i + dir] || null; },
   commit: k => { S.offCat = k; renderOff(); const c = $("offCats").hidden ? $("offSelW") : $("offCats"); if (c && c.getBoundingClientRect().top < 0) window.scrollTo({ top: Math.max(0, c.getBoundingClientRect().top + scrollY - 70) }); },   // 種類のボタンが見えるところへ
-  fallback: tabSwiper,
+  fallback: swFallback,
 });
 // 名前（名簿の名前・NPBの表の名前・名字だけ）から、その選手の発表を探す
 const offOf = memoBy(() => typeof offItems === "function" ? offItems() : null, offOfRaw);

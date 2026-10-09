@@ -1457,7 +1457,7 @@ async def tap_target_check(browser):
 
 
 async def swipe_check(browser):
-    """戦況の順位表のあたりを左右にスワイプすると月度が変わる・それ以外の場所ではタブが変わる"""
+    """戦況の順位表のあたりを左右にスワイプすると月度が変わる・それ以外の場所ではリーグ（セ ⇄ パ）、その端でタブが変わる"""
     for theme in ["", "pawa"]:
         label = f"[スワイプ {'パワプロ風' if theme else 'スタイリッシュ'}]"
         pg, errs = await open_page(browser, 390, theme, touch=True)
@@ -1479,12 +1479,18 @@ async def swipe_check(browser):
         await pg.wait_for_timeout(800)
         if await pg.evaluate("S.period.id") != before:
             bad(f"{label} 少し動かしただけで月度が変わる")
-        # 最後の月度で順位表を左へ（次の月度がない）：試合タブへ進む
+        # 最後の月度で順位表を左へ（次の月度がない）：パ・リーグの戦況 → もう一度で試合タブへ
         if i == len(list_) - 1:
             await pg.evaluate(SWIPE_JS, ["#cards", -160, 0])
             await pg.wait_for_timeout(800)
+            if await pg.evaluate("[S.tab, isPL()]") != ["magic", True]:
+                bad(f"{label} 最後の月度で順位表を左へスワイプしてもパ・リーグの戦況にならない")
+            await pg.evaluate(SWIPE_JS, ["#chips", -160, 0])
+            await pg.wait_for_timeout(800)
             if await pg.evaluate("S.tab") != "game":
-                bad(f"{label} 最後の月度で順位表を左へスワイプしても試合タブへ進まない")
+                bad(f"{label} パ・リーグの戦況を左へスワイプしても試合タブへ進まない")
+            await pg.evaluate("S.magicLg = 'C'; store('magicLg', 'C'); S.lgPref = 'C'; store('league', 'C'); setLeague('C'); setTab('magic'); window.scrollTo(0, 0)")
+            await pg.wait_for_timeout(300)
             await pg.evaluate("setTab('magic'); window.scrollTo(0, 0)")
             await pg.wait_for_timeout(300)
         # 順位推移｜直近5試合：中身を左へスワイプで直近5試合、右へで順位推移。直近5試合（いちばん右）で左へ → 試合タブへ
@@ -1508,10 +1514,27 @@ async def swipe_check(browser):
                 bad(f"{label} 月度別 支払いを左へスワイプしても担当者別 年間成績にならない")
         await pg.evaluate("setTab('magic')")
         await pg.evaluate("setTab('magic'); pickSw('more', 'h2h')")
-        await pg.evaluate(SWIPE_JS, ["#mh2hBlk", -160, 0])   # 切り替えの最後で左へ：タブが変わる
+        await pg.evaluate(SWIPE_JS, ["#mh2hBlk", -160, 0])   # 切り替えの最後で左へ：リーグが変わる（セ → パ）
         await pg.wait_for_timeout(800)
-        if await pg.evaluate("S.tab") != "game":
-            bad(f"{label} 対戦成績（切り替えの最後）を左へスワイプしても試合タブへ進まない")
+        if await pg.evaluate("[S.tab, isPL()]") != ["magic", True]:
+            bad(f"{label} 対戦成績（切り替えの最後）を左へスワイプしてもパ・リーグの戦況にならない")
+        await pg.evaluate("S.magicLg = 'C'; store('magicLg', 'C'); S.lgPref = 'C'; store('league', 'C'); setLeague('C');")
+        # リーグのページ：左右にスワイプでセ ⇄ パ。端まで来たら次のページ（次のページはセから。戻るときはパから）
+        await pg.evaluate("S.magicLg = 'C'; store('magicLg', 'C'); S.lgPref = 'C'; store('league', 'C'); setLeague('C'); setTab('std'); window.scrollTo(0, 0)")
+        await pg.wait_for_timeout(300)
+        await pg.evaluate(SWIPE_JS, ["#stdTop", -160, 0])
+        await pg.wait_for_timeout(800)
+        if await pg.evaluate("[S.tab, isPL()]") != ["std", True]:
+            bad(f"{label} 順位（セ）を左へスワイプしてもパ・リーグの順位にならない（{await pg.evaluate('[S.tab, isPL()]')}）")
+        await pg.evaluate(SWIPE_JS, ["#stdTop", -160, 0])
+        await pg.wait_for_timeout(800)
+        if await pg.evaluate("[S.tab, isPL()]") != ["stdh", False]:
+            bad(f"{label} 順位（パ）を左へスワイプしても次のページ（歴代のセ）にならない（{await pg.evaluate('[S.tab, isPL()]')}）")
+        await pg.evaluate(SWIPE_JS, ["#lgBar", 160, 0])
+        await pg.wait_for_timeout(800)
+        if await pg.evaluate("[S.tab, isPL()]") != ["std", True]:
+            bad(f"{label} 歴代（セ）を右へスワイプしても前のページ（順位のパ）に戻らない（{await pg.evaluate('[S.tab, isPL()]')}）")
+        await pg.evaluate("S.magicLg = 'C'; store('magicLg', 'C'); S.lgPref = 'C'; store('league', 'C'); setLeague('C');")
         # 順位タブ：順位推移｜直近5試合｜対戦成績 をスワイプで
         await pg.evaluate("setTab('std'); S.sw.season = 'strend'; paintSw('season'); window.scrollTo(0, 0)")
         await pg.wait_for_timeout(300)
@@ -1547,10 +1570,12 @@ async def swipe_check(browser):
                 bad(f"{label} 入退団の種類が少なく、スワイプの検査ができない（{cats}）")
         await pg.evaluate("setTab('magic'); window.scrollTo(0, 0)")
         await pg.wait_for_timeout(300)
-        await pg.evaluate(SWIPE_JS, ["#chips", -160, 0])   # 順位表・切り替え以外（月度のボタンの段）：タブが変わる
+        await pg.evaluate("S.magicLg = 'C'; store('magicLg', 'C'); S.lgPref = 'C'; store('league', 'C'); setLeague('C'); setTab('magic'); window.scrollTo(0, 0)")
+        await pg.wait_for_timeout(300)
+        await pg.evaluate(SWIPE_JS, ["#chips", -160, 0])   # 順位表・切り替え以外（月度のボタンの段）：リーグが変わる
         await pg.wait_for_timeout(800)
-        if await pg.evaluate("S.tab") != "game":
-            bad(f"{label} 順位表以外の場所を左へスワイプしてもタブが変わらない")
+        if await pg.evaluate("[S.tab, isPL()]") != ["magic", True]:
+            bad(f"{label} 順位表以外の場所を左へスワイプしてもリーグが変わらない")
         # 動き終わったあと、画面がずれたり透明のまま残ったりしていないか
         left = await pg.evaluate("[...document.querySelectorAll('.view, #alert, #meCard, #cards, .spane')].filter(el => el.style.transform || el.style.opacity).map(el => el.id)")
         if left:
@@ -4056,6 +4081,7 @@ async def starter_card_check(browser):
               const c = document.querySelector('#today .ykc'); if (!c) return ['予告先発の欄が出ない'];
               const ns = [...c.querySelectorAll('.ykc-n')].map(e => e.textContent.replace(/\s/g, ''));
               if (!/^井上/.test(ns[0] || '') || !/^東/.test(ns[1] || '')) ng.push(`ホーム（巨人）が左になっていない・名前が違う（${ns}）`);
+              if (!isPawa() && (!/^井上温大/.test(ns[0] || '') || !/^東克樹/.test(ns[1] || ''))) ng.push(`スタイリッシュで予告先発の名前がフルネームでない（${ns}）`);
               if (!/左投/.test(ns[0] || '')) ng.push('投げる手が出ない');
               const rows = [...c.querySelectorAll('.ykc-s tbody tr')].map(tr => [...tr.children].map(x => x.textContent).join(','));
               if (rows.join('|') !== '0,0,0,-,CS,0,0,0,-|23,10,8,2.02,今季,25,12,6,2.40') ng.push(`成績の表が違う（${rows.join('|')}）`);
@@ -4073,6 +4099,35 @@ async def starter_card_check(browser):
             for e in errs:
                 bad(f"{label} 画面のエラー {e}")
             await pg.close()
+
+
+async def one_char_tile_check(browser):
+    """パワプロ風の名前の札：1文字の名前（東・牧など）も、2文字の名前と同じ大きさ（幅320・390、いろいろな場所）"""
+    for w in [390, 320]:
+        pg, errs = await open_page(browser, w, "pawa")
+        r = await pg.evaluate("""() => { const ng = [];
+          for (const cls of ['ykc-n', 'ykp', 'lnm', 'pn3', 'pnx3', 'flow fb']) {
+            const d = document.createElement('div'); d.className = cls; d.innerHTML = pwName('G', '井上', '投手') + ' ' + pwName('DB', '東', '投手') + ' ' + pwName('DB', '牧', '内野手');
+            document.querySelector('#v-magic').prepend(d);
+            const ws = [...d.querySelectorAll('.ptile')].map(e => Math.round(e.getBoundingClientRect().width)); d.remove();
+            if (Math.max(...ws) - Math.min(...ws) > 1) ng.push(`${cls}：1文字の名前の札の大きさが2文字と違う（${ws}）`); }
+          return ng; }""")
+        for m in r:
+            bad(f"[1文字の名前の札 幅{w}] {m}")
+        await pg.close()
+
+
+async def player_name_color_check(browser):
+    """スタイリッシュの選手の画面（長押し・タップで出る）：名前は白（ライトは黒）。色の付いた字にしない（10/10 青くなって見づらかった）"""
+    for mode in ["dark", "light"]:
+        pg, errs = await open_page(browser, 390, "")
+        r = await pg.evaluate("""(mode) => { store('mode', mode); applyPawaMode(); openPlayer('S', '丸山 和郁');
+          return new Promise(res => setTimeout(() => { const b = document.querySelector('#songSheet .sp-h b'); if (!b) return res('名前がない');
+            const m = getComputedStyle(b).color.match(/\\d+(\\.\\d+)?/g).map(Number), sat = Math.max(...m.slice(0, 3)) - Math.min(...m.slice(0, 3));
+            res(sat > 24 ? `名前に色が付いている（${getComputedStyle(b).color}）` : ''); }, 700)); }""", mode)
+        if r:
+            bad(f"[選手の画面の名前 スタイリッシュ・{mode}] {r}")
+        await pg.close()
 
 
 async def post_starters_check(browser):
@@ -5228,6 +5283,8 @@ async def main():
         worker_refs_check()
         await post_live_check(browser)
         await starter_card_check(browser)
+        await one_char_tile_check(browser)
+        await player_name_color_check(browser)
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)

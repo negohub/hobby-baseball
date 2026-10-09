@@ -3956,6 +3956,62 @@ async def off_name_tag_check(browser):
     await pg.close()
 
 
+async def post_starters_check(browser):
+    """CS・日本シリーズの予告先発とテレビ中継：試合の前の日（試合のない日）に、試合タブの「次戦」と日程のその日の詳しい欄に出る（ホームが左）。
+    中継プログラムが、日程ページの試合（CSも）の放送予定を、今日とあしたの分読めるか"""
+    wk = ROOT / "worker" / "worker.js"
+    if wk.exists():
+        import subprocess, tempfile
+        src = wk.read_text(encoding="utf-8") + "\nexport { preOn };\n"
+        test = r"""
+import { preOn } from "./w.mjs";
+const top = (date, h, a, tv) => `<html><head><title>${date} ${h}vs.${a} - プロ野球 - スポーツナビ</title></head><body><h2>放送予定</h2><table><tr><th>テレビ放送</th><td>${tv}（番組表.Gガイド）</td></tr><tr><th>ネット配信</th><td>DAZN</td></tr></table></body></html>`;
+const pages = {
+  "schedule": `<a href="/npb/game/2021039474/index">東京ドーム 巨人 DeNA</a><a href="/npb/game/2021051118/index">見どころ</a><a href="/npb/game/2021039477/index">未定</a>`,
+  "2021039474": top("2026年10月10日", "読売ジャイアンツ", "横浜DeNAベイスターズ", "日本テレビ系、BS日テレ"),
+  "2021051118": top("2026年10月11日", "阪神タイガース", "広島東洋カープ", "別の日"),
+  "2021039477": `<title>2026年10月10日 未定vs.未定 - プロ野球</title>`,
+};
+globalThis.fetch = async u => { const m = String(u).match(/game\/(\d+)\/top/); const body = /schedule/.test(u) ? pages.schedule : m ? pages[m[1]] || "" : ""; return { ok: true, text: async () => body }; };
+const g = await preOn("2026-10-10");
+const want = { "G-DB": "日本テレビ系、BS日テレ" };
+const got = Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.tv]));
+if (JSON.stringify(got) !== JSON.stringify(want)) console.log("NG CSの放送予定 " + JSON.stringify(got));
+if ((g["G-DB"] || {}).net !== "DAZN") console.log("NG ネット配信 " + JSON.stringify(g["G-DB"]));
+"""
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "w.mjs").write_text(src, encoding="utf-8")
+            (Path(d) / "t.mjs").write_text(test, encoding="utf-8")
+            out = subprocess.run(["node", str(Path(d) / "t.mjs")], capture_output=True, text=True, timeout=60)
+            for line in (out.stdout + out.stderr).splitlines():
+                if line.strip():
+                    bad(f"[CSの放送予定の読み取り] {line.strip()[:200]}")
+    for th in ["pawa", ""]:
+        pg, errs = await open_page(browser, 390, th)
+        r = await pg.evaluate("""() => { const ng = [];
+          const g = postGames().filter(x => x.h && x.a && x.st === 'sched').sort((a, b) => (a.d < b.d ? -1 : 1))[0];
+          if (!g) return ['検査に使うCSの試合（対戦が決まっている試合前の試合）がない'];
+          const prev = new Date(g.d + 'T00:00:00Z'); prev.setUTCDate(prev.getUTCDate() - 1); const pd = prev.toISOString().slice(0, 10);
+          jst = () => ({ y: +pd.slice(0, 4), m: +pd.slice(5, 7), d: +pd.slice(8), iso: pd });
+          if (DATA.games.some(x => x.d === pd)) return [];   // 前の日に公式戦がある年は対象外
+          YK = { [`${g.d}|${g.h}|${g.a}`]: { h: 'ホーム投手', a: 'ビジ投手' } }; seasonOver = () => true;
+          PRE = { [`${g.d}|${g.h}|${g.a}`]: { tv: 'テスト放送', net: 'テスト配信' } };
+          TAB_DIRTY.add('game'); setTab('game'); renderGame();
+          const nx = document.getElementById('postNext'), yk = nx && !nx.hidden && nx.querySelector('.yk');
+          if (!yk) ng.push('試合タブの次戦に予告先発が出ない');
+          else { const t = yk.textContent; if (!(t.indexOf('ホーム投手') >= 0 && t.indexOf('ホーム投手') < t.indexOf('ビジ投手'))) ng.push(`次戦の予告先発がホームが左になっていない（${t}）`); }
+          if (!nx || !/テスト放送/.test((nx.querySelector('.bc') || {}).textContent || '')) ng.push('試合タブの次戦にテレビ中継（放送予定）が出ない');
+          S.calTeam = g.h; S.calMonth = +g.d.slice(5, 7); S.calSel = g.d; setTab('cal'); renderCal();
+          if (!/テスト放送/.test((document.querySelector('#detail .bc') || {}).textContent || '')) ng.push('日程のCSの日の詳しい欄にテレビ中継が出ない');
+          const dy = document.querySelector('#detail .yk'); if (!dy || !/ホーム投手/.test(dy.textContent)) ng.push('日程のCSの日の詳しい欄に予告先発が出ない');
+          return ng; }""")
+        for m in r:
+            bad(f"[CSの予告先発 {'パワプロ風' if th else 'スタイリッシュ'}] {m}")
+        for e in errs:
+            bad(f"[CSの予告先発] 画面のエラー {e}")
+        await pg.close()
+
+
 async def cs_cal_check(browser):
     """日程のCS：1位が決まったら、その球団のファイナルステージは「神 - 未」と開始時刻（分かっている日）。1位の球団にファーストステージは出ない。
     2位・3位が動かなくなったら、ファーストステージは「2位 - 3位」。第7戦は第6戦の次の日。月度の支払いは、試合が残っていても確定していれば出る（順位も全部動かなければ、終わった月度と同じ扱いで「確定」「暫定」の印なし）"""
@@ -5018,6 +5074,7 @@ async def main():
         await pitch_count_check(browser)
         await off_name_tag_check(browser)
         await cs_cal_check(browser)
+        await post_starters_check(browser)
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)

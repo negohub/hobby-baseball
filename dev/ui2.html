@@ -2197,7 +2197,7 @@ button:active,.chip:active,.tbtn:active,.ptile:active,.tgx:active,.shot:active{t
 @media (prefers-reduced-motion:reduce){.tabbar,.tabbar button .tl,.tabbar button svg,.tabbar .lens,.sheet-card,button{transition:none!important}.view:not([hidden]){animation:none}}
 /* ===== チーム内の成績 ===== */
 #ptTeams{margin-top:10px}
-#ptSeg{margin-top:10px}
+
 /* どの球団でも同じ幅：列の幅を固定（名前の列＋数字5列は均等） */
 /* 長い名前（外国人選手など）も省略せず、小さめの文字で、入りきらなければ2行に */
 .ptmore{display:block;width:100%;margin:10px 0 0;padding:11px 0;border-radius:12px;border:1px solid var(--soft-line,#2A2A2A);background:rgba(255,255,255,.04);color:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
@@ -2978,6 +2978,10 @@ html.theme-pawa .tgx:not(#z):not(#y){border-width:1.5px !important;border-color:
 .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:20px !important}
 html.theme-pawa .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:16px !important}
 .seg:not(.subnav):has(> button:nth-child(4)) > button:not(#z):not(#y){border-radius:14px !important}
+/* データ「今季」：打撃｜投手はページのいちばん上に1つ（横いっぱい） */
+#stSeg:not(#z):not(#y){display:flex;width:100%;margin:0 0 4px}
+#stSeg button:not(#z){flex:1 1 0}
+#v-stats #stSeg + h2:not(#z){margin-top:24px}
 /* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
 html.theme-pawa .seg:not(.subnav):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
 html.theme-pawa .seg:not(.subnav) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
@@ -3106,17 +3110,15 @@ html.theme-pawa .seg:not(.subnav) button[aria-pressed="true"]:not(#z):not(#y){ba
   </section>
 
   <section class="view" id="v-stats" aria-label="成績" hidden>
+    <div class="seg stseg" id="stSeg" role="tablist" aria-label="打撃・投手"><button type="button" role="tab" data-k="bat" aria-pressed="true">打撃</button><button type="button" role="tab" data-k="pit" aria-pressed="false">投手</button></div>
     <h2>チーム成績<small id="stAsof"></small></h2>
-    <div class="seg" id="tmSeg"><button type="button" data-k="bat" aria-pressed="true">打撃</button><button type="button" data-k="pit" aria-pressed="false">投手</button></div>
     <div class="ywrap"><table class="ytab tst" id="tmTbl"></table></div>
     <h2>個人ランキング<small id="rkAsof"></small></h2>
-    <div class="rkbar"><div class="seg" id="rkSeg"><button type="button" data-k="bat" aria-pressed="true">打者</button><button type="button" data-k="pit" aria-pressed="false">投手</button></div>
-      <label class="catsel"><select id="catSel" aria-label="項目"></select></label></div>
+    <div class="rkbar"><label class="catsel"><select id="catSel" aria-label="項目"></select></label></div>
     <div id="rankList"></div>
     <h2>チーム別成績<small id="ptAsof"></small></h2>
     <div class="teams" id="ptTeams"></div>
-    <div class="rkbar"><div class="seg" id="ptSeg"><button type="button" data-k="bat" aria-pressed="true">打者</button><button type="button" data-k="pit" aria-pressed="false">投手</button></div>
-      <label class="catsel"><select id="ptCat" aria-label="並べ替える項目"></select></label></div>
+    <div class="rkbar"><label class="catsel"><select id="ptCat" aria-label="並べ替える項目"></select></label></div>
     <div id="ptList"></div>
   </section>
   <section class="view" id="v-rec" aria-label="歴代記録" hidden>
@@ -3559,7 +3561,7 @@ function renderSubNav() {
   if (nav.innerHTML !== html) { nav.innerHTML = mini.innerHTML = html; nav.style.setProperty("--n", String(list.length)); }
   nav.hidden = mini.hidden = false;
 }
-["subNav", "miniSeg"].forEach(id => $(id).addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b || b.dataset.p === S.tab) return; autoGame = false; setTab(b.dataset.p); }));
+["subNav", "miniSeg"].forEach(id => $(id).addEventListener("click", e => { const b = e.target.closest("button[data-p]"); if (!b || b.dataset.p === S.tab) return; autoGame = false; goPage(b.dataset.p); }));
 // スワイプ：ページの順（グループの中のページも1つずつ）
 const tabOrder = () => TAB_GROUPS.flatMap(x => x.pages.map(([p]) => p)).filter(pageShown);
 const tabSwiper = makeSwiper({
@@ -3567,7 +3569,7 @@ const tabSwiper = makeSwiper({
   els: () => [$("v-" + S.tab)],
   edge: dx => { const t = tabOrder(), i = t.indexOf(S.tab); return (dx > 0 && i === 0) || (dx < 0 && i === t.length - 1); },
   target: dir => { const t = tabOrder(), i = t.indexOf(S.tab); return t[i + dir] || null; },
-  commit: next => { autoGame = false; $("v-" + next).classList.add("swin"); setTab(next); },   // swin：いつもの「ふわっと」は出さない
+  commit: next => { autoGame = false; $("v-" + next).classList.add("swin"); goPage(next); },   // swin：いつもの「ふわっと」は出さない
 });
 // ===== 戦況：順位表のあたり（帯・あなたの状況・順位表）を左右にスワイプすると月度を切り替える =====
 const MONTH_ZONE = "#alert, #meCard, #cards";
@@ -3592,7 +3594,15 @@ function hideSwipeHint() {
   if (!h) return;
   h.classList.add("off"); setTimeout(() => h.remove(), 500);
 }
+// ページごとのスクロールの位置（下のタブ・ページの切り替え・スワイプで戻ってきたら、前に見ていた所から）
+const SCROLL_AT = {};
+function goPage(t) {
+  setTab(t);
+  const y = SCROLL_AT[t] || 0;
+  if (y) requestAnimationFrame(() => window.scrollTo({ top: Math.min(y, document.documentElement.scrollHeight - innerHeight) }));
+}
 function setTab(t) {
+  if (S.tab && S.tab !== t && !$("v-" + S.tab).hidden) SCROLL_AT[S.tab] = window.scrollY;
   S.tab = t;
   renderTab(t);
   // 重い描き直しは、画面がふわっと出てくる動き（0.45秒）の邪魔をしないよう、動きが落ち着いてから
@@ -3621,15 +3631,17 @@ S.gpane = {};   // 開いた試合の中の切り替え（一球速報・打順�
 document.querySelectorAll(".tabbar button").forEach(b => (b.onclick = () => {
   autoGame = false;
   const g = b.dataset.grp, list = groupPages(g).map(([p]) => p);
-  if (PAGE_GROUP[S.tab] === g) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
-  setTab(list.includes(SUB_LAST[g]) ? SUB_LAST[g] : list[0]);
+  // いま開いているタブをもう一度：下にいればいちばん上へ。いちばん上にいれば、そのタブの最初のページ（試合なら「今日」）へ
+  if (PAGE_GROUP[S.tab] === g) { if (window.scrollY > 4 || S.tab === list[0]) window.scrollTo({ top: 0, behavior: "smooth" }); else setTab(list[0]); return; }
+  goPage(list.includes(SUB_LAST[g]) ? SUB_LAST[g] : list[0]);
 }));
 document.addEventListener("click", e => { if (e.target.closest("[data-mepick]")) openMePick(); });
 function maybeAutoGame() {
   if (!autoGame || !DATA) return;
   const today = jst().iso, me = ME();
-  if (!me) return; // 担当を選んでいる人だけ（自分の球団の試合中）
-  const live = DATA.games.filter(g => g.d === today && g.st === "live" && (g.h === me || g.a === me));
+  // 公式戦：担当を選んでいる人の、自分の球団の試合中。CS・日本シリーズ：試合中なら誰でも（その時期いちばん見たいもの）
+  const live = me ? DATA.games.filter(g => g.d === today && g.st === "live" && (g.h === me || g.a === me)) : [];
+  if (!live.length && seasonOver()) live.push(...postToday().filter(g => g.st === "live"));
   if (!live.length) return;
   autoGame = false;
   const g = live[0];
@@ -5603,7 +5615,7 @@ function renderCal() {
   const tail = (7 - ((lead + days) % 7)) % 7;
   for (let i = 0; i < tail; i++) html += `<div class="day blank"></div>`;
   $("cal").innerHTML = html;
-  $("cal").querySelectorAll(".day.has").forEach(b => (b.onclick = () => { S.calSel = b.dataset.d; renderCal(); }));
+  $("cal").querySelectorAll(".day.has").forEach(b => (b.onclick = () => { S.calSel = b.dataset.d; renderCal(); calShowDetail(); }));
 
   // 詳細：選んだ日 → なければ今日以降の直近の試合 → 最後の試合
   let selD = S.calSel;
@@ -5634,6 +5646,14 @@ function renderCal() {
   }).join("");
 }
 
+// 日にちを押したら、下の詳しい欄が見えるところまで送る（下のタブに隠れて、押しても何も変わらないように見えないように）
+function calShowDetail() {
+  requestAnimationFrame(() => {
+    const d = $("detail"); if (!d || !d.offsetParent) return;
+    const r = d.getBoundingClientRect(), tb = document.querySelector(".tabbar"), lim = (tb ? tb.getBoundingClientRect().top : innerHeight) - 12;
+    if (r.bottom > lim) window.scrollBy({ top: Math.min(r.bottom - lim, r.top - 80), behavior: "smooth" });
+  });
+}
 /* ---------- 順位 ---------- */
 // ===== クライマックスシリーズ・日本シリーズの勝ち上がり表 =====
 // その リーグの順位（シーズンが終わっていなければ今の順位）
@@ -6674,6 +6694,15 @@ function saveStatsUI() {
   if (okSort(u.rkSort, ["cat", "by"]) && (u.rkSort.by === "t" || u.rkSort.by === "v")) S.rkSort = u.rkSort;
   if (okSort(u.ptSort, ["kind", "item"]) && kind(u.ptSort.kind) && typeof u.ptSort.item === "string") S.ptSort = u.ptSort;
 })();
+// データ「今季」の打撃／投手：ページのいちばん上の1つで、チーム成績・個人ランキング・チーム別成績をまとめて切り替える
+S.rkKind = S.ptKind = S.tmKind;
+if (!CATS[S.rkKind].some(c => c[0] === S.cat)) S.cat = CATS[S.rkKind][0][0];
+function paintStSeg() {
+  document.querySelectorAll("#stSeg button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.k === S.tmKind));
+    b.onclick = () => { const k = b.dataset.k; if (S.tmKind === k) return; S.tmKind = S.rkKind = S.ptKind = k; S.cat = CATS[k][0][0]; S.ptAll = false; saveStatsUI(); renderStats(); renderTeamIn(); };
+  });
+}
 uiSaved = uiNow();   // 開いた時点の状態（覚えていた内容、なければ最初の状態）は書き直さない
 const PT_COLS = {
   bat: [["試合", r => r["試合"]], ["打率", r => r["打率"], "rate"], ["本塁打", r => r["本塁打"]], ["打点", r => r["打点"]],
@@ -6706,7 +6735,6 @@ function renderTeamIn() {
   const t = ptTeam();
   $("ptTeams").innerHTML = calOrder().map(k => `<button class="tbtn" type="button" data-t="${k}" style="${tv(k)}" aria-pressed="${k === t}" aria-label="${fn(k)}"><span class="badge">${sn(k)}</span></button>`).join("");
   $("ptTeams").querySelectorAll(".tbtn").forEach(b => (b.onclick = () => { S.ptTeam = b.dataset.t; keepTeam("ptTeam", S.ptTeam); S.ptAll = false; renderTeamIn(); }));
-  document.querySelectorAll("#ptSeg button").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.k === S.ptKind)); b.onclick = () => { if (S.ptKind === b.dataset.k) return; S.ptKind = b.dataset.k; S.ptAll = false; saveStatsUI(); renderTeamIn(); }; });
   // スポナビの球団ごとの成績（データ更新で3時間ごと・data/tstats.json）があれば、それだけを使う
   const ys = yahooTeamStats(t);
   if (ys) drawTeamIn(t, ys);
@@ -6829,7 +6857,7 @@ function renderStats(fromLive) {
   // 個人ランキング：今の項目の更新時刻（なければ成績データ全体の時刻）。チーム成績・チーム別成績と同じ書き方
   const rka = (st.leadersAt && st.leadersAt[S.cat]) || st.asof;
   $("rkAsof").textContent = rka ? `${rka} ${/\d:\d\d/.test(rka) ? "更新" : "時点"}` : "";
-  document.querySelectorAll("#tmSeg button").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.k === S.tmKind)); b.onclick = () => { S.tmKind = b.dataset.k; renderStats(); }; });
+  paintStSeg();
   const T = st.team || {};
   const RS = {}, RA = {};
   for (const g of DATA.games) {
@@ -6858,11 +6886,7 @@ function renderStats(fromLive) {
     S.tmSort = { kind: S.tmKind, col: j, dir: j === sk.col ? (sk.dir === "desc" ? "asc" : "desc") : (cols[j][2] === "hi" ? "desc" : "asc") };
     renderStats();
   }));
-  // 打者／投手の切り替えと、全項目の選択
-  document.querySelectorAll("#rkSeg button").forEach(b => {
-    b.setAttribute("aria-pressed", String(b.dataset.k === S.rkKind));
-    b.onclick = () => { if (S.rkKind === b.dataset.k) return; S.rkKind = b.dataset.k; S.cat = CATS[S.rkKind][0][0]; renderStats(); };
-  });
+  // 全項目の選択（打撃／投手はページのいちばん上の切り替え）
   const L = st.leaders || {};
   const list = CATS[S.rkKind];
   if (!list.some(([k]) => k === S.cat)) S.cat = list[0][0];
@@ -6920,6 +6944,9 @@ function renderStats(fromLive) {
   document.addEventListener("click", () => setTimeout(tick, 0));
   tick();
 })();
+
+// 上の小さいヘッダー：切り替え以外のところを押すと、いちばん上へ（iPhone の上の端を押したときと同じ）
+$("minibar").addEventListener("click", e => { if (!e.target.closest("button")) window.scrollTo({ top: 0, behavior: "smooth" }); });
 
 /* ---------- データの健康チェック ---------- */
 let liveFail = 0;
@@ -7211,6 +7238,55 @@ function renderFind() {
 }
 function openFind() { $("findSheet").hidden = false; $("findQ").value = ""; renderFind(); setTimeout(() => $("findQ").focus(), 50); }
 function closeFind() { $("findSheet").hidden = true; }
+// 下から出る画面（設定・担当・選手）：つまみのあたりを下に引くと閉じる。中身がいちばん上のときは、どこを引いても
+(() => {
+  const CLOSE = { sheet: () => closeSheet(), meSheet: () => closeMePick(), songSheet: () => { $("songSheet").classList.remove("open"); setTimeout(() => ($("songSheet").hidden = true), 280); } };
+  for (const [id, close] of Object.entries(CLOSE)) {
+    const card = $(id) && $(id).querySelector(".sheet-card"); if (!card) continue;
+    let y0 = 0, dy = 0, t0 = 0, on = false;
+    card.addEventListener("touchstart", e => {
+      on = false;
+      if (e.touches.length !== 1 || e.target.closest("input, select, textarea")) return;
+      if (!e.target.closest(".sheet-grip, .sheet-head") && card.scrollTop > 0) return;
+      on = true; y0 = e.touches[0].clientY; dy = 0; t0 = Date.now();
+    }, { passive: true });
+    card.addEventListener("touchmove", e => {
+      if (!on) return;
+      dy = e.touches[0].clientY - y0;
+      if (dy < 0) { if (dy < -6) { on = false; card.style.transition = ""; card.style.transform = ""; } return; }   // 上へ：ふつうにスクロール
+      e.preventDefault();
+      card.style.transition = "none"; card.style.transform = `translate3d(0,${dy}px,0)`;
+    }, { passive: false });
+    card.addEventListener("touchend", () => {
+      if (!on) return;
+      on = false; card.style.transition = ""; card.style.transform = "";
+      const v = dy / Math.max(1, Date.now() - t0);
+      if (dy > 110 || (dy > 40 && v > .6)) close();
+      dy = 0;
+    });
+  }
+})();
+// 戻る操作（Android の戻るボタン・iPhone の端からのスワイプ）：開いている画面（設定・担当・選手・さがす・画像）を閉じる。サイトからは出ない
+(() => {
+  const CLOSE = {
+    sheet: () => closeSheet(), meSheet: () => closeMePick(), findSheet: () => closeFind(), shotBox: () => ($("shotBox").hidden = true),
+    songSheet: () => { $("songSheet").classList.remove("open"); setTimeout(() => ($("songSheet").hidden = true), 280); },
+  };
+  let stack = [], skip = 0;
+  const mo = new MutationObserver(() => {
+    for (const id of Object.keys(CLOSE)) {
+      const el = $(id); if (!el) continue;
+      if (!el.hidden && !stack.includes(id)) { stack.push(id); try { history.pushState({ ov: id }, ""); } catch {} }
+      else if (el.hidden && stack.includes(id)) { stack = stack.filter(x => x !== id); skip++; try { history.back(); } catch { skip--; } }
+    }
+  });
+  Object.keys(CLOSE).forEach(id => $(id) && mo.observe($(id), { attributes: true, attributeFilter: ["hidden"] }));
+  window.addEventListener("popstate", () => {
+    if (skip) { skip--; return; }
+    const id = stack.pop();
+    if (id && $(id) && !$(id).hidden) CLOSE[id]();
+  });
+})();
 document.getElementById("findBtn").addEventListener("click", openFind);
 document.getElementById("findClose").addEventListener("click", closeFind);
 document.getElementById("findSheet").addEventListener("click", e => { if (e.target.id === "findSheet") closeFind(); });
@@ -7242,8 +7318,9 @@ function landingTab() {
   if (!DATA || !seasonOver()) return null;
   // 公式戦の最終戦の日は、いつもどおり戦況から（その日の試合の結果がいちばん見たいもの。CS・日本シリーズは次の日から）
   if (DATA.games.some(g => g.d === jst().iso && inLg(g) && g.st !== "canc")) return null;
+  // CS・日本シリーズの時期は「試合」の「今日」から（試合の日は予告先発・テレビ・スタメン・一球速報、ない日は次戦）
   const post = (DATA.post || []).map(p => p.d).filter(Boolean).sort();
-  if (post.length && jst().iso <= post[post.length - 1]) return { tab: "post" };
+  if (post.length && jst().iso <= post[post.length - 1]) return { tab: "game" };
   if (offSeason() || offItems().length) return { tab: "off" };
   return null;
 }
@@ -7319,7 +7396,7 @@ async function load() {
   DATA = first; fromSnap = false; normGames(DATA);
   try { RAWSIG = first === cached ? localStorage.getItem(CACHE_KEY + "-sig") : null; } catch { RAWSIG = null; }
   renderAll();
-  // 最初の画面：シーズンの時期に合わせて（公式戦が終わったら勝ち上がり表・入退団）
+  // 最初の画面：シーズンの時期に合わせて（公式戦が終わったら試合の「今日」・日本シリーズのあとは入退団）
   try { const land = landingTab(); if (land) { setTab(land.tab); if (land.to) requestAnimationFrame(() => { const el = document.getElementById(land.to); if (el && el.innerHTML.trim()) el.scrollIntoView({ block: "start" }); }); } } catch {}
   requestAnimationFrame(() => moveLens(true));
   askMeOnce();

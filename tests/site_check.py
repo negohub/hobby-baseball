@@ -15,6 +15,7 @@ hobby baseball：サイト全体の自動検査
 import asyncio
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -1130,7 +1131,17 @@ async def tournament_check(browser):
                   chk(cols[0], C, 'セ'); chk(cols[1], P, 'パ');
                   // 負けたチームも札の色はチームの色のまま（灰色にしない）
                   tb.querySelectorAll('.tb-p.lose').forEach(p => { const f = getComputedStyle(p).filter; if (/grayscale|saturate\(0/.test(f)) ng.push(`負けた ${p.textContent.trim()} の札がチームの色でない`); });
-                  const champ = tb.querySelector('.tb-champ'); if (done && !champ.classList.contains('on')) ng.push('日本シリーズが終わったのに日本一が出ない'); if (!done && champ.classList.contains('on')) ng.push('まだなのに日本一が出ている');
+                  const champ = document.querySelector('#bracketBox .tb-champ'); if (!champ) ng.push('日本シリーズ・日本一の札がない'); else { if (done && !champ.classList.contains('on')) ng.push('日本シリーズが終わったのに日本一が出ない'); if (!done && champ.classList.contains('on')) ng.push('まだなのに日本一が出ている'); }
+                  // 全体の図（発表の図のように）：下に セ3位・2位・1位｜パ1位・2位・3位、勝ち上がった線は金色、負けた球団は薄く
+                  { const cb = document.querySelector('#bracketBox .cb'); if (!cb) ng.push('勝ち上がりの全体の図がない'); else {
+                    const ts = [...cb.querySelectorAll('.cb-t')], want = [C.rk[2], C.rk[1], C.rk[0], P.rk[0], P.rk[1], P.rk[2]];
+                    const seeds = ts.map(t => t.querySelector('.cb-seed').textContent).join(); if (seeds !== 'セ3位,セ2位,セ1位,パ1位,パ2位,パ3位') ng.push(`全体の図の並びが違う（${seeds}）`);
+                    ts.forEach((t, i) => { const b = t.querySelector('.badge'); if (want[i] && (!b || b.textContent !== sn(want[i]))) ng.push(`全体の図の${seeds.split(',')[i]}の球団が違う`); });
+                    const xs = ts.map(t => t.getBoundingClientRect()); if (xs.some((r, i) => i && r.left < xs[i - 1].right - .5)) ng.push('全体の図の球団の札が重なる'); if (xs.some(r => r.left < cb.getBoundingClientRect().left - .5 || r.right > cb.getBoundingClientRect().right + .5)) ng.push('全体の図の球団の札がはみ出す');
+                    const gold = cb.querySelectorAll('.cb-svg path.on').length, wins = [C.s1.win, C.sf.win, P.s1.win, P.sf.win].filter(Boolean).length;
+                    if (!wins && gold) ng.push('まだ勝ち上がりがないのに金色の線がある'); if (wins && !gold) ng.push('勝ち上がったのに線が金色にならない');
+                    const lab = [...cb.querySelectorAll('.cb-bl b')].map(e => e.textContent).join(); if (lab !== 'ファイナルステージ,ファーストステージ') ng.push(`ステージの名前が違う（${lab}）`);
+                    cb.querySelectorAll('.cb-bl').forEach(e => { if (e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().width > cb.getBoundingClientRect().width) ng.push('ステージの名前の札が切れる'); }); } }
                   // はみ出し・重なり・字の大きさ
                   const W = tb.getBoundingClientRect(); const X2 = (a, b) => a.right > b.left + .5 && a.left < b.right - .5 && a.bottom > b.top + .5 && a.top < b.bottom - .5;
                   tb.querySelectorAll('*').forEach(e => { const b = e.getBoundingClientRect(); if (b.width && (b.right > W.right + .5 || b.left < W.left - .5)) ng.push(`はみ出し：${e.className}`); });
@@ -4177,6 +4188,22 @@ async def balance_check(browser):
             await pg.close()
 
 
+def perf_rules_check():
+    """速さのきまり：重いスタイル（:has）を使わない・開いたときの演出は約1秒以内・画面の外の大きなまとまりは後で組み立てる（content-visibility）"""
+    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    css = "".join(re.findall(r"<style[^>]*>([\s\S]*?)</style>", html))
+    if ":has(" in css:
+        bad("[速さ] スタイルに :has が残っている（画面を切り替えるたびに計算が重くなる）")
+    m = re.search(r"sp\.remove\(\); \}, (\d+)\)", html)
+    if not m or int(m.group(1)) > 1200:
+        bad(f"[速さ] 開いたときの演出が長い（{m.group(1) if m else '?'}ms）")
+    for sel in ["#rankList", "#ptList", "#songList .sgrp"]:
+        if not re.search(re.escape(sel) + r"[^{}]*\{[^}]*content-visibility:auto", css) and not re.search(r":is\([^)]*" + re.escape(sel) + r"[^)]*\)[^{}]*\{[^}]*content-visibility:auto", css):
+            bad(f"[速さ] {sel} が画面の外でも先に組み立てられる（content-visibility がない）")
+    if "function markWrapped" in html:
+        bad("[速さ] 使っていない名前の折り返しの計算（markWrapped）が残っている")
+
+
 async def post_starters_check(browser):
     """CS・日本シリーズの予告先発とテレビ中継：試合の前の日（試合のない日）に、試合タブの「次戦」と日程のその日の詳しい欄に出る（ホームが左）。
     中継プログラムが、日程ページの試合（CSも）の放送予定を、今日とあしたの分読めるか"""
@@ -5334,6 +5361,7 @@ async def main():
         await player_name_color_check(browser)
         await song_gone_check(browser)
         await balance_check(browser)
+        perf_rules_check()
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)

@@ -4131,7 +4131,7 @@ function postNextHTML() {
   const d = up[0].d, [y, m, dd] = d.split("-").map(Number);
   const team = t => t ? `<span class="pn-t" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b>${fn(t)}</b></span>` : `<span class="pn-t"><b class="pn-tbd">未定</b></span>`;
   return { post: true, html: `<h3 class="ts-h">次戦<small>${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）</small></h3>
-    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div></div>`).join("")}` };   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
+    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div>${g.h && g.a ? ykHTML(g, true) + bcHTML(g) : ""}</div>`).join("")}` };   // 予告先発（発表されたら。ホームが左）   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
 }
 document.addEventListener("click", e => { if (!e.target.closest("[data-gobk]")) return; setTab("post"); requestAnimationFrame(() => { const b = $("bracketBox"); if (b) b.scrollIntoView({ block: "start" }); }); });
 // ===== 予告先発 =====
@@ -4271,16 +4271,16 @@ let PRE = restoreLive("pre-v1"), preAt = 0, preBusy = false;
 async function loadPre(force) {
   if (!CONFIG.liveApi || preBusy || (!force && Date.now() - preAt < 60e3)) return;
   // 今日、まだ終わっていない試合があるときだけ
-  const today = jst().iso;
-  if (!DATA.games.some(g => g.d === today && (g.st === "sched" || g.st === "live"))) return;
+  const today = jst().iso, tmr = (() => { const x = new Date(today + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); })();
+  if (!DATA.games.some(g => g.d === today && (g.st === "sched" || g.st === "live")) && !(DATA.post || []).some(g => g.d === today || g.d === tmr)) return;   // CS・日本シリーズは、あしたの放送予定も
   preBusy = true;
   try {
     const d = await (await fetch(`${CONFIG.liveApi}?pre=1`)).json();
     preAt = Date.now();
-    if (d && d.games && d.date) {
+    if (d && ((d.games && d.date) || (d.next && d.next.games))) {
       const next = {};
-      for (const [k, v] of Object.entries(d.games)) { const [h, a] = k.split("-"); next[`${d.date}|${h}|${a}`] = v; }
-      if (JSON.stringify(next) !== JSON.stringify(PRE)) { PRE = next; keepLive("pre-v1", PRE); if (S.tab === "game") renderGame(); else { TAB_DIRTY.add("game"); renderRestSoon(); } }
+      for (const x of [d, d.next]) if (x && x.games && x.date) for (const [k, v] of Object.entries(x.games)) { const [h, a] = k.split("-"); next[`${x.date}|${h}|${a}`] = v; }
+      if (JSON.stringify(next) !== JSON.stringify(PRE)) { PRE = next; keepLive("pre-v1", PRE); if (S.tab === "game") renderGame(); else { TAB_DIRTY.add("game"); renderRestSoon(); } if (S.tab === "cal") renderCal(); else TAB_DIRTY.add("cal"); }
     }
   } catch {} finally { preBusy = false; }
 }
@@ -4296,12 +4296,18 @@ const posIcon = (pos, extra) => {
 // 途中で守備位置が変わった選手（「走一三一」＝代走→一塁→三塁→一塁）：1つずつ別の札にして、順に並べる
 const posIcons = (pos, extra) => { const l = [...String(pos || "").trim()]; return l.length > 1 ? `<span class="lpis">${l.map(c => posIcon(c, extra)).join("")}</span>` : posIcon(pos, extra); };
 const POS_GR = { "投": "投手", "捕": "捕手", "一": "内野手", "二": "内野手", "三": "内野手", "遊": "内野手", "左": "外野手", "中": "外野手", "右": "外野手", "指": "内野手" };
+// 放送予定だけ（テレビ・ネット配信・ラジオ）。CSなどの次戦（あした）にも使う
+function bcHTML(g) {
+  const p = preOf(g);
+  if (!p || (g.st !== "sched" && g.st !== "live")) return "";
+  const rows = [["テレビ", p.tv], ["ネット", p.net], ["ラジオ", p.radio]].filter(x => x[1]);
+  return rows.length ? `<div class="bc">${rows.map(([k, v]) => `<div class="bcr"><span class="bck">${k}</span><span class="bcv">${esc(v)}</span></div>`).join("")}</div>` : "";
+}
 // 放送予定（テレビ・ネット配信・ラジオ：試合が終わるまで）と、発表されたスタメン（試合が始まるまで）
 function preHTML(g) {
   const p = preOf(g);
   if (!p || (g.st !== "sched" && g.st !== "live")) return "";
-  const rows = [["テレビ", p.tv], ["ネット", p.net], ["ラジオ", p.radio]].filter(x => x[1]);
-  const bc = rows.length ? `<div class="bc">${rows.map(([k, v]) => `<div class="bcr"><span class="bck">${k}</span><span class="bcv">${esc(v)}</span></div>`).join("")}</div>` : "";
+  const bc = bcHTML(g);
   const lu = p.lu || {};
   let st = "";
   if (g.st === "sched" && ((lu.h && (lu.h.bat || []).length) || (lu.a && (lu.a.bat || []).length))) {
@@ -5605,7 +5611,7 @@ function renderCal() {
     const g = postByDay[selD], [yy, mm, d2] = selD.split("-").map(Number), mine = g.h && g.a;
     const res = g.st === "final" && (g.h === t || g.a === t) ? (() => { const r = resultOf(g, t); return `<span class="res ${r}">${r === "w" ? "勝ち" : r === "l" ? "負け" : "引き分け"}</span>`; })() : `<span class="res num">${esc(g.t || "")}</span>`;
     const score = g.st === "final" ? `<span class="n num">${g.hs}</span><span style="color:var(--muted)">-</span><span class="n num">${g.as}</span>` : `<span style="color:var(--muted)">vs</span>`;
-    $("detail").innerHTML = `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${STAGE[g.stage][1]} 第${g.no}戦</span>${mine ? res : ""}</div>` +
+    $("detail").innerHTML = `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${STAGE[g.stage][1]} 第${g.no}戦</span>${mine ? res : ""}</div>${mine ? ykHTML(g, true) + bcHTML(g) : ""}` +
       (mine ? `<div class="sc">${dtmH(g.h)}${score}${dtmH(g.a)}</div>` : `<div class="sc post">${g.h ? `${dtmH(g.h)}<span style="color:var(--muted)">vs</span><span>${g.a ? fn(g.a) : "ファーストステージ勝者"}</span>` : `<span>${postPlace(g)}</span>`}</div>`) +
       `<p class="pnote">ポストシーズンは戦況（マジック・支払い）には関係ありません。</p>`;
     return;

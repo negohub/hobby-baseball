@@ -202,6 +202,26 @@ const FULL = { "読売ジャイアンツ": "G", "横浜DeNAベイスターズ": 
   "オリックス・バファローズ": "B", "東北楽天ゴールデンイーグルス": "E", "埼玉西武ライオンズ": "L", "千葉ロッテマリーンズ": "M" };
 const UA = { headers: { "User-Agent": "Mozilla/5.0 (jsports-live)" } };
 
+// 今日の試合のスポナビの試合ID（"G-DB" → ID）。スポナビのプロ野球トップと、今日の日程ページ（CS・日本シリーズも載る）の試合ページのリンクを拾い、
+// 各試合ページのタイトル（例：「2026年9月27日 読売ジャイアンツvs.東京ヤクルトスワローズ」）から日付と対戦カードを読む。一球速報・スコア・試合中の点数で使う
+async function todayIds() {
+  const now = new Date(Date.now() + 9 * 3600e3);
+  const today = `${now.getUTCFullYear()}年${now.getUTCMonth() + 1}月${now.getUTCDate()}日`, iso = now.toISOString().slice(0, 10);
+  const pages = await Promise.all(["https://baseball.yahoo.co.jp/npb/", `https://baseball.yahoo.co.jp/npb/schedule/first/all?date=${iso}`]
+    .map(u => fetch(u, UA).then(r => (r.ok ? r.text() : "")).catch(() => "")));
+  const ids = [...new Set(pages.flatMap(h => [...h.matchAll(/\/npb\/game\/(\d{8,12})\//g)].map(m => m[1])))].slice(0, 24);
+  const map = {};
+  await Promise.all(ids.map(async id => {
+    try {
+      const html = await (await fetch(`https://baseball.yahoo.co.jp/npb/game/${id}/text`, UA)).text();
+      const t = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || "";
+      const m = t.normalize("NFKC").match(/(\d{4}年\d{1,2}月\d{1,2}日)\s*(.+?)vs\.(.+?)\s/);
+      if (m && m[1] === today && FULL[m[2]] && FULL[m[3]]) map[`${FULL[m[2]]}-${FULL[m[3]]}`] = id;
+    } catch {}
+  }));
+  return map;
+}
+
 
 function kindOf(t) {
   if (/ホームラン|本塁打|ランニングホーマー/.test(t)) return "本塁打";

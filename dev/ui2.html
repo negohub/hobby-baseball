@@ -2646,7 +2646,7 @@ html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),ht
 #cards .ytab{--tnw:90px}#std .ytab{--tnw:104px}#tmTbl{--tnw:125px}#stdhTbl{--tnw:108px}
 :is(#cards .ytab,#std .ytab,#tmTbl,#stdhTbl) th.tnm:not(#z){box-sizing:border-box;width:var(--tnw);min-width:var(--tnw)}
 #cards .ytab td.tnm.lnm5 a:not(#z){font-size:12.5px !important;letter-spacing:-.03em}   /* 戦況の順位表は列が多いので、5文字の球団名（オリックス）も6文字と同じく少し小さく（幅375pxの画面でもはみ出さない） */
-@media (min-width:375px) and (max-width:389px){#cards .ytab{--tnw:86px}#cards .ytab td.tnm:not(#z){padding-left:6px !important}}   /* 幅375〜389px（iPhone SE・mini）：パの「ソフトバンク」でもはみ出さないよう、名前の左の余白を少し詰める */
+@media (min-width:375px) and (max-width:389px){#cards .ytab{--tnw:84px}#cards .ytab td.tnm:not(#z){padding-left:6px !important}}   /* 幅375〜389px（iPhone SE・mini）：パの「ソフトバンク」でもはみ出さないよう、名前の左の余白を少し詰める */
 @media (max-width:374px){#cards .ytab{--tnw:84px}#std .ytab{--tnw:94px}#tmTbl{--tnw:93px}#stdhTbl{--tnw:91px}}
 /* 球団ボタン（日程・データ・選手）：マークだけ。マークを上下の真ん中に */
 .teams .tbtn:not(#z){padding:8px 0;justify-content:center}
@@ -2973,6 +2973,7 @@ html.theme-pawa .ts-g.live:not(#z):not(#y){border-width:1.5px !important;box-sha
 /* 表の見出し：濃い青の帯をやめて、うすい青に紺の字 */
 html.theme-pawa :is(.ytab thead th,.putab th,.race .rcH th):not(#z):not(#y){background:#E3ECF7 !important;color:#13264A !important;text-shadow:none !important;font-weight:800 !important}
 html.theme-pawa .pbox:not(#z):not(#y){border:1.5px solid #B8C7E2 !important;box-shadow:0 2px 8px rgba(19,38,74,.08) !important}
+html.theme-pawa .pbox .fldw:not(#z){margin:0 1.5px}   /* 枠を細くした分、球場の図が大きくならないように（一球速報を1画面に収める） */
 html.theme-pawa .tgx:not(#z):not(#y){border-width:1.5px !important;border-color:#8FA6CC !important;box-shadow:none !important}
 /* 6つの切り替え（2段）は、丸い帯でなく角の丸い枠 */
 .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:20px !important}
@@ -2982,10 +2983,23 @@ html.theme-pawa .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){bor
 #stSeg:not(#z):not(#y){display:flex;width:100%;margin:0 0 4px}
 #stSeg button:not(#z){flex:1 1 0}
 #v-stats #stSeg + h2:not(#z){margin-top:24px}
+/* 試合の「今日」：リーグごとの見出し */
+.lgh:not(#z){display:flex;align-items:baseline;gap:8px;margin:18px 0 8px;font-size:14px;font-weight:800;color:var(--v3text)}
+.lgsec:first-child > .lgh:not(#z){margin-top:4px}
+.lgh small:not(#z){font-size:12px;font-weight:700;color:var(--v3muted)}
+/* リーグの切り替え（日程・順位・データ・選手）：ページのいちばん上、横いっぱい */
+#lgBar:not([hidden]):not(#z):not(#y){display:flex;width:100%;margin:0 0 14px}
+#lgBar button:not(#z){flex:1 1 0}
+#lgBar[hidden]:not(#z){display:none !important}
+/* 順位表の見出し（1行）：数字の列より広がらないよう、小さめの字・左右の余白なし */
+:is(#cards,#std) .ytab thead th:not(.tnm):not(#z):not(#y),#stdhTbl thead th:not(.tnm):not(#z):not(#y){font-size:11px !important;letter-spacing:-.04em;padding-left:0 !important;padding-right:0 !important}
+/* 試合速報の札（直接対決・第1戦）：昼も夜も読める濃い赤 */
+html.theme-pawa .ts-tag:not(#z):not(#y){background:#C62828 !important;color:#fff !important}
+html.theme-pawa.pawa-dark .ts-tag:not(#z):not(#y):not(#x){background:#C62828 !important;color:#fff !important}
 /* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
-html.theme-pawa .seg:not(.subnav):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
-html.theme-pawa .seg:not(.subnav) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
-html.theme-pawa .seg:not(.subnav) button[aria-pressed="true"]:not(#z):not(#y){background:linear-gradient(180deg,#FFE680,#FFB300) !important}
+html.theme-pawa .seg:not(.subnav):not(.mseg):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
+html.theme-pawa .seg:not(.subnav):not(.mseg) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
+html.theme-pawa .seg:not(.subnav):not(.mseg) button[aria-pressed="true"]:not(#z):not(#y){background:linear-gradient(180deg,#FFE680,#FFB300) !important}
 </style>
 </head>
 <body>
@@ -3028,6 +3042,7 @@ html.theme-pawa .seg:not(.subnav) button[aria-pressed="true"]:not(#z):not(#y){ba
 <div class="archbar" id="archBar" hidden><span id="archTxt"></span><button type="button" id="archBack">今季に戻る</button></div>
 <main>
   <div class="seg subnav" id="subNav" role="tablist" aria-label="タブの中の切り替え" hidden></div>
+  <div class="seg lgbar" id="lgBar" role="tablist" aria-label="リーグ" hidden><button type="button" role="tab" data-lg="C">セ・リーグ</button><button type="button" role="tab" data-lg="P">パ・リーグ</button></div>
   <section class="view" id="v-magic" aria-label="マジック">
     <section class="season-end" id="seasonEnd" hidden></section>
     <div class="chips" id="chips" role="tablist" aria-label="月度"></div>
@@ -3166,10 +3181,6 @@ html.theme-pawa .seg:not(.subnav) button[aria-pressed="true"]:not(#z):not(#y){ba
     <div class="sheet-head"><b>設定</b><button type="button" class="sheet-x" data-close aria-label="閉じる">×</button></div>
     <section class="sh-sec" id="meSec">
       <button type="button" class="me-row" data-mepick>あなたの担当<span id="meNow"></span></button>
-    </section>
-    <section class="sh-sec">
-      <div class="sh-lab">リーグ</div>
-      <div class="themeSeg" id="lgSeg"><button type="button" data-lg="C">セ・リーグ</button><button type="button" data-lg="P">パ・リーグ</button></div>
     </section>
     <section class="sh-sec">
       <div class="sh-lab">テーマ</div>
@@ -3330,10 +3341,13 @@ const SNAP = JSON.parse(document.getElementById("snap").textContent);
 const CONFIG_C = { excluded: CONFIG.excluded.slice(), owners: { ...CONFIG.owners }, calOrder: CONFIG.calOrder.slice() };
 const CONFIG_P = { excluded: [], owners: {}, calOrder: ["H", "F", "B", "E", "L", "M"] }; // 2025年のパ・リーグの順位順
 function applyLeague(lg) { useLeague(lg); const c = lg === "P" ? CONFIG_P : CONFIG_C; CONFIG.excluded = c.excluded.slice(); CONFIG.owners = { ...c.owners }; CONFIG.calOrder = c.calOrder.slice(); }
-applyLeague(store("league") === "P" ? "P" : "C");
+applyLeague("C");   // 最初は戦況（セ・リーグ）。日程・順位・データ・選手のページを開いたら、選んでいたリーグ（S.lgPref）へ
 // 表示しているリーグの球団が出る試合か（交流戦はどちらのリーグでも出る）
 const inLg = g => CL.includes(g.h) || CL.includes(g.a);
 const S = { tab: "magic", period: null, periodPicked: false, calTeam: store("calTeam") || "T", calMonth: null, calSel: null };
+S.lgPref = store("league") === "P" ? "P" : "C";
+// リーグごとのページ（上に「セ・リーグ｜パ・リーグ」）。戦況はセ・リーグだけ、試合の「今日」とCS・日本Sは両リーグ
+const LG_PAGE = new Set(["cal", "std", "stdh", "stats", "ven", "rec", "song", "off"]);
 // あなたの担当（球団の記号。"none"＝選ばない、null＝まだ聞いていない）
 S.me = store("me");
 const ME = () => (S.me && S.me !== "none" && CONFIG.owners[S.me] ? S.me : null);
@@ -3603,7 +3617,10 @@ function goPage(t) {
 }
 function setTab(t) {
   if (S.tab && S.tab !== t && !$("v-" + S.tab).hidden) SCROLL_AT[S.tab] = window.scrollY;
+  const wantLg = t === "magic" ? "C" : LG_PAGE.has(t) ? S.lgPref : null;
+  if (wantLg && wantLg !== lgNow()) setLeague(wantLg);
   S.tab = t;
+  $("lgBar").hidden = !LG_PAGE.has(t); paintLgSeg();
   renderTab(t);
   // 重い描き直しは、画面がふわっと出てくる動き（0.45秒）の邪魔をしないよう、動きが落ち着いてから
   if (t === "stats") setTimeout(() => { liveStats(S.cat); renderTeamIn(); }, 260);
@@ -3641,7 +3658,7 @@ function maybeAutoGame() {
   const today = jst().iso, me = ME();
   // 公式戦：担当を選んでいる人の、自分の球団の試合中。CS・日本シリーズ：試合中なら誰でも（その時期いちばん見たいもの）
   const live = me ? DATA.games.filter(g => g.d === today && g.st === "live" && (g.h === me || g.a === me)) : [];
-  if (!live.length && seasonOver()) live.push(...postToday().filter(g => g.st === "live"));
+  if (!live.length) live.push(...postTodayAll().filter(g => g.st === "live"));
   if (!live.length) return;
   autoGame = false;
   const g = live[0];
@@ -3884,7 +3901,7 @@ function liveMini(t) {
 function liveWanted() {
   if (!CONFIG.liveApi || !DATA || ARCH) return false;   // 前のシーズンの記録を見ているときは、ライブの速報を取りに行かない
   const today = jst().iso, h = new Date(Date.now() + 9 * 3600e3).getUTCHours();
-  return h >= 11 && (DATA.games.some(g => g.d === today && (g.st === "sched" || g.st === "live") && inLg(g)) || postToday().some(g => g.st !== "final"));
+  return h >= 11 && (DATA.games.some(g => g.d === today && (g.st === "sched" || g.st === "live")) || postTodayAll().some(g => g.st !== "final"));   // 試合の「今日」は両リーグ
 }
 // 雨などによる中断・遅延・中止の情報（試合ごと。d+h+a）
 const GSTOP = {};
@@ -3893,7 +3910,8 @@ async function pollLive() {
   if (document.hidden || !liveWanted()) return;
   try {
     const today = jst().iso;
-    const keys = [...new Set([...DATA.games.filter(g => g.d === today && (g.st === "sched" || g.st === "live") && inLg(g)), ...postToday().filter(g => g.st !== "final")].map(g => `${g.h}-${g.a}`))];
+    const pAll = postTodayAll();
+    const keys = [...new Set([...DATA.games.filter(g => g.d === today && (g.st === "sched" || g.st === "live")), ...pAll.filter(g => g.st !== "final")].map(g => `${g.h}-${g.a}`))];
     if (!keys.length) return;
     const r = await fetch(`${CONFIG.liveApi}?games=${keys.join(",")}&t=${Date.now()}`, { cache: "no-store" });
     const j = await r.json();
@@ -3906,7 +3924,7 @@ async function pollLive() {
       const g = DATA.games.find(y => y.d === x.d && y.h === x.h && y.a === x.a);
       if (!g) { // ポストシーズン
         const k = x.d + x.h + x.a, o = LIVEPOST[k];
-        if (!postToday().some(p => p.d === x.d && p.h === x.h && p.a === x.a)) continue;
+        if (!pAll.some(p => p.d === x.d && p.h === x.h && p.a === x.a)) continue;
         if (!o || o.st !== x.st || o.hs !== x.hs || o.as !== x.as || o.inn !== x.inn) { LIVEPOST[k] = { st: x.st, hs: x.hs, as: x.as, inn: x.inn }; changed = true; liveChangedAt = new Date(); }
         continue;
       }
@@ -4114,22 +4132,35 @@ function renderPennant() {
     : "";
   box.innerHTML = `<div class="se-box pnbox" style="${tv(st.t)}"><span class="se-l">${IC.crown}${lg}・リーグ優勝マジック</span><b>${fn(st.t)}<span class="pnm num">M${st.magic}</span></b>${today ? `<small>${today}</small>` : ""}</div>`;
 }
+// 試合の「今日」：セ・パ両リーグの試合（セ→パ。CS・日本シリーズも）。リーグごとに見出し
+const LG_NAME = { C: "セ・リーグ", P: "パ・リーグ" };
 function renderGame() {
-  const list = periods(), cur = defaultPeriod(list);
-  const keep = S.period; S.period = cur;
-  renderToday(analyze(DATA.games, cur, CONFIG));
-  S.period = keep;
-  const pt = postToday();
-  if (pt.length) {
-    if ($("todayBlk").hidden) { $("today").innerHTML = ""; $("todayTtl").innerHTML = "今日の試合"; $("todayTtl").classList.add("same"); }
-    $("todayBlk").hidden = false;
-    // ポストシーズンも、試合中・これからは上、終わった試合は下
-    const ptActive = pt.filter(g => g.st !== "final"), ptDone = pt.filter(g => g.st === "final");
-    $("today").insertAdjacentHTML("afterbegin", ptActive.map(postCard).join(""));
-    $("today").insertAdjacentHTML("beforeend", ptDone.map(postCard).join(""));
+  const secs = [], posts = [];
+  for (const lg of ["C", "P"]) withLeague(lg, () => {
+    const list = periods(), cur = defaultPeriod(list);
+    const keep = S.period; S.period = cur;
+    try { renderToday(analyze(DATA.games, cur, CONFIG)); } finally { S.period = keep; }
+    // 交流戦（セとパの試合）は、先に出したセ・リーグのほうだけに
+    if (lg === "P") { const seen = new Set(secs.flatMap(x => [...x.html.matchAll(/data-gk="([^"]+)"/g)].map(m => m[1]))); $("today").querySelectorAll(".tg[data-gk]").forEach(c => { if (seen.has(c.dataset.gk)) c.remove(); }); }
+    if (!$("todayBlk").hidden && $("today").innerHTML.trim()) secs.push({ lg, today: $("todayTtl").classList.contains("same"), ttl: $("todayTtl").innerHTML, html: $("today").innerHTML });
+    posts.push(...postToday().filter(g => lg === "C" || g.stage !== "JS").map(g => ({ g, lg: g.stage === "JS" ? "JS" : lg })));
+  });
+  const anyToday = secs.some(x => x.today) || posts.length;
+  const sub = (x, nx) => `<h3 class="lgh">${x}${nx ? `<small>${nx}</small>` : ""}</h3>`;
+  let html = "";
+  // 公式戦：リーグごと（今日の試合がなければ、そのリーグの次戦の日にち）
+  for (const x of secs) html += `<div class="lgsec" data-lg="${x.lg}">${sub(LG_NAME[x.lg], x.today ? "" : x.ttl.replace(/^次戦/, "次戦 ").replace(/<\/?small>/g, ""))}${x.html}</div>`;
+  // CS・日本シリーズ：試合中・これからが上、終わった試合は下。リーグごとに見出し
+  const ord = { live: 0, sched: 1, final: 2 };
+  for (const lg of ["C", "P", "JS"]) {
+    const gs = posts.filter(x => x.lg === lg).map(x => x.g).sort((x, y) => (ord[x.st] ?? 1) - (ord[y.st] ?? 1));
+    if (gs.length) html += `<div class="lgsec" data-lg="${lg}">${sub(lg === "JS" ? "日本シリーズ" : LG_NAME[lg])}${gs.map(postCard).join("")}</div>`;
   }
+  $("todayBlk").hidden = !html;
+  $("todayTtl").innerHTML = anyToday ? "試合速報" : "次戦"; $("todayTtl").classList.toggle("same", !!anyToday);
+  $("today").innerHTML = html;
   // 試合がない日：CS・日本シリーズの時期は次戦（日にち・ステージ・対戦）、全部終わったらそう書く
-  const none = !$("todayBlk").hidden ? null : postNextHTML();
+  const none = html ? null : postNextHTML();
   $("postNext").hidden = !none || !none.post;
   if (none && none.post) $("postNext").innerHTML = none.html;
   $("noGame").hidden = !none || none.post;
@@ -4137,13 +4168,22 @@ function renderGame() {
   autoPaneScroll();
 }
 function postNextHTML() {
-  const today = jst().iso, over = seasonOver();
-  const up = over ? postGames().filter(g => g.d >= today && g.st !== "final" && g.st !== "canc").sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0)) : [];
-  if (!up.length) return { post: false, html: over && (DATA.post || []).length ? "今季の試合はすべて終わりました。" : "対象の球団の試合はしばらくありません。" };
-  const d = up[0].d, [y, m, dd] = d.split("-").map(Number);
+  const today = jst().iso;
+  // 両リーグの次戦（日本シリーズは1回）。リーグごとに、いちばん近い日の試合
+  const per = ["C", "P"].map(lg => withLeague(lg, () => {
+    const up = seasonOver() ? postGames().filter(g => g.d >= today && g.st !== "final" && g.st !== "canc" && (lg === "C" || g.stage !== "JS")).sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0)) : [];
+    return { lg, up: up.length ? up.filter(g => g.d === up[0].d) : [] };
+  }));
+  const any = per.some(x => x.up.length);
+  if (!any) return { post: false, html: ["C", "P"].some(lg => withLeague(lg, seasonOver)) && (DATA.post || []).length ? "今季の試合はすべて終わりました。" : "対象の球団の試合はしばらくありません。" };
   const team = t => t ? `<span class="pn-t" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b>${fn(t)}</b></span>` : `<span class="pn-t"><b class="pn-tbd">未定</b></span>`;
-  return { post: true, html: `<h3 class="ts-h">次戦<small>${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）</small></h3>
-    ${up.filter(g => g.d === d).map(g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div>${g.h && g.a ? ykHTML(g, true) + bcHTML(g) : ""}</div>`).join("")}` };   // 予告先発（発表されたら。ホームが左）   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
+  const dl = d => { const [y, m, dd] = d.split("-").map(Number); return `${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）`; };
+  const card = g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div>${g.h && g.a ? ykHTML(g, true) + bcHTML(g) : ""}</div>`;   // 予告先発・テレビ（発表されたら。ホームが左）
+  const js = per.flatMap(x => x.up).filter(g => g.stage === "JS");
+  let html = `<h3 class="ts-h">次戦</h3>`;
+  for (const x of per) { const gs = x.up.filter(g => g.stage !== "JS"); if (gs.length) html += `<h3 class="lgh">${LG_NAME[x.lg]}<small>${dl(gs[0].d)}</small></h3>` + gs.map(card).join(""); }
+  if (js.length) html += `<h3 class="lgh">日本シリーズ<small>${dl(js[0].d)}</small></h3>` + js.map(card).join("");
+  return { post: true, html };   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
 }
 document.addEventListener("click", e => { if (!e.target.closest("[data-gobk]")) return; setTab("post"); requestAnimationFrame(() => { const b = $("bracketBox"); if (b) b.scrollIntoView({ block: "start" }); }); });
 // ===== 予告先発 =====
@@ -4205,7 +4245,7 @@ function peekPlayer(x, id) {
     ${today ? `<div class="pk-today">${today}</div>` : ""}<div class="pk-t">今季の成績</div><div class="pk-main">${main(c && c.d)}</div>`;
 }
 function peekGame(x) {
-  const g = DATA.games.find(y => y.d === x.d && y.h === x.h && y.a === x.a) || (typeof postToday === "function" ? postToday().find(y => y.d === x.d && y.h === x.h && y.a === x.a) : null);
+  const g = DATA.games.find(y => y.d === x.d && y.h === x.h && y.a === x.a) || (typeof postTodayAll === "function" ? postTodayAll().find(y => y.d === x.d && y.h === x.h && y.a === x.a) : null);
   if (!g) return "";
   const k = g.d + gkey(g), p = PD[k], pre = typeof preOf === "function" ? preOf(g) : null, y = ykOf(g);
   let body = "";
@@ -4397,7 +4437,7 @@ function bugHTML(g, tag) {
   const right = live ? `<div class="bi"><span class="barrow ${top ? "t" : "b"}">${IC.up}</span><b class="num">${n || ""}</b><span class="bo">${[0, 1].map(i => `<i class="${i < outs ? "on" : ""}"></i>`).join("")}</span></div>`
     : fin ? `<div class="bi fin"><b>試合<br>終了</b></div>`
     : g.st === "canc" ? `<div class="bi fin canc"><b>${(GSTOP[g.d + g.h + g.a] || {}).kind === "ノーゲーム" ? "ノー<br>ゲーム" : "試合<br>中止"}</b></div>`
-    : `<div class="bi pre"><b class="num">${esc(g.t || "")}</b><small>開始</small></div>`;
+    : g.t ? `<div class="bi pre"><b class="num">${esc(g.t)}</b><small>開始</small></div>` : `<div class="bi pre"><small>試合前</small></div>`;   // 開始時刻がまだ分からない試合（CSなど）は「試合前」
   return `<div class="bug${live ? " live" : ""}${g.st === "canc" ? " canc" : ""}">
     <div class="bteams">${row(g.a, g.as, "a")}${row(g.h, g.hs, "h")}</div>${right}
   </div>${wxHTML(g)}${tag ? `<div class="btag">${tag}</div>` : ""}${ykHTML(g)}${g.d === jst().iso ? preHTML(g) : ""}`;
@@ -4411,7 +4451,7 @@ function postCard(g) {
     ${bugHTML(g, `<span class="stg">${STAGE[g.stage][1]} 第${g.no}戦</span>`)}
     ${canOpen ? `<div class="tgx">${open ? "閉じる" : live ? "タップで一球速報・スコア・打順" : "タップでスコア・打順"}<i></i></div>` : ""}
     ${open ? `<div class="tgd">${detailHTML(g)}</div>` : ""}
-    <p class="pnote">ポストシーズンは戦況（マジック・支払い）には関係ありません。</p>
+    ${(g.lg || "C") === "C" && g.stage !== "JS" ? `<p class="pnote">ポストシーズンは戦況（マジック・支払い）には関係ありません。</p>` : ""}
   </div>`;
 }
 const GD = {}; // 試合詳細（スコア表・得点シーン）
@@ -4427,7 +4467,7 @@ async function loadDetail(g) {
 }
 function loadDetails(force) {
   const today = jst().iso;
-  [...DATA.games.filter(g => g.d === today && (g.st === "live" || g.st === "final") && inLg(g)), ...postToday().filter(g => g.st === "live" || g.st === "final")]
+  [...DATA.games.filter(g => g.d === today && (g.st === "live" || g.st === "final")), ...postTodayAll().filter(g => g.st === "live" || g.st === "final")]
     .forEach(g => { const k = g.d + gkey(g); if (force || g.st === "live" || !GD[k]) loadDetail(g); });
 }
 const PD = {}, PD_AT = {}; // 一球速報（PD_AT：最後に受け取った時刻）
@@ -4446,7 +4486,7 @@ async function loadPitch(g) {
 }
 function loadPitches() {
   const today = jst().iso;
-  [...DATA.games.filter(g => g.d === today && g.st === "live" && inLg(g)), ...postToday().filter(g => g.st === "live")].forEach(loadPitch);
+  [...DATA.games.filter(g => g.d === today && g.st === "live"), ...postTodayAll().filter(g => g.st === "live")].forEach(loadPitch);
 }
 // 一球速報：試合を開いている間は3秒ごと、閉じているときは9秒ごと
 let pitchTick = 0;
@@ -5459,6 +5499,14 @@ const POST_TIME = {
   "P|CSF|H": { 3: "18:00" },   // みずほPayPayドーム 10/16（ほかの日は発表を確かめ次第）
 };
 const LIVEPOST = {}; // ポストシーズンのライブ状況（d+h+a → {st,hs,as,inn}）
+// 一時的に別のリーグとして計算する（試合の「今日」は両リーグ）
+function withLeague(lg, fn) {
+  const cur = lgNow(); if (cur === lg) return fn();
+  applyLeague(lg);
+  try { return fn(); } finally { applyLeague(cur); }
+}
+// 今日のCS・日本シリーズ（両リーグ。日本シリーズは1回だけ）
+function postTodayAll() { return [...withLeague("C", () => postToday()), ...withLeague("P", () => postToday().filter(g => g.stage !== "JS"))]; }
 function postToday() {
   const today = jst().iso;
   return postGames().filter(g => g.d === today && g.h && g.a && g.st !== "canc");
@@ -5625,7 +5673,7 @@ function renderCal() {
     const score = g.st === "final" ? `<span class="n num">${g.hs}</span><span style="color:var(--muted)">-</span><span class="n num">${g.as}</span>` : `<span style="color:var(--muted)">vs</span>`;
     $("detail").innerHTML = `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${STAGE[g.stage][1]} 第${g.no}戦</span>${mine ? res : ""}</div>${mine ? ykHTML(g, true) + bcHTML(g) : ""}` +
       (mine ? `<div class="sc">${dtmH(g.h)}${score}${dtmH(g.a)}</div>` : `<div class="sc post">${g.h ? `${dtmH(g.h)}<span style="color:var(--muted)">vs</span><span>${g.a ? fn(g.a) : "ファーストステージ勝者"}</span>` : `<span>${postPlace(g)}</span>`}</div>`) +
-      `<p class="pnote">ポストシーズンは戦況（マジック・支払い）には関係ありません。</p>`;
+      (!isPL() && g.stage !== "JS" ? `<p class="pnote">ポストシーズンは戦況（マジック・支払い）には関係ありません。</p>` : "");   // 支払い（戦況）はセ・リーグだけ
     return;
   }
   if (!selD || !byDay[selD]) {
@@ -7087,18 +7135,25 @@ document.querySelectorAll("#themeSeg button").forEach(b => (b.onclick = () => {
   store("theme", b.dataset.theme);
   applyFromSheet(() => { applyTheme(b.dataset.theme); applyPawaMode(); renderAll(); if (typeof renderOwnerPos === "function") renderOwnerPos(); });
 }));
-// リーグの切り替え：選んだリーグはこのiPhoneに保存。日程・応援歌の選択中の球団や月度も、新しいリーグに合わせる
-function paintLgSeg() { document.querySelectorAll("#lgSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lg === (isPL() ? "P" : "C")))); }
+// リーグの切り替え（ページの上の「セ・リーグ｜パ・リーグ」）：選んだリーグはこのiPhoneに保存。日程・応援歌の選択中の球団や月度も、新しいリーグに合わせる
+function paintLgSeg() { document.querySelectorAll("#lgBar button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lg === (isPL() ? "P" : "C")))); }
 function switchLeague(lg) {
+  S.lgPref = lg === "P" ? "P" : "C"; store("league", S.lgPref);
+  setLeague(S.lgPref);
+}
+// 表示のリーグだけを変える（戦況に行くときのセ・リーグなど。選んでいるリーグは変えない）
+function setLeague(lg) {
   if ((isPL() ? "P" : "C") === lg) return;
   // 今のリーグで選んでいた球団を覚えてから切り替え、切り替えた先のリーグで前に選んでいた球団に戻す
   ["calTeam", "songTeam", "ptTeam"].forEach(k => { if (S[k] && CL.includes(S[k])) store(`${k}_${lgNow()}`, S[k]); });
-  store("league", lg); applyLeague(lg);
+  // 戦況（セ・リーグ）で選んでいた月度は、パ・リーグのページを見て戻ってきても残す
+  if (lgNow() === "C") S.keepC = { p: S.period, pk: S.periodPicked };
+  applyLeague(lg);
   restoreTeams(); S.calSel = null;
   S.period = null; S.periodPicked = false; S.cat = S.cat || "b_avg";
+  if (lg === "C" && S.keepC) { S.period = S.keepC.p; S.periodPicked = S.keepC.pk; }
   Object.keys(liveStatAt).forEach(k => delete liveStatAt[k]);
   paintLgSeg(); renderAll(); moveLens(true);
-  $("meSec").hidden = isPL();   // 設定を開いたまま切り替えたときも、パ・リーグでは「あなたの担当」を隠す
   if (typeof renderOwnerPos === "function") renderOwnerPos();
   if (S.tab === "stats") liveStats(S.cat);
   if (S.tab === "game" || S.tab === "cal") loadStarters(true);
@@ -7117,10 +7172,11 @@ function applyFromSheet(apply) {
     }, 140);
   }, 200);
 }
-document.querySelectorAll("#lgSeg button").forEach(b => (b.onclick = () => {
-  if (b.dataset.lg === lgNow()) { closeSheet(); return; }
-  document.querySelectorAll("#lgSeg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-  applyFromSheet(() => switchLeague(b.dataset.lg));
+document.querySelectorAll("#lgBar button").forEach(b => (b.onclick = () => {
+  if (b.dataset.lg === lgNow()) return;
+  autoGame = false; switchLeague(b.dataset.lg);
+  const bar = $("lgBar"), top = bar.getBoundingClientRect().top + window.scrollY - 70;
+  if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top) });   // 下まで見ていたら、リーグの切り替えが見えるところへ
 }));
 paintLgSeg();
 // ===== シーズンの記録（data/archive/<年>.json）：設定から前のシーズンに切り替えて見る =====
@@ -7171,7 +7227,7 @@ function renderOwnerPos() {
 }
 function openSheet() {
   loadArchIndex();
-  renderOwnerPos(); $("meSec").hidden = isPL();   // パ・リーグには担当者がいないので「あなたの担当」は出さない
+  renderOwnerPos(); $("meSec").hidden = false;   // あなたの担当（セ・リーグの戦況）は、どのページから開いても出す
   $("meNow").textContent = ME() ? `${own(ME())}（${fn(ME())}）` : "選んでいない"; $("sheet").hidden = false; requestAnimationFrame(() => $("sheet").classList.add("open")); renderHealth(); }
 function closeSheet() { $("sheet").classList.remove("open"); setTimeout(() => ($("sheet").hidden = true), 280); }
 $("gearBtn").onclick = openSheet;

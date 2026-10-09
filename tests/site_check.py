@@ -2799,10 +2799,29 @@ async def meikan_tile_check(browser):
         const tiles = [...document.querySelectorAll('#songList .ptile')];
         for (const b of tiles) { const nb = b.querySelector('b'), T = b.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(nb); const ink = rg.getBoundingClientRect(), nm = nb.textContent;
           if (ink.left < T.left + 1 || ink.right > T.right - 1 || ink.top < T.top || ink.bottom > T.bottom) out.push(`${t}：${nm} が枠からはみ出す`);
-          for (const sel of ['.tno small', '.offtag', '.tsong']) for (const e of b.querySelectorAll(sel)) if (vis(e) && X(ink, e.getBoundingClientRect())) out.push(`${t}：${nm} が${sel === '.offtag' ? '戦力外などの札' : sel === '.tsong' ? '♪' : '背番号'}と重なる`);
+          for (const sel of ['.tno small', '.offtag', '.tsong']) for (const e of b.querySelectorAll(sel)) if (vis(e) && !(sel === '.tsong' && document.documentElement.classList.contains('theme-pawa')) && X(ink, e.getBoundingClientRect())) out.push(`${t}：${nm} が${sel === '.offtag' ? '戦力外などの札' : sel === '.tsong' ? '♪' : '背番号'}と重なる`);
           const o = b.querySelector('.offtag'); if (vis(o)) { const m = [...b.querySelectorAll('.tsong')].find(vis); if (m && X(o.getBoundingClientRect(), m.getBoundingClientRect())) out.push(`${t}：${nm} の札と♪が重なる`);
             if (tiles.some(b2 => b2 !== b && X(o.getBoundingClientRect(), b2.getBoundingClientRect()))) out.push(`${t}：${nm} の札がほかの選手の札にかかる`); }
           if (parseFloat(getComputedStyle(nb).fontSize) < 10.95) out.push(`${t}：${nm} の字が11px未満`);
+          // ♪（応援歌あり）：1つだけ・SVGの形・タイルの内側に収まる。パワプロ風は右上の角の三角（斜めの辺が名前にかからない）、スタイリッシュは守備位置の行の右端（守備位置の字と重ならない・行の高さの真ん中）
+          const ms = [...b.querySelectorAll('.tsong')].filter(vis);
+          if (ms.length !== (b.dataset.hs ? 1 : 0)) out.push(`${t}：${nm} の♪が${ms.length}個`);
+          for (const m of ms) { const R = m.getBoundingClientRect();
+            if (!m.querySelector('svg') || m.textContent.trim()) out.push(`${t}：${nm} の♪が字のまま（SVGの形にする）`);
+            if (R.left < T.left || R.right > T.right + .5 || R.top < T.top - .5 || R.bottom > T.bottom) out.push(`${t}：${nm} の♪がタイルの外にはみ出す`);
+            if (document.documentElement.classList.contains('theme-pawa')) {
+              // 字の形そのもの（canvasで測る字の黒い部分の外枠）が、角の三角の斜めの辺より内側にあるか。1行目の右端の字で見る
+              const cs = getComputedStyle(nb), cx = (window.__cx ||= document.createElement('canvas').getContext('2d'));
+              cx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+              let best = null; const tw = document.createTreeWalker(nb, NodeFilter.SHOW_TEXT);
+              for (let nd; (nd = tw.nextNode());) for (let i = 0; i < nd.length; i++) { const r1 = document.createRange(); r1.setStart(nd, i); r1.setEnd(nd, i + 1); const c = r1.getBoundingClientRect(); if (!c.width) continue;
+                if (!best || c.top < best.c.top - 2 || (Math.abs(c.top - best.c.top) <= 2 && c.left > best.c.left)) best = { c, ch: nd.data[i] }; }
+              if (best) { const m = cx.measureText(best.ch), fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, base = best.c.top + (best.c.height - fa - fd) / 2 + fa;
+                const gx = best.c.left + m.actualBoundingBoxRight, gy = base - m.actualBoundingBoxAscent;
+                if ((R.right - gx) + (gy - R.top) < R.width + 1) out.push(`${t}：${nm} が♪の角にかかる（すき間${((R.right - gx) + (gy - R.top) - R.width).toFixed(1)}px）`); } }
+            else { const p = b.querySelector('.tpos'), P = p.getBoundingClientRect();
+              if (X(P, R)) out.push(`${t}：${nm} の守備位置と♪が重なる`);
+              if (Math.abs((P.top + P.bottom) / 2 - (R.top + R.bottom) / 2) > 2.5) out.push(`${t}：${nm} の♪が守備位置の行とずれる`); } }
         } } }
       DATA.offseason = off0; switchLeague('C'); return [...new Set(out)].slice(0, 8); }"""
     for theme in ["pawa", ""]:

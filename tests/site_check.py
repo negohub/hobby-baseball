@@ -1607,12 +1607,12 @@ async def memory_check(browser):
         await pg.wait_for_timeout(700)
         await pg.evaluate("""() => {
           setTab('stats');
-          document.querySelector('#tmSeg button[data-k="pit"]').click();
+          document.querySelector('#stSeg button[data-k="pit"]').click();
           document.querySelector('#tmTbl th.srt[data-col="1"]').click();
-          document.querySelector('#rkSeg button[data-k="pit"]').click();
           S.cat = CATS.pit[2][0]; renderStats();
-          document.querySelector('#ptSeg button[data-k="pit"]').click();
         }""")
+        if await pg.evaluate("document.querySelectorAll('#v-stats .seg').length !== 1 || S.rkKind !== 'pit' || S.ptKind !== 'pit'"):
+            bad("[データ今季] 打撃｜投手の切り替えがページの上の1つになっていない・1つで全部が切り替わらない")
         want = await pg.evaluate("[S.tmKind, JSON.stringify(S.tmSort), S.rkKind, S.cat, S.ptKind]")
         await pg.wait_for_timeout(300)
         await pg.reload()
@@ -3674,7 +3674,8 @@ async def rec_check(browser):
 
 async def tab_group_check(browser):
     """下のタブは5つ（戦況・試合・順位・データ・選手）で、季節で数が変わらない。グループの中は上の切り替え（今日｜日程・今季｜歴代・応援歌｜入退団）。
-    タブを押すと最後に開いていたページへ。今のタブをもう一度押すといちばん上へ。スワイプはページの順。開き直しても最後のページを覚えている"""
+    タブを押すと最後に開いていたページへ（前に見ていた所から）。今のタブをもう一度押すといちばん上へ、いちばん上なら最初のページへ。スワイプはページの順。開き直しても最後のページを覚えている。
+    戻る操作で、開いている画面（設定など）を閉じる"""
     for th in ["pawa", ""]:
         pg, errs = await open_page(browser, 390, th)
         r = await pg.evaluate("""async () => { const ng = [];
@@ -3694,8 +3695,31 @@ async def tab_group_check(browser):
           click('std'); if (S.tab !== 'std' || sub() !== '今季*,歴代') ng.push(`順位：${S.tab} ${sub()}`);
           click('game'); if (S.tab !== 'cal') ng.push(`試合を押すと最後に開いていた日程に戻らない（${S.tab}）`);
           click('data'); if (S.tab !== 'rec') ng.push(`データを押すと最後に開いていた歴代に戻らない（${S.tab}）`);
-          window.scrollTo(0, 400); click('data'); await new Promise(r => setTimeout(r, 700));
-          if (S.tab !== 'rec' || scrollY > 5) ng.push(`今のタブをもう一度押してもいちばん上に戻らない（${S.tab} ${scrollY}）`);
+          // 今のタブをもう一度：いちばん上にいれば、そのタブの最初のページへ。下にいれば、いちばん上へ
+          window.scrollTo(0, 0); click('data'); if (S.tab !== 'stats') ng.push(`いちばん上で今のタブをもう一度押しても最初のページ（今季）に戻らない（${S.tab}）`);
+          const wait = ms => new Promise(r => setTimeout(r, ms));
+          window.scrollTo(0, 600); await wait(80); click('data'); await wait(700);
+          if (S.tab !== 'stats' || scrollY > 5) ng.push(`今のタブをもう一度押してもいちばん上に戻らない（${S.tab} ${scrollY}）`);
+          // ほかのタブから戻ってきたら、前に見ていた所から
+          window.scrollTo(0, 500); await wait(80); const y0 = scrollY; click('std'); if (scrollY > 5) ng.push('別のタブに移っても上から始まらない');
+          click('data'); await wait(120); if (S.tab !== 'stats' || Math.abs(scrollY - y0) > 5) ng.push(`戻ってきたら前に見ていた所にならない（${y0} → ${scrollY}）`);
+          // 戻る操作（Android の戻るボタンなど）で、開いている設定を閉じる（サイトからは出ない）
+          { const href = location.href; openSheet(); await wait(400); history.back(); await wait(700);
+            if (!document.getElementById('sheet').hidden || location.href !== href) ng.push('戻る操作で設定が閉じない・サイトから出る');
+            openSheet(); await wait(400); closeSheet(); await wait(700); history.length;   // 閉じるボタンで閉じたら、戻る用の印も消す（次の「戻る」で何も起きない画面が残らない）
+            if (history.state && history.state.ov) ng.push('閉じるボタンで閉じても戻る用の印が残る'); }
+          // 下から出る画面は、つまみを下に引くと閉じる（少しだけなら戻る）
+          { openSheet(); await wait(500); const sw = (dy) => { const el = document.querySelector('#sheet .sheet-grip'), b = el.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + 2;
+              const mk = cy => new Touch({ identifier: 1, target: el, clientX: x, clientY: cy }); const fire = (type, cy) => { const tt = mk(cy); el.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [tt], targetTouches: type === 'touchend' ? [] : [tt], changedTouches: [tt], bubbles: true, cancelable: true })); };
+              fire('touchstart', y); for (let i = 1; i <= 8; i++) fire('touchmove', y + dy * i / 8); fire('touchend', y + dy); };
+            sw(30); await wait(500); if (document.getElementById('sheet').hidden) ng.push('設定を少し下に引いただけで閉じる');
+            sw(200); await wait(700); if (!document.getElementById('sheet').hidden) ng.push('設定をつまみから下に引いても閉じない'); }
+          // 日程：下の方の日にちを押したら、詳しい欄が下のタブに隠れずに見える
+          { setTab('cal'); await wait(100); const ds = [...document.querySelectorAll('#cal .day.has')]; const last = ds[ds.length - 1];
+            if (last) { last.click(); await wait(900); const r = document.getElementById('detail').getBoundingClientRect(), tb = document.querySelector('.tabbar').getBoundingClientRect();
+              if (r.top > tb.top - 40 || r.top < 0) ng.push(`日程の下の方の日を押しても詳しい欄が見えない（欄の上 ${Math.round(r.top)} / 下のタブ ${Math.round(tb.top)}）`); } }
+          // 上の小さいヘッダーを押すと、いちばん上へ
+          { setTab('stats'); window.scrollTo(0, 900); await wait(300); document.getElementById('miniTtl').click(); await wait(800); if (scrollY > 5) ng.push('上の小さいヘッダーを押してもいちばん上に戻らない'); }
           if (JSON.parse(localStorage.getItem('sub-v1') || '{}').game !== 'cal') ng.push('最後に開いていたページを端末に覚えていない');
           const ord = tabOrder().join(); if (!new RegExp('^magic,game,cal,' + (POST_SHOWN ? 'post,' : '') + 'std,stdh,stats,ven,rec,song').test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
           // 季節で下のタブの数が変わらない
@@ -4332,8 +4356,13 @@ async def ux_check(browser):
               seasonOver = () => true; { const lastD = DATA.games.filter(g => inLg(g) && g.st !== 'canc').map(g => g.d).sort().pop(); const [y, m, d] = lastD.split('-').map(Number); jst = () => ({ y, m, d, iso: lastD }); DATA.post = [{ d: '2026-12-30', stage: 'CS1', lg: 'C' }];
                 const a4 = landingTab(); if (a4) ng.push(`公式戦の最終戦の日なのに最初の画面が戦況でない（${JSON.stringify(a4)}）`); }
               seasonOver = so; jst = jj; DATA.post = post0;
-              if (!a1 || a1.tab !== 'post') ng.push(`CS・日本シリーズのあいだの最初の画面が勝ち上がり表でない（${JSON.stringify(a1)}）`);
+              if (!a1 || a1.tab !== 'game') ng.push(`CS・日本シリーズのあいだの最初の画面が試合の「今日」でない（${JSON.stringify(a1)}）`);
               if (!a2 || a2.tab !== 'off') ng.push(`日本シリーズのあとの最初の画面が入退団でない（${JSON.stringify(a2)}）`);
+              // CS・日本シリーズの試合中：開いたら（担当がなくても）その試合の一球速報を開いた状態
+              { const so2 = seasonOver, pt = postToday, me0 = S.me, ag = autoGame; const g = { d: jst().iso, h: CL[0], a: CL[1], st: 'live', hs: 1, as: 0, inn: '3回表', stage: 'CS1', no: 1 }, k = g.d + gkey(g);
+                seasonOver = () => true; postToday = () => [g]; S.me = null; autoGame = true; setTab('magic'); maybeAutoGame();
+                if (S.tab !== 'game' || !S.open[k] || S.gpane[k] !== 'pitch') ng.push(`CSの試合中に開いても試合の一球速報にならない（${S.tab}・${S.gpane[k]}）`);
+                delete S.open[k]; delete S.gpane[k]; autoPane = null; seasonOver = so2; postToday = pt; S.me = me0; autoGame = ag; renderAll(); setTab('magic'); }
               if (a3) ng.push('シーズン中なのに最初の画面が戦況でない');
               // ② 選手をさがす：名前・背番号。押すと選手の画面
               openFind(); const q = document.getElementById('findQ');

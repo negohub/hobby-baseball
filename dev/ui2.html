@@ -1896,8 +1896,10 @@ html.theme-pawa .gear{color:#13264A;background:linear-gradient(180deg,rgba(255,2
 .ptile.ps{background:linear-gradient(180deg,#FFAE9F,#F07A69);border-color:#CF5A4A}
 .ptile:active{transform:translateY(1px)}
 .ptile.lg b{font-size:12.5px;letter-spacing:0;margin-left:8px}
-.tsong{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;font-style:normal;font-size:11px;font-weight:900;line-height:1;background:#1D3E7C;color:#fff}
-html:not(.theme-pawa) .tsong{background:rgba(255,255,255,.16);color:#fff}
+/* ♪（応援歌あり）：字ではなくSVGの音符。パワプロ風はタイルの右上の角に折り返しの三角、スタイリッシュは守備位置の行の右端に小さく */
+.tsong{display:inline-grid;place-items:center;width:16px;height:16px;font-style:normal;line-height:0;color:#1D3E7C}
+.tsong svg{width:100%;height:100%;fill:currentColor;display:block}
+html:not(.theme-pawa) .tsong{width:16px;height:16px;padding:3px;box-sizing:border-box;border-radius:5px;background:var(--tb,var(--tc,#E8E8EE));color:var(--ti,#111)}
 .scount .sclg{display:inline-flex;align-items:center;gap:4px;margin-left:10px;font-weight:700}
 /* 選手名鑑のタイル：背番号と♪は名前とは別の段に置き、名前の字の大きさはタイルの幅に合わせる（長い名前も切れない・重ならない） */
 html:not(.theme-pawa) #songList .ptile:not(#z){container-type:inline-size}
@@ -1910,7 +1912,15 @@ html.theme-pawa #songList .ptile:not(#z){overflow:visible}
 html.theme-pawa #songList .tno small:not(#z){position:absolute;left:6px;top:-11px;z-index:3;height:15px;padding:0 5px;border-radius:8px;line-height:15px;font-size:11px;font-weight:800;
   background:#fff;color:#13264A !important;opacity:1 !important;box-shadow:0 0 0 1.5px rgba(19,38,74,.45)}
 html.theme-pawa.pawa-dark #songList .tno small:not(#z):not(#y){background:#13213F !important;color:#DEE5F2 !important;box-shadow:0 0 0 1.5px #3D64B0}
-html.theme-pawa #songList .tno .tsong:not(#z){position:absolute;top:-12px;right:5px;z-index:3;width:15px;height:15px;box-shadow:0 0 0 1.5px #fff}
+html.theme-pawa #songList .ptile > .tsong:not(#z){position:absolute;top:0;right:0;z-index:2;width:18px;height:18px;padding:2px 2px 0 0;box-sizing:border-box;place-items:start end;
+  border-top-right-radius:calc(var(--r-sm,9px) - 1.5px);background:linear-gradient(225deg,#1D3E7C 50%,transparent 50%);color:#fff;pointer-events:none}
+html.theme-pawa #songList .ptile > .tsong svg:not(#z){width:8.5px;height:8.5px}
+@media (max-width:374px){html.theme-pawa #songList .ptile > .tsong:not(#z){width:16px;height:16px;padding:1.5px 1.5px 0 0}html.theme-pawa #songList .ptile > .tsong svg:not(#z){width:8px;height:8px}}
+html.theme-pawa #songList .scount .tsong:not(#z){width:18px;height:18px;padding:2px 2px 0 0;box-sizing:border-box;place-items:start end;border-radius:2px 5px 2px 2px;
+  background:linear-gradient(225deg,#1D3E7C 50%,transparent 50%)}
+html.theme-pawa #songList .scount .tsong svg:not(#z){width:8.5px;height:8.5px;fill:#fff}
+html.theme-pawa.pawa-dark #songList .scount .tsong:not(#z):not(#y){background:linear-gradient(225deg,#DEE5F2 50%,transparent 50%)}
+html.theme-pawa.pawa-dark #songList .scount .tsong svg:not(#z):not(#y){fill:#13213F}
 /* 名前はほかのタブと同じく上下左右の真ん中。字の大きさはほかのタブと同じ（14・13・11.5px）で、入らないときだけ11pxまで小さく、それでも入らない長い名前は2行に */
 html.theme-pawa #songList .ptiles:not(#z){row-gap:16px;padding-top:14px}
 html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:0 4px;box-sizing:border-box;--fs:14px}
@@ -1933,7 +1943,10 @@ html:not(.theme-pawa) #songList .ptile.n7:not(#z) b{font-size:13px;letter-spacin
 html:not(.theme-pawa) #songList .tno:not(#z){display:none}
 html:not(.theme-pawa) #songList .tft:not(#z){position:relative;z-index:1;display:flex;align-items:center;gap:5px;margin-top:3px}
 html:not(.theme-pawa) #songList .tft .tpos:not(#z){margin-top:0}
-html:not(.theme-pawa) #songList .tft .tsong:not(#z){width:15px;height:15px}
+html:not(.theme-pawa) #songList .tft:not(#z){align-self:stretch;min-width:0}
+html:not(.theme-pawa) #songList .tft .tsong:not(#z){margin-left:auto;flex:none}
+html:not(.theme-pawa) #songList .ptile > .tsong:not(#z){display:none}
+html:not(.theme-pawa) #songList .tft .tpos:not(#z){min-width:0;overflow:hidden;text-overflow:ellipsis}
 html:not(.theme-pawa) #songList .ptile.ho:not(#z){padding-top:24px}
 @media (max-width:374px){html:not(.theme-pawa) #songList .ptile:not(#z){--fmax:14px;min-height:58px}html:not(.theme-pawa) #songList .ptile.n7:not(#z) b{font-size:12px}}
 html.theme-pawa .srow .sgo{background:linear-gradient(180deg,#62D873,#1FA83A) !important;color:#fff !important;border:2px solid #0E6B22 !important}
@@ -6501,8 +6514,8 @@ function renderSong() {
   const tile = x => { let sur = shortName(t, x.n); if ([...sur].length >= 10 && sur.includes("・")) sur = sur.split("・")[0];
     const gr = posGroups(t, x.n, x.p), n = [...sur.replace(/\s+/g, "")].length, off = offTag(t, x.n);
     const w = n <= 2 ? 2.8 : n >= 7 ? n * 1.02 : n >= 5 ? n * 1.08 : n * 1.16;   // 名前の幅（字の大きさの何倍か）。タイルの幅に合わせて字の大きさを決める
-    const note = x.song ? `<i class="tsong" aria-label="応援歌あり">♪</i>` : "";
-    return `<button type="button" class="ptile ${TILEC[gr[0]] || POSC[x.p] || "pp"}${nmCls(sur)}${n >= 5 ? " lg" : ""}${off ? " ho" : ""}" style="${tileStyle(gr)};${tv(t)};--w:${w.toFixed(2)}" data-song="${esc(x.no)}|${esc(x.n)}"${x.song ? ` data-hs="1"` : ""}><span class="tno"><small class="num">${esc(x.no)}</small>${note}</span><i class="twm num" aria-hidden="true">${esc(x.no)}</i><b>${n >= 6 && !sur.includes("・") ? esc([...sur].slice(0, Math.ceil(n / 2)).join("")) + "<wbr>" + esc([...sur].slice(Math.ceil(n / 2)).join("")) : esc(sur)}</b><span class="tft"><em class="tpos">${gr.map(k => PLBL[k] || k).join("・")}</em>${note}</span>${off}</button>`; };
+    const note = x.song ? `<i class="tsong" role="img" aria-label="応援歌あり">${NOTE_SVG}</i>` : "";
+    return `<button type="button" class="ptile ${TILEC[gr[0]] || POSC[x.p] || "pp"}${nmCls(sur)}${n >= 5 ? " lg" : ""}${off ? " ho" : ""}" style="${tileStyle(gr)};${tv(t)};--w:${w.toFixed(2)}" data-song="${esc(x.no)}|${esc(x.n)}"${x.song ? ` data-hs="1"` : ""}><span class="tno"><small class="num">${esc(x.no)}</small></span><i class="twm num" aria-hidden="true">${esc(x.no)}</i><b>${n >= 6 && !sur.includes("・") ? esc([...sur].slice(0, Math.ceil(n / 2)).join("")) + "<wbr>" + esc([...sur].slice(Math.ceil(n / 2)).join("")) : esc(sur)}</b><span class="tft"><em class="tpos">${gr.map(k => PLBL[k] || k).join("・")}</em>${note}</span>${note}${off}</button>`; };
   let html = "";
   for (const [pos, dev] of groups) {
     const list = all.filter(x => x.dev === dev && (dev || x.p === pos) && hit(x)).sort((a, b) => Number(a.no) - Number(b.no) || a.no.length - b.no.length);
@@ -6521,7 +6534,7 @@ function renderSong() {
   }
   if (!roster.length) { $("songList").innerHTML = `<div class="rempty">選手一覧は次の自動更新のあとに表示されます。</div>` + html; return; }
   const nDev = all.filter(x => x.dev).length;
-  $("songList").innerHTML = `<p class="scount num">支配下${all.length - nDev}人${nDev ? `・育成${nDev}人` : ""}<span class="sclg"><i class="tsong" aria-hidden="true">♪</i>応援歌あり</span></p>` + (html || `<div class="rempty">見つかりませんでした。</div>`);
+  $("songList").innerHTML = `<p class="scount num" style="${tv(t)}">支配下${all.length - nDev}人${nDev ? `・育成${nDev}人` : ""}<span class="sclg"><i class="tsong" aria-hidden="true">${NOTE_SVG}</i>応援歌あり</span></p>` + (html || `<div class="rempty">見つかりませんでした。</div>`);
 }
 $("songQ").addEventListener("input", e => { S.songQ = e.target.value; renderSong(); });
 
@@ -6632,6 +6645,7 @@ const OFF_LABEL = { promote: "支配下", cut: "戦力外", offer: "戦力外", 
   coach_out: "退団", coach_in: "就任", coach_move: "配置転換" };
 const OFF_IN = new Set(["in", "draft", "coach_in"]);
 // 選手名鑑から外す（チームを離れる）発表：移籍・戦力外・育成再契約の打診・自由契約・引退・退団。FA宣言（残るか未定）は外さない
+const NOTE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>`;
 const SONG_GONE = new Set(["out", "cut", "offer", "free", "retire", "leave"]);
 const OFF_STAFF = new Set(["mgr", "coach_out", "coach_in", "coach_move"]);   // 首脳陣（監督・コーチ）   // 入団する選手（ほかは退団・残るかどうか未定）
 // 監督の現役時代のポジション（パワプロ風の名前のタイルの色に使う）。名前は空白なし

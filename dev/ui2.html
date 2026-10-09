@@ -2996,6 +2996,26 @@ html.theme-pawa .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){bor
 /* 試合速報の札（直接対決・第1戦）：昼も夜も読める濃い赤 */
 html.theme-pawa .ts-tag:not(#z):not(#y){background:#C62828 !important;color:#fff !important}
 html.theme-pawa.pawa-dark .ts-tag:not(#z):not(#y):not(#x){background:#C62828 !important;color:#fff !important}
+/* 試合前：予告先発投手（スポナビのように：球団ごとに背番号・名前・投げる手、成績の表は真ん中に項目）・見どころ */
+.ykc:not(#z){margin:14px 0 0;text-align:left}
+.ykc-h:not(#z){display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:13px;font-weight:800;color:var(--v3text)}
+.ykc-h:not(#z)::before{content:"";width:3px;height:14px;border-radius:2px;background:var(--v3muted)}
+.ykc-t:not(#z){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border:1px solid var(--v3line);border-radius:14px;overflow:hidden}
+.ykc-p:not(#z){min-width:0;padding:0 10px 10px}
+.ykc-p + .ykc-p:not(#z){border-left:1px solid var(--v3line)}
+.ykc-tm:not(#z){display:flex;align-items:center;justify-content:center;gap:6px;margin:0 -10px 8px;padding:7px 4px;font-size:13px;font-weight:800;color:var(--v3text);border-bottom:1px solid var(--v3line);box-shadow:inset 0 3px 0 var(--tb,var(--tc))}
+.ykc-p small:not(#z){display:block;font-size:11px;font-weight:700;color:var(--v3muted)}
+.ykc-n:not(#z){display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:3px;font-size:17px;font-weight:900;color:var(--v3text);cursor:pointer}
+.ykc-n.none:not(#z){font-size:14px;color:var(--v3muted);cursor:default}
+html body .ykc-th:not(#z):not(#y):not(#x):not(#w){font-style:normal;font-size:11px;font-weight:800;padding:1px 6px;border-radius:5px;background:#1A4FA3 !important;color:#fff !important;text-shadow:none !important}
+html.theme-pawa.pawa-dark body .ykc-th:not(#z):not(#y):not(#x):not(#w):not(#v){background:#1A4FA3 !important;color:#fff !important}
+.ykc-s:not(#z){width:100%;margin-top:8px;border-collapse:collapse;table-layout:fixed;font-size:13.5px;text-align:center;color:var(--v3text)}
+.ykc-s :is(th,td):not(#z):not(#y){width:auto;padding:7px 0 !important;border:0;border-bottom:1px solid var(--v3line);background:none;text-align:center !important;font-size:13.5px !important;font-weight:700;color:var(--v3text) !important;letter-spacing:-.02em}
+.ykc-s thead th:not(#z):not(#y){font-size:11px !important;color:var(--v3muted) !important}
+.ykc-s :is(th,td):is(:nth-child(4),:nth-child(9)):not(#z):not(#y){width:18%}
+.ykc-s .m:not(#z):not(#y){width:44px;font-size:12px !important;font-weight:800;border-left:1px solid var(--v3line);border-right:1px solid var(--v3line)}
+.subnav button:not(#z){white-space:nowrap}
+.ykc-pt:not(#z){margin:0;font-size:13.5px;line-height:1.75;color:var(--v3text)}
 /* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
 html.theme-pawa .seg:not(.subnav):not(.mseg):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
 html.theme-pawa .seg:not(.subnav):not(.mseg) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
@@ -4180,7 +4200,7 @@ function postNextHTML() {
   if (!any) return { post: false, html: ["C", "P"].some(lg => withLeague(lg, seasonOver)) && (DATA.post || []).length ? "今季の試合はすべて終わりました。" : "対象の球団の試合はしばらくありません。" };
   const team = t => t ? `<span class="pn-t" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b>${fn(t)}</b></span>` : `<span class="pn-t"><b class="pn-tbd">未定</b></span>`;
   const dl = d => { const [y, m, dd] = d.split("-").map(Number); return `${m}/${dd}（${WD[new Date(y, m - 1, dd).getDay()]}）`; };
-  const card = g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div>${g.h && g.a ? ykHTML(g, true) + bcHTML(g) : ""}</div>`;   // 予告先発・テレビ（発表されたら。ホームが左）
+  const card = g => `<div class="pn-g"><span class="pn-st">${STAGE[g.stage][1]} 第${g.no}戦${g.t ? `<em class="num">${esc(g.t)} 開始</em>` : ""}</span><div class="pn-tm">${team(g.h)}<i>vs</i>${team(g.a)}</div>${g.h && g.a ? ykCardHTML(g) + ptHTML(g) + bcHTML(g) : ""}</div>`;   // 予告先発・テレビ（発表されたら。ホームが左）
   const js = per.flatMap(x => x.up).filter(g => g.stage === "JS");
   let html = `<h3 class="ts-h">次戦</h3>`;
   for (const x of per) { const gs = x.up.filter(g => g.stage !== "JS"); if (gs.length) html += `<h3 class="lgh">${LG_NAME[x.lg]}<small>${dl(gs[0].d)}</small></h3>` + gs.map(card).join(""); }
@@ -4408,6 +4428,22 @@ function ykHTML(g, homeFirst = true) {
     ? `<div class="yk"><span class="ykl">予告先発</span>${one(g.h, y.h)}<span class="ykv">vs</span>${one(g.a, y.a)}</div>`
     : `<div class="yk"><span class="ykl">予告先発</span>${one(g.a, y.a)}<span class="ykv">vs</span>${one(g.h, y.h)}</div>`;
 }
+// 予告先発（スポナビの試合のページから詳しく：背番号・投げる手・成績の表。ホームが左）。なければ今までの1行
+function ykCardHTML(g) {
+  const p = preOf(g), y = p && p.yk;
+  if (!y || (!y.h && !y.a) || g.st !== "sched") return ykHTML(g, true);
+  if (p.lu && ((p.lu.h && p.lu.h.p) || (p.lu.a && p.lu.a.p))) return "";   // スタメンが出たら、先発はそちらに出す
+  const col = (t, x) => `<div class="ykc-p" style="${tv(t)}"><div class="ykc-tm"><i class="ykb">${sn(t)}</i>${fn(t)}</div>${x
+    ? `<small>投手 ${esc(x.no || "")}</small><div class="ykc-n" data-pl="${t}|${esc(x.n)}|pit">${pwName(t, x.n, "投手")}${x.th ? `<span class="ykc-th">${esc(x.th)}</span>` : ""}</div>`
+    : `<div class="ykc-n none">未発表</div>`}</div>`;
+  const ks = [...new Set([...((y.h || {}).st || []), ...((y.a || {}).st || [])].map(r => r.k))];
+  const cell = (x, k) => { const r = x && (x.st || []).find(r => r.k === k); return (r ? [r.g, r.w, r.l, r.era] : ["", "", "", ""]).map(v => `<td>${esc(v || "")}</td>`).join(""); };
+  const tbl = ks.length ? `<table class="ykc-s num"><thead><tr><th>試</th><th>勝</th><th>敗</th><th>防御率</th><th class="m">成績</th><th>試</th><th>勝</th><th>敗</th><th>防御率</th></tr></thead>
+    <tbody>${ks.map(k => `<tr>${cell(y.h, k)}<th class="m">${esc(k)}</th>${cell(y.a, k)}</tr>`).join("")}</tbody></table>` : "";
+  return `<section class="ykc"><div class="ykc-h">予告先発投手</div><div class="ykc-t">${col(g.h, y.h)}${col(g.a, y.a)}</div>${tbl}</section>`;
+}
+// 見どころ（スポナビの試合のページの文章）：試合前だけ
+function ptHTML(g) { const p = preOf(g); return p && p.pt && g.st === "sched" ? `<section class="ykc"><div class="ykc-h">見どころ</div><p class="ykc-pt">${esc(p.pt)}</p></section>` : ""; }
 // 中継画面のスコア表示（スコアバグ）：上がビジター、下がホーム
 const SCORE_PREV = {}, SCORE_FLASH = {};
 // 雨などで中断・開始が遅れている・中止・ノーゲーム・コールドのとき、試合カードのスコアのすぐ下に帯で出す
@@ -4442,7 +4478,7 @@ function bugHTML(g, tag) {
     : g.t ? `<div class="bi pre"><b class="num">${esc(g.t)}</b><small>開始</small></div>` : `<div class="bi pre"><small>試合前</small></div>`;   // 開始時刻がまだ分からない試合（CSなど）は「試合前」
   return `<div class="bug${live ? " live" : ""}${g.st === "canc" ? " canc" : ""}">
     <div class="bteams">${row(g.a, g.as, "a")}${row(g.h, g.hs, "h")}</div>${right}
-  </div>${wxHTML(g)}${tag ? `<div class="btag">${tag}</div>` : ""}${ykHTML(g)}${g.d === jst().iso ? preHTML(g) : ""}`;
+  </div>${wxHTML(g)}${tag ? `<div class="btag">${tag}</div>` : ""}${ykCardHTML(g)}${ptHTML(g)}${g.d === jst().iso ? preHTML(g) : bcHTML(g)}`;
 }
 function postCard(g) {
   const live = g.st === "live", fin = g.st === "final";
@@ -5673,7 +5709,7 @@ function renderCal() {
     const g = postByDay[selD], [yy, mm, d2] = selD.split("-").map(Number), mine = g.h && g.a;
     const res = g.st === "final" && (g.h === t || g.a === t) ? (() => { const r = resultOf(g, t); return `<span class="res ${r}">${r === "w" ? "勝ち" : r === "l" ? "負け" : "引き分け"}</span>`; })() : `<span class="res num">${esc(g.t || "")}</span>`;
     const score = g.st === "final" ? `<span class="n num">${g.hs}</span><span style="color:var(--muted)">-</span><span class="n num">${g.as}</span>` : `<span style="color:var(--muted)">vs</span>`;
-    $("detail").innerHTML = `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${STAGE[g.stage][1]} 第${g.no}戦</span>${mine ? res : ""}</div>${mine ? ykHTML(g, true) + bcHTML(g) : ""}` +
+    $("detail").innerHTML = `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${STAGE[g.stage][1]} 第${g.no}戦</span>${mine ? res : ""}</div>${mine ? ykCardHTML(g) + bcHTML(g) : ""}` +
       (mine ? `<div class="sc">${dtmH(g.h)}${score}${dtmH(g.a)}</div>` : `<div class="sc post">${g.h ? `${dtmH(g.h)}<span style="color:var(--muted)">vs</span><span>${g.a ? fn(g.a) : "ファーストステージ勝者"}</span>` : `<span>${postPlace(g)}</span>`}</div>`) +
       (!isPL() && g.stage !== "JS" ? `<p class="pnote">ポストシーズンは戦況（マジック・支払い）には関係ありません。</p>` : "");   // 支払い（戦況）はセ・リーグだけ
     return;
@@ -5691,7 +5727,7 @@ function renderCal() {
     const score = g.st === "final" ? `<span class="n num">${g.hs}</span><span style="color:var(--muted)">-</span><span class="n num">${g.as}</span>` : `<span style="color:var(--muted)">vs</span>`;
     const w = g.st === "sched" ? wxFor(g) : null;
     const wxRow = w ? `<div class="wxd">${wxIcon(w.code)}<b>${wxKind(w.code)[1]}</b><span class="num">${w.temp}℃</span>${w.pop != null ? `<span class="num${w.pop >= 60 ? " wxhi" : ""}">降水確率 ${w.pop}%</span>` : ""}${w.dome ? `<em>ドーム（天気の影響なし）</em>` : ""}</div>` : "";
-    return `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${esc(venueName(g.v))}</span>${res}</div>${wxRow}${ykHTML(g, true)}
+    return `<div class="dd"><span class="ddt">${mm}/${d2}（${WD[new Date(yy, mm - 1, d2).getDay()]}）${esc(venueName(g.v))}</span>${res}</div>${wxRow}${ykCardHTML(g)}
       <div class="sc">${dtmH(g.h)}${score}${dtmH(g.a)}</div>`;
   }).join("");
 }

@@ -543,8 +543,10 @@ async def wording_check(browser):
             if lg == "P":
                 await pg.evaluate("switchLeague('P')")
                 await pg.wait_for_timeout(200)
-            # 試合の「今日」は両リーグ、戦況はいつもセ・リーグなので、リーグごとのページだけ（戦況はセのときに見る）
-            for tab in (["magic"] if lg == "C" else []) + ["cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
+            # 試合の「今日」は両リーグなので、リーグごとのページだけ。戦況のリーグは別に選ぶ
+            if lg == "P":
+                await pg.evaluate("setTab('magic'); document.querySelector('#lgBar [data-lg=\"P\"]').click()")
+            for tab in ["magic", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
                 txt = await pg.evaluate("""(tab) => { setTab(tab); const v = document.getElementById('v-' + tab); v.querySelectorAll('details').forEach(d => d.open = true); return v.innerText; }""", tab)
                 for line in txt.split("\n"):
                     if lg == "P" and OK_P in line:
@@ -3982,6 +3984,62 @@ async def off_name_tag_check(browser):
     await pg.close()
 
 
+def worker_refs_check():
+    """中継プログラム（worker.js）：どの呼び出し（一球速報・スコア・試合中の点数・放送予定・予告先発・入退団・成績など）でも、
+    ないものを使っていない（10/9：試合IDの関数を消してしまい、一球速報・試合中の点数が全部止まる作りになっていた）。スポナビの代わりのページで動かして確かめる"""
+    wk = ROOT / "worker" / "worker.js"
+    if not wk.exists():
+        return
+    import subprocess, tempfile
+    test = r"""
+import w from "./w.mjs";
+const now = new Date(Date.now() + 9 * 3600e3), today = `${now.getUTCFullYear()}年${now.getUTCMonth() + 1}月${now.getUTCDate()}日`;
+globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+globalThis.fetch = async u => { u = String(u);
+  const body = /\/npb\/game\/\d+\/(text|top|stats|score)/.test(u) ? `<title>${today} 読売ジャイアンツvs.横浜DeNAベイスターズ - プロ野球 - スポーツナビ</title>`
+    : `<a href="/npb/game/2021039474/index">巨人 DeNA</a>`;
+  return { ok: true, status: 200, text: async () => body, json: async () => ({}) }; };
+const qs = ["game=G-DB", "pitch=G-DB", "games=G-DB", "pre=1", "starters=1", "transfer=1", "stats=team", "stats=team&lg=P", "rank=b_avg", "split=12345", "pstats=G", "lines=G-DB", ""];
+for (const q of qs) {
+  try {
+    const r = await w.fetch(new Request("https://x.example/?" + q), {}, { waitUntil: () => {} });
+    const t = await r.text();
+    if (/is not defined|is not a function|Cannot read properties of undefined \(reading '(?!length)/.test(t)) console.log("NG " + q + " " + t.slice(0, 160));
+  } catch (e) { if (/is not defined|is not a function/.test(String(e))) console.log("NG " + q + " " + String(e).slice(0, 160)); }
+}
+"""
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "w.mjs").write_text(wk.read_text(encoding="utf-8"), encoding="utf-8")
+        (Path(d) / "t.mjs").write_text(test, encoding="utf-8")
+        out = subprocess.run(["node", str(Path(d) / "t.mjs")], capture_output=True, text=True, timeout=120)
+        for line in (out.stdout + out.stderr).splitlines():
+            if line.strip():
+                bad(f"[中継プログラム] {line.strip()[:220]}")
+
+
+async def post_live_check(browser):
+    """CS・日本シリーズの試合中も、公式戦と同じくカードを開くとスコア表・一球速報・打順・投手成績が出る"""
+    for th in ["pawa", ""]:
+        pg, errs = await open_page(browser, 390, th)
+        await pg.evaluate("""() => { const day = jst().iso;
+          DATA.games = DATA.games.filter(g => !(g.d === day && g.h === 'G' && g.a === 'S'));
+          const cs = { d: day, h: 'G', a: 'S', st: 'live', hs: 1, as: 0, inn: '3回表', stage: 'CS1', no: 1, lg: 'C' };
+          postToday = () => (lgNow() === 'C' ? [cs] : []); TAB_DIRTY.add('game'); setTab('game'); renderGame(); window.scrollTo(0, 0); }""")
+        await pg.wait_for_timeout(300)
+        card = await pg.query_selector(".tg.post.islive .tgx")
+        if not card:
+            bad(f"[CSの一球速報 {'パワプロ風' if th else 'スタイリッシュ'}] CSの試合中のカードに「タップで一球速報」がない")
+        else:
+            await card.click()
+            await pg.wait_for_timeout(1200)
+            for sel, name in [(".tg.post.islive .ls", "スコア表"), (".tg.post.islive .pbox", "一球速報"), (".tg.post.islive .lu", "打順"), (".tg.post.islive .pu", "投手成績")]:
+                if not await pg.query_selector(sel):
+                    bad(f"[CSの一球速報 {'パワプロ風' if th else 'スタイリッシュ'}] CSの試合中に{name}が出ない")
+        for e in errs:
+            bad(f"[CSの一球速報] 画面のエラー {e}")
+        await pg.close()
+
+
 async def post_starters_check(browser):
     """CS・日本シリーズの予告先発とテレビ中継：試合の前の日（試合のない日）に、試合タブの「次戦」と日程のその日の詳しい欄に出る（ホームが左）。
     中継プログラムが、日程ページの試合（CSも）の放送予定を、今日とあしたの分読めるか"""
@@ -4635,22 +4693,29 @@ async def peek_check(browser):
 
 
 async def league_switch_check(browser):
-    """リーグはページのいちばん上の「セ・リーグ｜パ・リーグ」で切り替える（設定にはない）。日程・順位・データ・選手のページだけに出る。
-    戦況はいつもセ・リーグ（パを選んでいても）。戦況から戻ると選んでいたリーグ。開き直しても選んだリーグを覚えている。
+    """リーグはページのいちばん上の「セ・リーグ｜パ・リーグ」で切り替える（設定にはない）。戦況・日程・順位・データ・選手のページに出る（試合の「今日」・CSは両リーグ）。
+    戦況のリーグは別に覚える（最初はセ・リーグ）。戦況から戻ると選んでいたリーグ。開き直しても選んだリーグを覚えている。
     セ→パ→セと戻したとき、選んでいた球団（日程・応援歌・チーム別成績）が元に戻る。テーマを切り替えたら設定が閉じる"""
     pg, errs = await open_page(browser, 390, "pawa")
     ng = []
     r = await pg.evaluate("""() => { const ng = [], bar = document.getElementById('lgBar'), vis = () => !bar.hidden && bar.getBoundingClientRect().height > 0;
       if (document.getElementById('lgSeg')) ng.push('設定にリーグの切り替えが残っている');
-      for (const t of ['magic', 'game', 'post']) { setTab(t); if (vis()) ng.push(`${t}：リーグの切り替えが出ている`); }
-      for (const t of ['cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) { setTab(t); if (!vis()) ng.push(`${t}：リーグの切り替えが出ない`); }
+      for (const t of ['game', 'post']) { setTab(t); if (vis()) ng.push(`${t}：リーグの切り替えが出ている`); }
+      for (const t of ['magic', 'cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) { setTab(t); if (!vis()) ng.push(`${t}：リーグの切り替えが出ない`); }
       setTab('cal'); S.calTeam = 'C'; keepTeam('calTeam', 'C'); S.songTeam = 'D'; keepTeam('songTeam', 'D'); S.ptTeam = 'S'; keepTeam('ptTeam', 'S'); renderAll();
       bar.querySelector('[data-lg="P"]').click();
       if (!isPL() || bar.querySelector('[data-lg="P"]').getAttribute('aria-pressed') !== 'true') ng.push('パ・リーグに切り替わらない');
       if (CL.join() !== 'H,F,B,E,L,M') ng.push(`パの球団にならない（${CL}）`);
-      setTab('magic'); if (isPL()) ng.push('パ・リーグを選んでいても戦況がセ・リーグにならない');
+      // 戦況のリーグは別に覚える：最初はセ・リーグ（ほかのページでパを選んでいても）。戦況でパにしても、ほかのページの選択は変わらない
+      setTab('magic'); if (isPL()) ng.push('ほかのページでパ・リーグを選んでいると、戦況までパ・リーグになる');
       if (!document.querySelector('#cards table') || !/ヤクルト|阪神|巨人/.test(document.getElementById('cards').textContent)) ng.push('戦況の順位表がセ・リーグでない');
       setTab('std'); if (!isPL()) ng.push('戦況から順位に移ると、選んでいたパ・リーグに戻らない');
+      setTab('std'); bar.querySelector('[data-lg="C"]').click(); setTab('magic'); bar.querySelector('[data-lg="P"]').click();
+      if (!isPL() || !/ソフトバンク|日本ハム|西武/.test(document.getElementById('cards').textContent)) ng.push('戦況でパ・リーグを押してもパ・リーグの戦況にならない');
+      if ([...document.querySelectorAll('.cl-only')].some(e => e.offsetParent)) ng.push('パ・リーグの戦況に支払いなどセ・リーグだけの部分が出ている');
+      setTab('std'); if (isPL()) ng.push('戦況でパ・リーグにすると、ほかのページまでパ・リーグになる');
+      setTab('magic'); if (!isPL()) ng.push('戦況で選んだパ・リーグを覚えていない');
+      bar.querySelector('[data-lg="C"]').click(); setTab('std'); bar.querySelector('[data-lg="P"]').click();
       // 試合の「今日」：両リーグ（セ→パの順・見出しつき）。交流戦は1回だけ
       setTab('game'); renderGame(); { const lgs = [...document.querySelectorAll('#today .lgsec')].map(e => e.dataset.lg).filter(x => x !== 'JS'), ks = [...document.querySelectorAll('#today .tg[data-gk]')].map(e => e.dataset.gk);
         const want = ['C', 'P'].filter(lg => withLeague(lg, () => DATA.games.some(g => g.d === jst().iso && inLg(g)) || postToday().length));
@@ -5118,6 +5183,8 @@ async def main():
         await off_name_tag_check(browser)
         await cs_cal_check(browser)
         await post_starters_check(browser)
+        worker_refs_check()
+        await post_live_check(browser)
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)

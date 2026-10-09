@@ -12,6 +12,23 @@ COL = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b|\bwhite\b|\bblack\b", re.
 KEEP = re.compile(r"\.badge|ykb|offtag|\.stp|lamp|\.ldot|wxhi|\.hb\b|#splash|\.sp-icon|\.sp-ring|\.sp-dot|pressed|\.on\b|\.tb\b|\.tb-")   # .tb：CS・日本シリーズのトーナメント表（どの見た目でも夜空の舞台）
 
 
+def split_sel(sel):
+    """セレクタをカンマで分ける。:is(a,b) や :not(a,b) のかっこの中のカンマでは分けない（10/9 分けてしまい、壊れた指定のせいでその後ろのスタイルが全部効かなくなった）"""
+    out, depth, cur = [], 0, ""
+    for ch in sel:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return out
+
+
 def rgb(c):
     c = c.lower()
     if c == "white":
@@ -138,7 +155,7 @@ def build(css):
         if not new:
             continue
         parts = []
-        for s1 in sel.split(","):
+        for s1 in split_sel(sel):
             s1 = s1.strip()
             if "theme-pawa" in s1 and "not(.theme-pawa)" not in s1:
                 continue

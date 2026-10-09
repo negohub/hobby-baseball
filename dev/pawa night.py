@@ -11,6 +11,23 @@ KEEP = re.compile(r"ptile|otile|sptile|rtile|\.rc\b|rcw|offtag|\.badge|ykb|\.stp
 COL = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b|\bwhite\b", re.I)
 
 
+def split_sel(sel):
+    """セレクタをカンマで分ける。:is(a,b) や :not(a,b) のかっこの中のカンマでは分けない（10/9 分けてしまい、壊れた指定のせいでその後ろのスタイルが全部効かなくなった）"""
+    out, depth, cur = [], 0, ""
+    for ch in sel:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return out
+
+
 def rgb(c):
     c = c.lower()
     if c == "white":
@@ -109,7 +126,7 @@ def build(css):
         if not new:
             continue
         parts = []
-        for s1 in sel.split(","):
+        for s1 in split_sel(sel):
             s1 = s1.strip()
             if "html.theme-pawa" not in s1:
                 continue

@@ -2916,6 +2916,72 @@ html.sty-light:not(.theme-pawa) .bk-rule{background:#FFF8DC;border-color:#E9CF7A
 html.sty-light:not(.theme-pawa) .bk-rule b{color:#7A5200}
 html.theme-pawa.pawa-dark .bk-rule b{color:#FFD84D}
 .offtag.k-promote{background:#1B7F3B !important;color:#fff !important}
+
+/* ===== すっきり（10/9）：スポナビのアプリのように。上の見出しは小さく1行、ページの切り替えは下線のタブ、見出しは札でなく文字、枠と影は控えめ ===== */
+/* 上の見出し：題名と最終更新だけ（ブランド名は小さいヘッダーに残す） */
+.top:not(#z){padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.brand .j:not(#z){display:none}
+.brand h1:not(#z){grid-column:1/-1;font-size:24px;line-height:1.15;margin-top:6px;letter-spacing:.01em;padding-right:104px}
+.brand .hwarn:not(#z){grid-column:1/-1}
+.brand .upd:not(#z){margin-top:3px;padding-bottom:12px;font-size:11.5px}
+.stripe:not(#z){height:3px}
+/* ページの切り替え（今日｜日程…）：下線のタブ。中の切り替え（打撃｜投手など）と見分けがつくように */
+.subnav:not([hidden]):not(#z){display:grid !important;gap:0 !important;padding:0 !important;margin:0 -16px 16px !important;width:calc(100% + 32px) !important;max-width:none;border:0 !important;border-bottom:1px solid var(--v3line) !important;border-radius:0 !important;background:transparent !important;box-shadow:none !important}
+.subnav button:not(#z){position:relative;min-height:46px;background:transparent !important;border:0 !important;border-radius:0 !important;box-shadow:none !important;color:var(--v3muted) !important;font-weight:700 !important;font-size:15px !important;text-shadow:none !important}
+.subnav button[aria-pressed="true"]:not(#z){color:var(--v3text) !important;font-weight:900 !important}
+.subnav button[aria-pressed="true"]:not(#z)::after{content:"";position:absolute;left:18%;right:18%;bottom:-1px;height:3px;border-radius:2px;background:var(--v3accent)}
+/* 月度：1段の下線のタブ（「月度」は短く「月」に。読み上げは「◯月度」） */
+html #chips:not(#z):not(#y){display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;overflow:visible;margin:0 -16px 16px;padding:0;width:auto;border-bottom:1px solid var(--v3line)}
+html #chips .chip:not(#z):not(#y){position:relative;width:100%;min-width:0;min-height:46px;margin:0;padding:0 1px;justify-content:center;background:transparent !important;border:0 !important;border-radius:0 !important;box-shadow:none !important;color:var(--v3muted) !important;font-weight:700 !important;text-shadow:none !important;letter-spacing:0}
+html #chips .chip[aria-pressed="true"]:not(#z):not(#y){color:var(--v3text) !important;font-weight:900 !important}
+html #chips .chip[aria-pressed="true"]:not(#z):not(#y)::after{content:"";display:block;position:absolute;left:14%;right:14%;bottom:-1px;height:3px;border-radius:2px;background:var(--v3accent)}
+html #chips:not(#z):not(#y){padding:0 4px}
+html #chips .chip .md{margin:0 -.4em}
+html #chips .chip .dot:not(#z){position:absolute;top:9px;right:6px;width:6px;height:6px;border-radius:50%}
+html.theme-pawa{--v3line:rgba(19,38,74,.18);--v3muted:#5B6E91;--v3text:#13264A;--v3accent:#F2A900}
+html.theme-pawa.pawa-dark:not(#z){--v3line:rgba(222,229,242,.16);--v3muted:#9DB0D3;--v3text:#FFFFFF;--v3accent:#FFC21A}
+html.sty-light:not(.theme-pawa):not(#z){--v3line:rgba(10,10,12,.12);--v3muted:#5E5E68;--v3text:#0A0A0C;--v3accent:#0A0A0C}
+html:not(.theme-pawa){--v3line:rgba(255,255,255,.12);--v3muted:#8B8B95;--v3text:#F2F2F4;--v3accent:#F2F2F4}
+/* パワプロ風：空の上では下線のタブが読みにくいので、白い帯に載せる */
+html.theme-pawa :is(.subnav:not([hidden]),#chips):not(#z):not(#y){background:rgba(255,255,255,.94) !important;border-top:1px solid var(--v3line) !important}
+/* 見出し：パワプロ風も札ではなく文字（題名と同じ白抜き・左に黄色の線） */
+html.theme-pawa h2:not(#z):not(#y){display:flex;background:none !important;box-shadow:none !important;text-shadow:0 2px 0 #163A78,2px 0 0 #163A78,-2px 0 0 #163A78,0 -2px 0 #163A78,2px 2px 0 #163A78,-2px 2px 0 #163A78,2px -2px 0 #163A78,-2px -2px 0 #163A78 !important;color:#fff !important;padding:0 0 0 14px !important;border-radius:0 !important;position:relative;font-size:18px}
+html.theme-pawa h2:not(#z):not(#y)::before{content:"";display:block !important;position:absolute;left:0;top:3px;bottom:3px;width:4px;border-radius:2px;background:#F2A900}
+html.theme-pawa h2:not(#z):not(#y) small{color:#13264A !important;text-shadow:none !important;background:rgba(255,255,255,.85);border-radius:999px;padding:2px 8px;align-self:center}
+/* 枠：パワプロ風の太い紺の縁と影を、細く・うすく */
+html.theme-pawa :is(.ywrap,.tg,.trend,.lu,.howto,.rules,.conds,.mecard,#detail,.se-box,.pend,.srow,.songhead,.sgrp):not(#z):not(#y){border:1.5px solid #B8C7E2 !important;box-shadow:0 2px 8px rgba(19,38,74,.08) !important}
+html.theme-pawa .hero:not(#z):not(#y){border:1.5px solid #B8C7E2 !important;box-shadow:0 2px 8px rgba(19,38,74,.08),inset 6px 0 0 var(--tc) !important}
+html.theme-pawa #offList .ofteam:not(#z):not(#y){border:1.5px solid #B8C7E2;box-shadow:0 2px 8px rgba(19,38,74,.08)}
+html.theme-pawa #offList .ofsec:not(#z):not(#y){border-top:1px solid #D5DFEE}
+html.theme-pawa #offList .ofh small:not(#z):not(#y){border-width:1.5px;border-color:#B8C7E2}
+html.theme-pawa :is(select,#songQ):not(#z):not(#y){border-width:1.5px !important;border-color:#8FA6CC !important;box-shadow:none !important}
+/* 日程の曜日：青い札でなく白い帯 */
+html.theme-pawa .cal .wd:not(#z):not(#y){background:rgba(255,255,255,.92) !important;color:#13264A !important;font-weight:800}
+html.theme-pawa .cal .wd.sa:not(#z):not(#y){color:#1E62C8 !important}
+html.theme-pawa .cal .wd.su:not(#z):not(#y){color:#D32F2F !important}
+/* 試合速報：1試合だけの日は横長の1枚 */
+.ts-grid .ts-one:not(#z){grid-column:1/-1;gap:8px;padding:12px 14px}
+.ts-one .ts-w{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.ts-one .ts-t.lo b{opacity:.55}
+.ts-one .ts-sc{display:flex;align-items:center;gap:8px}
+.ts-one .ts-sc b{font-size:24px;font-weight:900;line-height:1}
+.ts-one .ts-sc b.lo{opacity:.5}
+.ts-one .ts-sc i{font-style:normal;font-size:13px;font-weight:800;color:var(--muted)}
+html.theme-pawa .ts-one .ts-sc i{color:#3B5480}
+html.theme-pawa :is(.pn-g,.ts-g:not(.live)):not(#z):not(#y){border:1.5px solid #B8C7E2 !important;box-shadow:0 2px 8px rgba(19,38,74,.08) !important}
+html.theme-pawa .ts-g.live:not(#z):not(#y){border-width:1.5px !important;box-shadow:0 2px 8px rgba(19,38,74,.08) !important}
+/* 表の見出し：濃い青の帯をやめて、うすい青に紺の字 */
+html.theme-pawa :is(.ytab thead th,.putab th,.race .rcH th):not(#z):not(#y){background:#E3ECF7 !important;color:#13264A !important;text-shadow:none !important;font-weight:800 !important}
+html.theme-pawa .pbox:not(#z):not(#y){border:1.5px solid #B8C7E2 !important;box-shadow:0 2px 8px rgba(19,38,74,.08) !important}
+html.theme-pawa .tgx:not(#z):not(#y){border-width:1.5px !important;border-color:#8FA6CC !important;box-shadow:none !important}
+/* 6つの切り替え（2段）は、丸い帯でなく角の丸い枠 */
+.seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:20px !important}
+html.theme-pawa .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:16px !important}
+.seg:not(.subnav):has(> button:nth-child(4)) > button:not(#z):not(#y){border-radius:14px !important}
+/* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
+html.theme-pawa .seg:not(.subnav):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
+html.theme-pawa .seg:not(.subnav) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
+html.theme-pawa .seg:not(.subnav) button[aria-pressed="true"]:not(#z):not(#y){background:linear-gradient(180deg,#FFE680,#FFB300) !important}
 </style>
 </head>
 <body>
@@ -3639,8 +3705,11 @@ function renderTodayStrip(a) {
     const st = live ? `<i class="ts-dot"></i>${esc(g.inn || "試合中")}` : fin ? "試合終了" : canc ? ((GSTOP[g.d + g.h + g.a] || {}).kind === "ノーゲーム" ? "ノーゲーム" : "中止") : `${esc(g.t || "")} 開始`;
     const row = (t, me, op) => `<span class="ts-r${fin && me < op ? " lo" : ""}" style="${tv(t)}"><i class="badge se-bd">${sn(t)}</i><b class="num">${on ? me : ""}</b></span>`;
     const race = !post.length && !fin && !canc && open(g.h) && open(g.a);
-    return `<button type="button" class="ts-g${live ? " live" : ""}${canc ? " canc" : ""}${race ? " race" : ""}" ${post.length ? "data-pk" : "data-gk"}="${g.d}|${g.h}|${g.a}" aria-label="${fn(g.a)}対${fn(g.h)}">
-      <span class="ts-st">${st}</span>${row(g.a, g.as, g.hs)}${row(g.h, g.hs, g.as)}${race ? `<em class="ts-tag">直接対決</em>` : post.length ? `<em class="ts-tag">第${g.no}戦</em>` : ""}</button>`;
+    // 1試合だけの日（CSなど）：小さい札がぽつんと1つにならないよう、横長の1枚（ホームが左）
+    const one = list.length === 1, side = (t, me, op, r) => `<span class="pn-t ts-t${fin && me < op ? " lo" : ""}" style="${tv(t)}">${r ? "" : `<i class="badge se-bd">${sn(t)}</i>`}<b>${fn(t)}</b>${r ? `<i class="badge se-bd">${sn(t)}</i>` : ""}</span>`;
+    const body = one ? `<span class="pn-tm ts-w">${side(g.h, g.hs, g.as)}<span class="ts-sc num">${on ? `<b class="${fin && g.hs < g.as ? "lo" : ""}">${g.hs}</b><i>-</i><b class="${fin && g.as < g.hs ? "lo" : ""}">${g.as}</b>` : `<i>vs</i>`}</span>${side(g.a, g.as, g.hs, true)}</span>` : `${row(g.a, g.as, g.hs)}${row(g.h, g.hs, g.as)}`;
+    return `<button type="button" class="ts-g${one ? " ts-one" : ""}${live ? " live" : ""}${canc ? " canc" : ""}${race ? " race" : ""}" ${post.length ? "data-pk" : "data-gk"}="${g.d}|${g.h}|${g.a}" aria-label="${fn(g.a)}対${fn(g.h)}">
+      <span class="ts-st">${st}</span>${body}${race ? `<em class="ts-tag">直接対決</em>` : post.length ? `<em class="ts-tag">第${g.no}戦</em>` : ""}</button>`;
   }).join("")}</div>`;
 }
 $("todayStrip").addEventListener("click", e => {
@@ -3681,7 +3750,7 @@ function renderMagic() {
   const results = {};
   list.forEach(p => (results[p.id] = analyze(DATA.games, p, CONFIG)));
   // 月度：全部の月度が画面に収まるボタン（3つずつ並べる。横にすべらせない）。集計中の月度は赤い印
-  $("chips").innerHTML = list.map(p => `<button class="chip" role="tab" type="button" data-id="${p.id}" aria-pressed="${p.id === S.period.id}">${p.label}${monthDone(results[p.id]) ? "" : `<span class="dot" title="集計中"></span>`}</button>`).join("");
+  $("chips").innerHTML = list.map(p => `<button class="chip" role="tab" type="button" data-id="${p.id}" aria-pressed="${p.id === S.period.id}" aria-label="${p.label}">${p.label.replace(/度$/, "").replace(/・/g, `<span class="md">・</span>`)}${monthDone(results[p.id]) ? "" : `<span class="dot" title="集計中"></span>`}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => (b.onclick = () => { pickPeriod(CONFIG.periods.find(p => p.id === b.dataset.id)); }));
   const a = results[S.period.id];
   renderTodayStrip(a);
@@ -3747,7 +3816,7 @@ function renderMagic() {
     if (at < 0) at = tRows.length;
     tRows.splice(at, 0, { ...R, g: R.w + R.l + R.d, ex: true, extra: "" });   // 対象外の札は出さない（行が薄く・順位が「-」で分かる）
   }
-  $("cards").innerHTML = yTable(tRows, "マジック");
+  $("cards").innerHTML = yTable(tRows, "M");   // マジック（見出しは1行に収める）
 
   const isCur = S.period.id === defaultPeriod(periods()).id;
   $("cards").insertAdjacentHTML("beforeend", isCur && !monthDone(a) ? pendingHTML(a.rows.map(r => r.t)) : "");
@@ -3925,8 +3994,8 @@ const IC = {
 /* ---------- スポナビ形式の順位表（戦況・順位で共通） ---------- */
 // rows: [{t, g, w, l, d, gb(null=1位), rem, first(1位の勝差欄に出す文字), cls, sub(担当など), extra(右端の追加列)}]
 function yTable(rows, extraHead) {
-  const v = h => h.split("").join("<br>");
-  const head = ["順位", "チーム名", "試合", "勝利", "敗戦", "引分", "勝率", "勝差", "残試合"];
+  const v = h => h;
+  const head = ["順位", "チーム名", "試合", "勝", "敗", "分", "勝率", "差", "残"];   // 見出しは1行（縦に折らない）
   const top = rows.find(x => !x.ex) || rows[0];
   let rk = 0;
   return `<div class="ywrap"><table class="ytab"><thead><tr>${head.map((h, i) => `<th class="${i === 1 ? "tnm" : ""}">${i === 1 ? h : v(h)}</th>`).join("")}${extraHead ? `<th class="xc">${v(extraHead)}</th>` : ""}</tr></thead><tbody>` +
@@ -7339,8 +7408,8 @@ function renderStdh() {
   const y = years.includes(S.stdhYear) ? S.stdhYear : years[0];
   sel.innerHTML = years.map(x => `<option value="${x}"${x === y ? " selected" : ""}>${x}年</option>`).join("");
   if (!y) { tbl.innerHTML = `<tbody><tr><td class="recmsg">歴代の順位表はまだありません（次の自動更新で読み込みます）</td></tr></tbody>`; return; }
-  const v = h => h.split("").join("<br>");
-  const head = ["順位", "チーム名", "試合", "勝利", "敗戦", "引分", "勝率", "勝差"];
+  const v = h => h;
+  const head = ["順位", "チーム名", "試合", "勝", "敗", "分", "勝率", "差"];
   // 表は順位タブの順位表（今季）と同じ見出し・同じ部品
   tbl.innerHTML = `<thead><tr>${head.map((h, i) => `<th class="${i === 1 ? "tnm" : ""}">${i === 1 ? h : v(h)}</th>`).join("")}</tr></thead><tbody>` +
     std[y][lg].map((r, i) => { const sh = histShort(r[0]); return `<tr style="${histStyle(r[0])}"><td class="num">${i + 1}</td><td class="tnm${[...sh].length >= 6 ? " lnm6" : ""}"><a title="${esc(r[0])}">${esc(sh)}</a></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td class="num">${esc(r[5])}</td><td class="num">${i === 0 ? "優勝" : esc(r[6] || "-")}</td></tr>`; }).join("") + `</tbody>`;

@@ -4349,11 +4349,15 @@ async def ux_check(browser):
                 if (document.getElementById('swHint')) ng.push('シーズン後もスワイプの案内が出ている');
                 { const p0 = periods()[0]; pickPeriod(p0); if (se.hidden) ng.push('シーズン後に前の月度を選ぶと最終結果が消える（画面がずれる）'); pickPeriod(defaultPeriod(periods())); }
                 seasonOver = so2; renderAll(); }
-              // ⑧ 月度：全部の月度のボタン（「月度」付き）が画面に収まる。押すとその月度になる
+              // ⑧ 月度：全部の月度のボタン（「◯月」、1段）が画面に収まる。押すとその月度になる
               { setTab('magic'); const cs = [...document.querySelectorAll('#chips .chip')];
                 if (cs.length !== periods().length) ng.push(`月度のボタンの数が違う（${cs.length} / ${periods().length}）`);
                 if (cs.some(c => { const r = c.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth || c.scrollWidth > c.clientWidth + 1; })) ng.push('月度のボタンが画面からはみ出す・切れる');
-                if (cs.some(c => !/月度/.test(c.textContent))) ng.push('月度のボタンに「月度」がない');
+                if (cs.some(c => !/月$/.test(c.textContent.trim()) || !/月度$/.test(c.getAttribute('aria-label') || ''))) ng.push('月度のボタンが「◯月」（読み上げは「◯月度」）になっていない');
+                if (new Set(cs.map(c => Math.round(c.getBoundingClientRect().top))).size > 1) ng.push('月度のボタンが1段に収まっていない');
+                // 順位表の見出しは1行（縦に折らない）
+                { const ths = [...document.querySelectorAll('#cards thead th')]; setTab('std'); ths.push(...document.querySelectorAll('#std thead th')); setTab('magic');
+                  if (ths.some(th => th.querySelector('br') || /[試勝敗分差残]/.test(th.textContent) && th.textContent.length > 2)) ng.push('順位表の見出しが縦に折れている・長い'); }
                 const p0 = periods()[0]; cs[0].click();
                 if (S.period.id !== p0.id) ng.push('月度のボタンを押してもその月度にならない');
                 pickPeriod(defaultPeriod(periods())); }

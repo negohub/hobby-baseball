@@ -2979,10 +2979,9 @@ html.theme-pawa .tgx:not(#z):not(#y){border-width:1.5px !important;border-color:
 .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:20px !important}
 html.theme-pawa .seg:not(.subnav):has(> button:nth-child(4)):not(#z):not(#y){border-radius:16px !important}
 .seg:not(.subnav):has(> button:nth-child(4)) > button:not(#z):not(#y){border-radius:14px !important}
-/* データ「今季」：打撃｜投手はページのいちばん上に1つ（横いっぱい） */
-#stSeg:not(#z):not(#y){display:flex;width:100%;margin:0 0 4px}
-#stSeg button:not(#z){flex:1 1 0}
-#v-stats #stSeg + h2:not(#z){margin-top:24px}
+/* データ「今季」：打撃｜投手はページのいちばん上に1つ（ほかのページの「打撃｜投手」と同じ大きさ。横いっぱいはリーグの切り替えだけ） */
+html body #v-stats > #stSeg + h2:not(#z):not(#y){margin-top:24px !important}
+html.theme-pawa #stSeg:not(#z):not(#y){display:flex;width:fit-content}   /* 下の見出しとの間を、スタイリッシュと同じ24pxに */
 /* 試合の「今日」：リーグごとの見出し */
 .lgh:not(#z){display:flex;align-items:baseline;gap:8px;margin:18px 0 8px;font-size:14px;font-weight:800;color:var(--v3text)}
 .lgsec:first-child > .lgh:not(#z){margin-top:4px}
@@ -3019,6 +3018,17 @@ html.theme-pawa.pawa-dark body .ykc-th:not(#z):not(#y):not(#x):not(#w):not(#v){b
 /* 1文字の名前（東・牧など）の札：2文字の名前と同じ大きさ（字は真ん中） */
 html.theme-pawa .ptile.sptile.n1:not(.posic):not(#z){box-sizing:border-box;min-width:calc(13.5px * 2.7 + 22px);justify-content:center}
 @media (max-width:374px){html.theme-pawa .ptile.sptile.n1:not(.posic):not(#z){min-width:calc(12.5px * 2.7 + 16px)}}
+/* パワプロ風の選手名鑑：背番号の丸い札は出さない（長押しで背番号が見られる）。♪（応援歌あり）はそのまま */
+html.theme-pawa #songList .tno small:not(#z):not(#y){display:none}
+/* ===== 間隔のきまり（10/10）：リーグの切り替えの下20・見出しの下12・切り替え（球団・選ぶ欄・ボタン）どうしと、その下の中身まで12・まとまりの間36 ===== */
+#lgBar:not([hidden]):not(#z):not(#y){margin:0 0 14px}
+:is(#lgBar ~ .view) > h2:first-child:not(#z):not(#y),#lgBar ~ .view > :first-child > h2:first-child:not(#z):not(#y){margin-top:0}
+.view > :is(.teams,.rkbar,.venbar,.monthbar,.songhead,.songq,.catsel,.seg:not(.sseg):not(.subnav)):not(#z):not(#y){margin-top:0 !important;margin-bottom:12px !important}
+#songList > .scount:first-child:not(#z){margin-top:0}
+#v-magic > :is(#alert, #meCard, #todayStrip):not(:empty):not([hidden]):not(#z):not(#y){margin-top:0 !important;margin-bottom:12px !important}
+#v-magic > #cards:not(#z):not(#y){margin-top:0 !important}
+/* 選ぶ欄（1つだけの段）：横いっぱいにせず、中身に合った幅（ボタンと並ぶときは残りの幅） */
+:is(.view, .rkbar:not(:has(> .seg))) > .catsel:not(#z):not(#y){display:block;flex:0 0 auto;width:fit-content;min-width:200px;max-width:100%}
 /* 中の切り替え（2〜3つ）：1つの枠の中のボタン（離れた丸いボタンを並べない） */
 html.theme-pawa .seg:not(.subnav):not(.mseg):not([hidden]):not(#z):not(#y){display:inline-flex;gap:0;padding:3px;border:1.5px solid #B8C7E2 !important;border-radius:999px;background:#fff !important}
 html.theme-pawa .seg:not(.subnav):not(.mseg) button:not(#z):not(#y){border:0 !important;box-shadow:none !important;background:transparent !important}
@@ -6417,9 +6427,9 @@ function renderSong() {
   const pg = SONG_PAGE[t];
   $("songHead").innerHTML = `<div class="sh" style="${tv(t)}"><span class="badge">${sn(t)}</span><b>${TEAM[t].n}</b>${pg ? `<a href="${pg[0]}" target="_blank" rel="noopener">応援歌</a>` : ""}</div>`;
   const roster = ((DATA.rosters || {})[t] || []);
-  // 選手名鑑：その球団の全選手（ほかの球団へ移籍した選手は出さない）。個別の応援歌がある選手には ♪。押すと選手の画面（成績・今日の結果・応援歌）
-  const moved = x => { const o = offOf(t, x.n); return !!(o && o.kind === "out"); };
-  const all = roster.filter(x => !moved(x));
+  // 選手名鑑：その球団の今の選手（移籍・戦力外・自由契約・引退・退団の発表があった選手は出さない。人数にも数えない）。個別の応援歌がある選手には ♪。押すと選手の画面（成績・今日の結果・応援歌）
+  const gone = x => { const o = offOf(t, x.n); return !!(o && SONG_GONE.has(o.kind)); };
+  const all = roster.filter(x => !gone(x));
 
   const q = S.songQ.replace(/\s+/g, "");
   const hit = x => !q || x.n.replace(/\s+/g, "").includes(q) || x.no === q;
@@ -6573,6 +6583,8 @@ async function liveStats(key) {
 const OFF_LABEL = { promote: "支配下", cut: "戦力外", offer: "戦力外", free: "自由契約", leave: "退団", retire: "引退", mgr: "退任", out: "移籍", fa_decl: "FA宣言", in: "加入", draft: "ドラフト",
   coach_out: "退団", coach_in: "就任", coach_move: "配置転換" };
 const OFF_IN = new Set(["in", "draft", "coach_in"]);
+// 選手名鑑から外す（チームを離れる）発表：移籍・戦力外・育成再契約の打診・自由契約・引退・退団。FA宣言（残るか未定）は外さない
+const SONG_GONE = new Set(["out", "cut", "offer", "free", "retire", "leave"]);
 const OFF_STAFF = new Set(["mgr", "coach_out", "coach_in", "coach_move"]);   // 首脳陣（監督・コーチ）   // 入団する選手（ほかは退団・残るかどうか未定）
 // 監督の現役時代のポジション（パワプロ風の名前のタイルの色に使う）。名前は空白なし
 const MGR_POS = { "藤川球児": "投", "阿部慎之助": "捕", "相川亮二": "捕", "井上一樹": "外", "新井貴浩": "内", "池山隆寛": "内",

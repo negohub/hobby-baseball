@@ -2797,6 +2797,8 @@ async def meikan_tile_check(browser):
     for theme in ["pawa", ""]:
         for width in [320, 390]:
             pg, errs = await open_page(browser, width, theme)
+            if theme == "pawa" and await pg.evaluate("setTab('song'), [...document.querySelectorAll('#songList .tno small')].some(e => e.getClientRects().length && getComputedStyle(e).display !== 'none')"):
+                bad(f"[選手名鑑 パワプロ風 幅{width}] 背番号の札が出ている（長押しで見られるので出さない）")
             for m in await pg.evaluate(JS):
                 bad(f"[選手名鑑の札 {'パワプロ風' if theme else 'スタイリッシュ'} 幅{width}] {m}")
             for e in errs:
@@ -4130,6 +4132,51 @@ async def player_name_color_check(browser):
         await pg.close()
 
 
+async def song_gone_check(browser):
+    """選手名鑑：移籍・戦力外・自由契約・引退・退団の発表があった選手は出さない。支配下・育成の人数もその分減らす。FA宣言の選手は残す"""
+    for th in ["pawa", ""]:
+        pg, errs = await open_page(browser, 390, th)
+        r = await pg.evaluate("""() => { const ng = [], t = 'T', ro = (DATA.rosters[t] || []), sup = ro.filter(x => !x.dev), dev = ro.filter(x => x.dev);
+          if (sup.length < 3 || !dev.length) return ['検査に使う名簿が足りない'];
+          const off0 = DATA.offseason;
+          DATA.offseason = { season: 2026, teams: {}, seen: {}, items: [{ t, n: sup[0].n, no: sup[0].no, kind: 'retire', date: '2026-10-01' }, { t, n: sup[1].n, no: sup[1].no, kind: 'cut', date: '2026-10-01' },
+            { t, n: dev[0].n, no: dev[0].no, kind: 'free', date: '2026-10-01' }, { t, n: sup[2].n, no: sup[2].no, kind: 'fa_decl', date: '2026-10-01' }] };
+          if (typeof offItemsCache !== 'undefined') try { offItemsCache = null; } catch (e) {}
+          S.songTeam = t; S.songQ = ''; setTab('song'); renderSong();
+          const names = [...document.querySelectorAll('#songList [data-song]')].map(b => b.dataset.song.split('|')[1]);
+          for (const x of [sup[0], sup[1], dev[0]]) if (names.includes(x.n)) ng.push(`退団した${x.n}が名鑑に残っている`);
+          if (!names.includes(sup[2].n)) ng.push(`FA宣言の${sup[2].n}が名鑑から消えている`);
+          const cnt = document.querySelector('#songList .scount').textContent;
+          if (!cnt.includes(`支配下${sup.length - 2}人`) || !cnt.includes(`育成${dev.length - 1}人`)) ng.push(`人数が退団の分減っていない（${cnt}・支配下${sup.length}→${sup.length - 2}・育成${dev.length}→${dev.length - 1}）`);
+          DATA.offseason = off0; renderSong(); return ng; }""")
+        for m in r:
+            bad(f"[選手名鑑の退団 {'パワプロ風' if th else 'スタイリッシュ'}] {m}")
+        for e in errs:
+            bad(f"[選手名鑑の退団] 画面のエラー {e}")
+        await pg.close()
+
+
+async def balance_check(browser):
+    """間隔のきまり：リーグの切り替えの下は20px、切り替え（球団のボタン・選ぶ欄・ボタンの段）の下は12px（次の切り替え・中身まで）。
+    1つだけの選ぶ欄は横いっぱいにしない（中身に合った幅）。両テーマ・幅320/390"""
+    for th in ["pawa", ""]:
+        for w in [390, 320]:
+            pg, errs = await open_page(browser, w, th)
+            r = await pg.evaluate("""() => { const ng = [];
+              for (const t of ['cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) { setTab(t); renderAllNow();
+                const v = document.getElementById('v-' + t), kids = [...v.children].filter(e => e.offsetParent && e.getBoundingClientRect().height > 0);
+                const lb = document.getElementById('lgBar').getBoundingClientRect(), g0 = Math.round(kids[0].getBoundingClientRect().top - lb.bottom);
+                if (Math.abs(g0 - 20) > 1) ng.push(`${t}：リーグの切り替えの下のあきが${g0}px（20pxのはず）`);
+                kids.forEach((e, i) => { const n = kids[i + 1]; if (!n || !e.matches('.teams, .rkbar, .venbar, .monthbar, .songhead, .songq, .catsel, .seg:not(.sseg)')) return;
+                  const g = Math.round(n.getBoundingClientRect().top - e.getBoundingClientRect().bottom); if (Math.abs(g - 12) > 1 && !(n.tagName === 'H2' && g === 24)) ng.push(`${t}：${e.id || e.className.split(' ')[0]} の下のあきが${g}px（12pxのはず）`); });
+                for (const c of v.querySelectorAll(':scope > .catsel, :scope > .rkbar > .catsel, :scope > .offsel')) { if (!c.offsetParent || c.closest('.rkbar')?.querySelector(':scope > .seg')) continue;
+                  if (c.getBoundingClientRect().width > v.getBoundingClientRect().width * .8) ng.push(`${t}：選ぶ欄（${c.id || c.className}）が横いっぱいに伸びている`); } }
+              return ng; }""")
+            for m in r:
+                bad(f"[間隔のきまり {'パワプロ風' if th else 'スタイリッシュ'} 幅{w}] {m}")
+            await pg.close()
+
+
 async def post_starters_check(browser):
     """CS・日本シリーズの予告先発とテレビ中継：試合の前の日（試合のない日）に、試合タブの「次戦」と日程のその日の詳しい欄に出る（ホームが左）。
     中継プログラムが、日程ページの試合（CSも）の放送予定を、今日とあしたの分読めるか"""
@@ -5285,6 +5332,8 @@ async def main():
         await starter_card_check(browser)
         await one_char_tile_check(browser)
         await player_name_color_check(browser)
+        await song_gone_check(browser)
+        await balance_check(browser)
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)

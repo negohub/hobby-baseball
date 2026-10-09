@@ -4040,6 +4040,41 @@ async def post_live_check(browser):
         await pg.close()
 
 
+async def starter_card_check(browser):
+    """試合前の予告先発（スポナビのように）：球団ごとに背番号・名前・投げる手、成績の表（CS・今季などの行、真ん中に項目）、見どころ、テレビ。
+    ホームが左。4つの見た目・幅320/390で、はみ出し・11px未満の字・読みにくい字がない"""
+    PRE = """{ tv: '日本テレビ系、BS日テレ', net: 'DAZN', pt: '巨人はクライマックスシリーズ初戦のマウンドを井上に託す。',
+      yk: { h: { t: 'G', no: '97', th: '左投', n: '井上 温大', st: [{ k: 'CS', era: '-', g: '0', w: '0', l: '0' }, { k: '今季', era: '2.02', g: '23', w: '10', l: '8' }] },
+            a: { t: 'DB', no: '11', th: '左投', n: '東 克樹', st: [{ k: 'CS', era: '-', g: '0', w: '0', l: '0' }, { k: '今季', era: '2.40', g: '25', w: '12', l: '6' }] } } }"""
+    for theme, mode in [("pawa", "light"), ("pawa", "dark"), ("", "dark"), ("", "light")]:
+        for w in [390, 320]:
+            label = f"[試合前の予告先発 {'パワプロ風' if theme else 'スタイリッシュ'}・{mode} 幅{w}]"
+            pg, errs = await open_page(browser, w, theme)
+            r = await pg.evaluate("""() => { const ng = [], day = jst().iso; store('mode', '%s'); applyPawaMode();
+              DATA.games = DATA.games.filter(g => g.d !== day); const cs = { d: day, h: 'G', a: 'DB', st: 'sched', t: '14:00', stage: 'CS1', no: 1, lg: 'C' };
+              postToday = () => (lgNow() === 'C' ? [cs] : []); PRE = { [day + '|G|DB']: %s }; TAB_DIRTY.add('game'); setTab('game'); renderGame();
+              const c = document.querySelector('#today .ykc'); if (!c) return ['予告先発の欄が出ない'];
+              const ns = [...c.querySelectorAll('.ykc-n')].map(e => e.textContent.replace(/\s/g, ''));
+              if (!/^井上/.test(ns[0] || '') || !/^東/.test(ns[1] || '')) ng.push(`ホーム（巨人）が左になっていない・名前が違う（${ns}）`);
+              if (!/左投/.test(ns[0] || '')) ng.push('投げる手が出ない');
+              const rows = [...c.querySelectorAll('.ykc-s tbody tr')].map(tr => [...tr.children].map(x => x.textContent).join(','));
+              if (rows.join('|') !== '0,0,0,-,CS,0,0,0,-|23,10,8,2.02,今季,25,12,6,2.40') ng.push(`成績の表が違う（${rows.join('|')}）`);
+              if (!/井上に託す/.test((document.querySelector('#today .ykc-pt') || {}).textContent || '')) ng.push('見どころが出ない');
+              if (!document.querySelector('#today .bc')) ng.push('テレビ（放送予定）が出ない');
+              for (const e of document.querySelectorAll('#today .ykc, #today .ykc *')) { const r = e.getBoundingClientRect(); if (!r.width) continue;
+                if (r.right > innerWidth + 0.5 || r.left < -0.5) { ng.push(`はみ出す（${e.className || e.tagName}）`); break; }
+                if (e.children.length === 0 && e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflow !== 'visible') { ng.push(`字が切れる（${e.textContent}）`); break; } }
+              const cells = [...c.querySelectorAll('.ykc-s td')]; if (cells.some(x => x.scrollWidth > x.clientWidth + 1)) ng.push('成績の表の数字が枠に収まらない');
+              c.scrollIntoView({ block: 'start' }); return ng; }""" % (mode, PRE))
+            await pg.wait_for_timeout(700)   # 明るさを切り替えたときの色の動きが終わってから
+            r += await pg.evaluate(NIGHT_CONTRAST_JS, "予告先発")
+            for m in r:
+                bad(f"{label} {m}")
+            for e in errs:
+                bad(f"{label} 画面のエラー {e}")
+            await pg.close()
+
+
 async def post_starters_check(browser):
     """CS・日本シリーズの予告先発とテレビ中継：試合の前の日（試合のない日）に、試合タブの「次戦」と日程のその日の詳しい欄に出る（ホームが左）。
     中継プログラムが、日程ページの試合（CSも）の放送予定を、今日とあしたの分読めるか"""
@@ -4049,7 +4084,10 @@ async def post_starters_check(browser):
         src = wk.read_text(encoding="utf-8") + "\nexport { preOn };\n"
         test = r"""
 import { preOn } from "./w.mjs";
-const top = (date, h, a, tv) => `<html><head><title>${date} ${h}vs.${a} - プロ野球 - スポーツナビ</title></head><body><h2>放送予定</h2><table><tr><th>テレビ放送</th><td>${tv}（番組表.Gガイド）</td></tr><tr><th>ネット配信</th><td>DAZN</td></tr></table></body></html>`;
+const yk = `<h2 class="bb-head">予告先発</h2><h1>巨人</h1><table><tr><th>背番号</th><th>投</th><th>選手名</th></tr><tr><td>97</td><td>左投</td><td><a href="/npb/player/1900019/top">井上 温大</a></td></tr></table><table><tr><th></th><th>防御率</th><th>登板</th><th>勝利</th><th>敗戦</th></tr><tr><th>CS</th><td>-</td><td>0</td><td>0</td><td>0</td></tr><tr><th>今季</th><td>2.02</td><td>23</td><td>10</td><td>8</td></tr></table>`
+  + `<h1>DeNA</h1><table><tr><th>背番号</th><th>投</th><th>選手名</th></tr><tr><td>11</td><td>左投</td><td><a href="#">東 克樹</a></td></tr></table><table><tr><th></th><th>防御率</th><th>登板</th><th>勝利</th><th>敗戦</th></tr><tr><th>CS</th><td>-</td><td>0</td><td>0</td><td>0</td></tr><tr><th>今季</th><td>2.40</td><td>25</td><td>12</td><td>6</td></tr></table>`
+  + `<table><tr><th>最近の成績</th><th>結果</th><th>投球回</th></tr><tr><td>10/3 vs.DeNA</td><td></td><td>6</td></tr></table><h2>見どころ</h2><p>巨人はクライマックスシリーズ初戦のマウンドを井上に託す。</p>`;
+const top = (date, h, a, tv) => `<html><head><title>${date} ${h}vs.${a} - プロ野球 - スポーツナビ</title></head><body>${yk}<h2>放送予定</h2><table><tr><th>テレビ放送</th><td>${tv}（番組表.Gガイド）</td></tr><tr><th>ネット配信</th><td>DAZN</td></tr></table></body></html>`;
 const pages = {
   "schedule": `<a href="/npb/game/2021039474/index">東京ドーム 巨人 DeNA</a><a href="/npb/game/2021051118/index">見どころ</a><a href="/npb/game/2021039477/index">未定</a>`,
   "2021039474": top("2026年10月10日", "読売ジャイアンツ", "横浜DeNAベイスターズ", "日本テレビ系、BS日テレ"),
@@ -4062,6 +4100,10 @@ const want = { "G-DB": "日本テレビ系、BS日テレ" };
 const got = Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.tv]));
 if (JSON.stringify(got) !== JSON.stringify(want)) console.log("NG CSの放送予定 " + JSON.stringify(got));
 if ((g["G-DB"] || {}).net !== "DAZN") console.log("NG ネット配信 " + JSON.stringify(g["G-DB"]));
+const Y = (g["G-DB"] || {}).yk || {};
+if (JSON.stringify([Y.h && [Y.h.no, Y.h.th, Y.h.n], Y.a && [Y.a.no, Y.a.th, Y.a.n]]) !== JSON.stringify([["97", "左投", "井上 温大"], ["11", "左投", "東 克樹"]])) console.log("NG 予告先発の選手 " + JSON.stringify(Y));
+if (JSON.stringify((Y.h || {}).st) !== JSON.stringify([{ k: "CS", era: "-", g: "0", w: "0", l: "0" }, { k: "今季", era: "2.02", g: "23", w: "10", l: "8" }])) console.log("NG 予告先発の成績 " + JSON.stringify((Y.h || {}).st));
+if (!/^巨人はクライマックスシリーズ初戦/.test((g["G-DB"] || {}).pt || "")) console.log("NG 見どころ " + JSON.stringify((g["G-DB"] || {}).pt));
 """
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "w.mjs").write_text(src, encoding="utf-8")
@@ -5185,6 +5227,7 @@ async def main():
         await post_starters_check(browser)
         worker_refs_check()
         await post_live_check(browser)
+        await starter_card_check(browser)
         await ven_check(browser)
         await peek_rerender_check(browser)
         await rank_format_check(browser)

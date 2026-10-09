@@ -543,7 +543,8 @@ async def wording_check(browser):
             if lg == "P":
                 await pg.evaluate("switchLeague('P')")
                 await pg.wait_for_timeout(200)
-            for tab in ["magic", "game", "cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
+            # 試合の「今日」は両リーグ、戦況はいつもセ・リーグなので、リーグごとのページだけ（戦況はセのときに見る）
+            for tab in (["magic"] if lg == "C" else []) + ["cal", "std", "stdh", "stats", "rec", "ven", "song", "off"]:
                 txt = await pg.evaluate("""(tab) => { setTab(tab); const v = document.getElementById('v-' + tab); v.querySelectorAll('details').forEach(d => d.open = true); return v.innerText; }""", tab)
                 for line in txt.split("\n"):
                     if lg == "P" and OK_P in line:
@@ -729,7 +730,7 @@ async def quiet_outs_check(browser):
         jst = () => ({ y: +d.slice(0, 4), m: +d.slice(5, 7), d: +d.slice(8), iso: d }); liveWanted = () => false;
         S.period = defaultPeriod(periods()); setTab('game'); renderGame();
         const a = analyze(DATA.games, defaultPeriod(periods()), CONFIG), decided = a.rows.filter(x => !CONFIG.excluded.includes(x.t)).every(x => x.safe || x.eliminated);
-        for (const c of document.querySelectorAll('#today .tg[data-gk]')) {
+        for (const c of document.querySelectorAll('#today .lgsec[data-lg="C"] .tg[data-gk]')) {   // 試合の「今日」は両リーグ。ここではセ・リーグの試合だけ
           const o = c.querySelectorAll('.tgo');
           if (!decided) { seen.open++; if (o.length !== 2) ng.push(`${d}：月度の最下位が決まっていないのに「○○が勝ったら」が出ない（${c.dataset.gk}）`); }
           else if (o.length) { const nil = [...o].every(x => x.querySelector('li.nil') && x.querySelectorAll('li').length === 1); if (nil) ng.push(`${d}：月度の最下位が決まっていて何も動かないのに「○○が勝ったら」が出ている（${c.dataset.gk}）`); }
@@ -3012,14 +3013,15 @@ async def speed_health_check(browser):
         rows = await pg.evaluate("openSheet(), [...document.querySelectorAll('#healthBox .hi b')].map(b => b.textContent)")
         if "チーム別成績" not in rows:
             bad(f"[データの状態] チーム別成績の行がない：{rows}")
-        # パ・リーグ（担当者なし）では「あなたの担当」を出さない。セ・リーグでは出す
+        # 「あなたの担当」（セ・リーグの戦況）は、どのリーグのページから設定を開いても出す。戦況はパを選んでいてもセ・リーグ
         if await pg.evaluate("document.getElementById('meSec').hidden"):
-            bad("[あなたの担当] セ・リーグで設定に「あなたの担当」が出ない")
-        await pg.evaluate("switchLeague('P'); setTab('magic')")
-        if not await pg.evaluate("document.getElementById('meSec').hidden"):
-            bad("[あなたの担当] パ・リーグでも設定に「あなたの担当」が出ている")
-        if await pg.evaluate("document.getElementById('meCard').innerText.trim()"):
-            bad("[あなたの担当] パ・リーグの戦況に「あなた」のカードが出ている")
+            bad("[あなたの担当] 設定に「あなたの担当」が出ない")
+        await pg.evaluate("switchLeague('P'); setTab('std'); closeSheet(); openSheet()")
+        if await pg.evaluate("document.getElementById('meSec').hidden"):
+            bad("[あなたの担当] パ・リーグのページから開くと設定に「あなたの担当」が出ない")
+        await pg.evaluate("closeSheet(); setTab('magic')")
+        if await pg.evaluate("isPL() || (!seasonOver() && !document.getElementById('meCard').innerText.trim())"):
+            bad("[あなたの担当] パ・リーグを選んでいると戦況がセ・リーグにならない・「あなた」のカードが出ない")
         await pg.evaluate("switchLeague('C')")
         # スタイリッシュでは「名前の色（パワプロ風）」の欄を出さない（最初はパワプロ風なので、スタイリッシュに切り替えてから見る）
         await pg.evaluate("document.querySelector('#themeSeg button[data-theme=\"\"]').click()")
@@ -4633,33 +4635,45 @@ async def peek_check(browser):
 
 
 async def league_switch_check(browser):
-    """設定でリーグ・テーマを切り替えたら設定が閉じて画面が切り替わる。セ→パ→セと戻したとき、選んでいた球団（日程・応援歌・チーム別成績）が元に戻る"""
+    """リーグはページのいちばん上の「セ・リーグ｜パ・リーグ」で切り替える（設定にはない）。日程・順位・データ・選手のページだけに出る。
+    戦況はいつもセ・リーグ（パを選んでいても）。戦況から戻ると選んでいたリーグ。開き直しても選んだリーグを覚えている。
+    セ→パ→セと戻したとき、選んでいた球団（日程・応援歌・チーム別成績）が元に戻る。テーマを切り替えたら設定が閉じる"""
     pg, errs = await open_page(browser, 390, "pawa")
     ng = []
-    await pg.evaluate("setTab('cal'); S.calTeam = 'C'; keepTeam('calTeam', 'C'); S.songTeam = 'D'; keepTeam('songTeam', 'D'); S.ptTeam = 'S'; keepTeam('ptTeam', 'S'); renderAll()")
-    await pg.evaluate("openSheet()"); await pg.wait_for_timeout(400)
-    await pg.evaluate("document.querySelector('#lgSeg button[data-lg=\"P\"]').click()"); await pg.wait_for_timeout(900)
-    r = await pg.evaluate("[isPL(), document.getElementById('sheet').hidden, document.querySelector('main').classList.contains('swapping')]")
-    if not r[0]: ng.append("パ・リーグに切り替わっていない")
-    if not r[1]: ng.append("リーグを切り替えても設定の画面が閉じない")
-    if r[2]: ng.append("画面の切り替えの途中のまま（薄いまま）")
-    await pg.evaluate("S.calTeam = 'H'; keepTeam('calTeam', 'H'); openSheet()"); await pg.wait_for_timeout(400)
-    await pg.evaluate("document.querySelector('#lgSeg button[data-lg=\"C\"]').click()"); await pg.wait_for_timeout(900)
-    r = await pg.evaluate("[isPL(), S.calTeam, S.songTeam, S.ptTeam]")
-    if r[0]: ng.append("セ・リーグに戻っていない")
-    if r[1:] != ["C", "D", "S"]: ng.append(f"セ・リーグに戻したとき、選んでいた球団が戻らない（日程・応援歌・チーム別成績＝{r[1:]}）")
-    await pg.evaluate("openSheet()"); await pg.wait_for_timeout(400)
-    await pg.evaluate("document.querySelector('#lgSeg button[data-lg=\"P\"]').click()"); await pg.wait_for_timeout(900)
-    if await pg.evaluate("S.calTeam") != "H": ng.append("パ・リーグに戻したとき、パで選んでいた球団が戻らない")
+    r = await pg.evaluate("""() => { const ng = [], bar = document.getElementById('lgBar'), vis = () => !bar.hidden && bar.getBoundingClientRect().height > 0;
+      if (document.getElementById('lgSeg')) ng.push('設定にリーグの切り替えが残っている');
+      for (const t of ['magic', 'game', 'post']) { setTab(t); if (vis()) ng.push(`${t}：リーグの切り替えが出ている`); }
+      for (const t of ['cal', 'std', 'stdh', 'stats', 'ven', 'rec', 'song', 'off']) { setTab(t); if (!vis()) ng.push(`${t}：リーグの切り替えが出ない`); }
+      setTab('cal'); S.calTeam = 'C'; keepTeam('calTeam', 'C'); S.songTeam = 'D'; keepTeam('songTeam', 'D'); S.ptTeam = 'S'; keepTeam('ptTeam', 'S'); renderAll();
+      bar.querySelector('[data-lg="P"]').click();
+      if (!isPL() || bar.querySelector('[data-lg="P"]').getAttribute('aria-pressed') !== 'true') ng.push('パ・リーグに切り替わらない');
+      if (CL.join() !== 'H,F,B,E,L,M') ng.push(`パの球団にならない（${CL}）`);
+      setTab('magic'); if (isPL()) ng.push('パ・リーグを選んでいても戦況がセ・リーグにならない');
+      if (!document.querySelector('#cards table') || !/ヤクルト|阪神|巨人/.test(document.getElementById('cards').textContent)) ng.push('戦況の順位表がセ・リーグでない');
+      setTab('std'); if (!isPL()) ng.push('戦況から順位に移ると、選んでいたパ・リーグに戻らない');
+      // 試合の「今日」：両リーグ（セ→パの順・見出しつき）。交流戦は1回だけ
+      setTab('game'); renderGame(); { const lgs = [...document.querySelectorAll('#today .lgsec')].map(e => e.dataset.lg).filter(x => x !== 'JS'), ks = [...document.querySelectorAll('#today .tg[data-gk]')].map(e => e.dataset.gk);
+        const want = ['C', 'P'].filter(lg => withLeague(lg, () => DATA.games.some(g => g.d === jst().iso && inLg(g)) || postToday().length));
+        if (lgs.join() !== want.join()) ng.push(`試合の「今日」に両リーグの試合が出ない・順が違う（${lgs} / ${want}）`);
+        if (new Set(ks).size !== ks.length) ng.push('試合の「今日」に同じ試合が2回出ている'); }
+      S.calTeam = 'H'; keepTeam('calTeam', 'H'); setTab('cal');
+      bar.querySelector('[data-lg="C"]').click();
+      if (isPL()) ng.push('セ・リーグに戻らない');
+      if ([S.calTeam, S.songTeam, S.ptTeam].join() !== 'C,D,S') ng.push(`セ・リーグに戻したとき、選んでいた球団が戻らない（${[S.calTeam, S.songTeam, S.ptTeam]}）`);
+      bar.querySelector('[data-lg="P"]').click(); if (S.calTeam !== 'H') ng.push('パ・リーグに戻したとき、パで選んでいた球団が戻らない');
+      return ng; }""")
+    ng += r
+    if await pg.evaluate("localStorage.getItem('league')") != "P": ng.append("選んだリーグ（パ）を端末に覚えていない")
+    await pg.evaluate("document.querySelector('#lgBar [data-lg=\"C\"]').click()")
     await pg.evaluate("openSheet()"); await pg.wait_for_timeout(400)
     await pg.evaluate("document.querySelector('#themeSeg button[data-theme=\"\"]').click()"); await pg.wait_for_timeout(900)
     r = await pg.evaluate("[isPawa(), document.getElementById('sheet').hidden]")
     if r[0]: ng.append("テーマが切り替わっていない")
     if not r[1]: ng.append("テーマを切り替えても設定の画面が閉じない")
     for m in ng:
-        bad(f"[設定の切り替え] {m}")
+        bad(f"[リーグの切り替え] {m}")
     for e in errs:
-        bad(f"[設定の切り替え]: 画面のエラー {e}")
+        bad(f"[リーグの切り替え]: 画面のエラー {e}")
     await pg.close()
 
 

@@ -3346,8 +3346,10 @@ applyLeague("C");   // 最初は戦況（セ・リーグ）。日程・順位・
 const inLg = g => CL.includes(g.h) || CL.includes(g.a);
 const S = { tab: "magic", period: null, periodPicked: false, calTeam: store("calTeam") || "T", calMonth: null, calSel: null };
 S.lgPref = store("league") === "P" ? "P" : "C";
-// リーグごとのページ（上に「セ・リーグ｜パ・リーグ」）。戦況はセ・リーグだけ、試合の「今日」とCS・日本Sは両リーグ
-const LG_PAGE = new Set(["cal", "std", "stdh", "stats", "ven", "rec", "song", "off"]);
+// 戦況のリーグは、ほかのページとは別に覚える（最初はセ・リーグ＝支払いのゲーム。パは最下位争いだけ）
+S.magicLg = store("magicLg") === "P" ? "P" : "C";
+// リーグごとのページ（上に「セ・リーグ｜パ・リーグ」）。試合の「今日」とCS・日本Sは両リーグ
+const LG_PAGE = new Set(["magic", "cal", "std", "stdh", "stats", "ven", "rec", "song", "off"]);
 // あなたの担当（球団の記号。"none"＝選ばない、null＝まだ聞いていない）
 S.me = store("me");
 const ME = () => (S.me && S.me !== "none" && CONFIG.owners[S.me] ? S.me : null);
@@ -3617,7 +3619,7 @@ function goPage(t) {
 }
 function setTab(t) {
   if (S.tab && S.tab !== t && !$("v-" + S.tab).hidden) SCROLL_AT[S.tab] = window.scrollY;
-  const wantLg = t === "magic" ? "C" : LG_PAGE.has(t) ? S.lgPref : null;
+  const wantLg = t === "magic" ? S.magicLg : LG_PAGE.has(t) ? S.lgPref : null;
   if (wantLg && wantLg !== lgNow()) setLeague(wantLg);
   S.tab = t;
   $("lgBar").hidden = !LG_PAGE.has(t); paintLgSeg();
@@ -7141,7 +7143,7 @@ function switchLeague(lg) {
   S.lgPref = lg === "P" ? "P" : "C"; store("league", S.lgPref);
   setLeague(S.lgPref);
 }
-// 表示のリーグだけを変える（戦況に行くときのセ・リーグなど。選んでいるリーグは変えない）
+// 表示のリーグだけを変える（戦況に行くときなど。ほかのページで選んでいるリーグは変えない）
 function setLeague(lg) {
   if ((isPL() ? "P" : "C") === lg) return;
   // 今のリーグで選んでいた球団を覚えてから切り替え、切り替えた先のリーグで前に選んでいた球団に戻す
@@ -7174,7 +7176,9 @@ function applyFromSheet(apply) {
 }
 document.querySelectorAll("#lgBar button").forEach(b => (b.onclick = () => {
   if (b.dataset.lg === lgNow()) return;
-  autoGame = false; switchLeague(b.dataset.lg);
+  autoGame = false;
+  if (S.tab === "magic") { S.magicLg = b.dataset.lg; store("magicLg", S.magicLg); setLeague(S.magicLg); }   // 戦況だけのリーグ
+  else switchLeague(b.dataset.lg);
   const bar = $("lgBar"), top = bar.getBoundingClientRect().top + window.scrollY - 70;
   if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top) });   // 下まで見ていたら、リーグの切り替えが見えるところへ
 }));

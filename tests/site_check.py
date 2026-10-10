@@ -2539,6 +2539,7 @@ async def pitch_tile_check(browser):
           S.open[k] = true; S.lu = S.lu || {}; renderAll(); setTab('game');
           const box = document.querySelector('.tgd');
           if (!box) return ['一球速報が開けない'];
+          fitNames();   // 長い名前を札に収める（描いた次の瞬間に動くもの。ここでは先に）
           const groups = { '投手・打者': '.pn3 .ptile', '走者': '.ptile.rtile', '打順': '.lnm .ptile:not(.posic)', '打順の守備位置': '.lnm .ptile.posic', '投手の表': '.putab td.pnx .ptile' };
           for (const [n, sel] of Object.entries(groups)) {
             const ws = [...box.querySelectorAll(sel)].map(e => Math.round(e.getBoundingClientRect().width));
@@ -2803,6 +2804,7 @@ async def meikan_tile_check(browser):
       DATA.offseason = { season: 2026, items: Object.entries(DATA.rosters).flatMap(([t, ro]) => ro.filter((x, i) => i % 3 === 0).map(x => ({ t, n: x.n, no: x.no, kind: 'cut', date: '2026-10-01' }))), teams: {}, seen: {} };
       for (const lg of ['C', 'P']) { switchLeague(lg); for (const t of CL) { S.songTeam = t; S.songQ = ''; setTab('song'); renderSong();
         document.querySelectorAll('#songList details').forEach(d => (d.open = true));
+        document.querySelectorAll('#songList .sgrp').forEach(e => (e.style.contentVisibility = 'visible')); fitNames();
         const tiles = [...document.querySelectorAll('#songList .ptile')];
         for (const b of tiles) { const nb = b.querySelector('b'), T = b.getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(nb); const ink = rg.getBoundingClientRect(), nm = nb.textContent;
           if (ink.left < T.left + 1 || ink.right > T.right - 1 || ink.top < T.top || ink.bottom > T.bottom) out.push(`${t}：${nm} が枠からはみ出す`);
@@ -2824,7 +2826,8 @@ async def meikan_tile_check(browser):
               for (let nd; (nd = tw.nextNode());) for (let i = 0; i < nd.length; i++) { const r1 = document.createRange(); r1.setStart(nd, i); r1.setEnd(nd, i + 1); const c = r1.getBoundingClientRect(); if (!c.width) continue;
                 if (!best || c.top < best.c.top - 2 || (Math.abs(c.top - best.c.top) <= 2 && c.left > best.c.left)) best = { c, ch: nd.data[i] }; }
               if (best) { const m = cx.measureText(best.ch), fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, base = best.c.top + (best.c.height - fa - fd) / 2 + fa;
-                const gx = best.c.left + m.actualBoundingBoxRight, gy = base - m.actualBoundingBoxAscent;
+                const sx = (getComputedStyle(nb).transform.match(/matrix\\(([\\d.]+)/) || [0, 1])[1] * 1;   // 横に詰めた名前は、字の幅もその分だけ
+                const gx = best.c.left + m.actualBoundingBoxRight * sx, gy = base - m.actualBoundingBoxAscent;
                 if ((R.right - gx) + (gy - R.top) < R.width + 1) out.push(`${t}：${nm} が♪の角にかかる（すき間${((R.right - gx) + (gy - R.top) - R.width).toFixed(1)}px）`); } }
             else { const p = b.querySelector('.tpos'), P = p.getBoundingClientRect();
               if (X(P, R)) out.push(`${t}：${nm} の守備位置と♪が重なる`);
@@ -4140,6 +4143,60 @@ async def starter_card_check(browser):
             await pg.close()
 
 
+LONGNAME_SETUP = """(team) => {
+  const t = team, o = CL.find(x => x !== t), T = DATA.rosters[t] || [], O = DATA.rosters[o] || [];
+  const g = DATA.games.find(x => x.h === t && x.a === o) || DATA.games.find(x => x.h === t || x.a === t); if (!g) return 'no game';
+  const today = g.d; jst = () => ({ y: +today.slice(0, 4), m: +today.slice(5, 7), d: +today.slice(8), iso: today }); liveWanted = () => false;
+  Object.assign(g, { st: 'live', hs: 1, as: 0, inn: '5回裏' });
+  const k = g.d + gkey(g), len = x => x.n.replace(/\\s/g, '').length, srt = arr => arr.slice().sort((a, b) => len(b) - len(a));
+  const bats = srt(T.filter(x => x.p !== '投手')).slice(0, 9), pits = srt(T.filter(x => x.p === '投手')).slice(0, 4);
+  const L = arr => arr.map((x, i) => ({ order: i + 1, name: x.n, pos: '遊', avg: '.250', starter: true, results: ['見三振', '二ゴロ'] }));
+  GD[k] = { line: { innings: ['1','2','3','4','5','6','7','8','9'], away: { name: '', inn: ['0','0','0','0','0','','','',''], r: '0', h: '1', e: '0' }, home: { name: '', inn: ['1','0','0','0','','','','',''], r: '1', h: '3', e: '0' } },
+    plays: [], flows: [], pitchers: [pits.map(x => ({ name: x.n, ip: '1', np: 10, h: 0, hr: 0, so: 1, bb: 0, r: 0, er: 0, era: '1.00' })), pits.map(x => ({ name: x.n, ip: '1', np: 10, h: 0, hr: 0, so: 1, bb: 0, r: 0, er: 0, era: '1.00' }))],
+    lineups: [L(bats), L(bats)] };
+  PD[k] = { half: '5回裏', b: 1, s: 1, o: 1, bases: { '1': true, '3': true }, runners: { '1': bats[0].n, '3': bats[1].n }, batter: { name: bats[0].n, no: '1', hand: '左打', avg: '.250' }, pitcher: { name: pits[0].n, no: '1', hand: '右投', np: 50, bf: 10, era: '3.00' }, next: bats[1].n, pitches: [] };
+  S.open[k] = true; S.lu = S.lu || {}; renderAll(); setTab('game'); return 'ok'; }"""
+
+
+async def name_one_line_check(browser):
+    """名前の札（10/10）：エンカーナシオンなど長い名前も必ず1行。札の大きさはほかの名前と同じ（打順の札の幅がそろう）、字は11px以上、
+    名前は札の左右からはみ出さない（入らない分は横に詰める・詰めすぎない）。試合（打順・投手・次の打者など）と各タブ、2つの見た目×幅390/320"""
+    for theme in ["pawa", ""]:
+        for width in [390, 320]:
+            label = f"[名前の札は1行 {'パワプロ風' if theme else 'スタイリッシュ'} 幅{width}]"
+            pg, errs = await open_page(browser, width, theme)
+            await pg.evaluate(LONGNAME_SETUP, "DB")
+            await pg.evaluate("() => { const b = [...document.querySelectorAll('.tgd .gseg button')].find(x => x.textContent.trim() === '打順'); if (b) b.click(); }")
+            await pg.wait_for_timeout(300)
+            # 打順の札に長い名前（エンカーナシオン・ディベイニー）を入れる（速報の読み込みで打順が入れ替わっても、札の作りは同じ）
+            await pg.evaluate("""() => { const nm = ['エンカーナシオン', 'ディベイニー']; [...document.querySelectorAll('.tgd .lnm .ptile:not(.posic)')].slice(0, 2).forEach((t, i) => {
+              t.className = t.className.replace(/ (sp|n1|n5|n7)\\b/g, '') + nmCls(nm[i]); t.style.setProperty('--n', nm[i].length); t.querySelector('b').textContent = nm[i]; }); }""")
+            JS = """(tab) => { const ng = [];
+              if (tab !== 'game') { setTab(tab); document.querySelectorAll('#v-' + tab + ' details').forEach(d => (d.open = true)); }
+              // 画面の外で後回しにしている部分も、見えたとき（スクロールしたとき）と同じに並べてから
+              document.querySelectorAll('#v-' + tab + ' *').forEach(e => { if (getComputedStyle(e).contentVisibility === 'auto') e.style.contentVisibility = 'visible'; });
+              fitNames();
+              for (const b of document.querySelectorAll('#v-' + tab + ' .ptile > b, #v-' + tab + ' .pstile > b')) { if (!b.getClientRects().length || !b.textContent.trim()) continue;
+                const t = b.parentElement, r = document.createRange(); r.selectNodeContents(b); const rs = [...r.getClientRects()].filter(x => x.width > 1), R = r.getBoundingClientRect(), T = t.getBoundingClientRect(), nm = b.textContent;
+                if (new Set(rs.map(x => Math.round(x.top + x.height / 2))).size > 1) ng.push(`${nm} が2行になっている`);
+                if (R.left < T.left - .5 || R.right > T.right + .5) ng.push(`${nm} が札の左右からはみ出す`);
+                if (parseFloat(getComputedStyle(b).fontSize) < 10.95) ng.push(`${nm} の字が11px未満`);
+                const m = getComputedStyle(b).transform.match(/matrix\\(([\\d.]+)/); if (m && +m[1] < .6) ng.push(`${nm} を横に詰めすぎ（${m[1]}）`); }
+              if (tab === 'game') { const ws = [...document.querySelectorAll('.tgd .lnm .ptile:not(.posic)')].map(e => Math.round(e.getBoundingClientRect().width));
+                if (ws.length && new Set(ws).size > 1) ng.push(`打順の札の大きさがそろっていない：${[...new Set(ws)].join(',')}`);
+                if (!document.querySelector('.tgd .lnm .ptile.n7') && isPawa()) ng.push('打順に長い名前の札がない（検査の用意が違う）'); }
+              return ng; }"""
+            out = await pg.evaluate(JS, "game")
+            await pg.evaluate("POST_SHOWN = true; switchLeague('C'); S.songTeam = 'DB'; S.ptTeam = 'DB'; renderAll()")
+            for tab in ["std", "stdh", "stats", "ven", "rec", "song", "off"]:
+                out += [f"{tab}：{m}" for m in await pg.evaluate(JS, tab)]
+            for m in sorted(set(out))[:10]:
+                bad(f"{label} {m}")
+            for e in errs:
+                bad(f"{label}: 画面のエラー {e}")
+            await pg.close()
+
+
 async def one_char_tile_check(browser):
     """パワプロ風の名前の札：1文字の名前（東・牧など）も、2文字の名前と同じ大きさ（幅320・390、いろいろな場所）"""
     for w in [390, 320]:
@@ -4377,6 +4434,7 @@ async def ven_check(browser):
               const tb = document.getElementById('venTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push(`打撃の表がはみ出す（${tb.scrollWidth}/${tb.parentElement.clientWidth}）`);
               // 名前の札：長い名前でも字が札からはみ出さない（埋もれない）。打数の順で全員を出して確かめる
               document.querySelector('#venKey button[data-k="ab"]').click();
+              document.getElementById('venTbl').style.contentVisibility = 'visible'; fitNames();
               const cut = [...document.querySelectorAll('#venTbl .ptile b')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > b.closest('.ptile').getBoundingClientRect().right + 1).map(b => b.textContent);
               if (cut.length) ng.push(`名前が札からはみ出す（${cut}）`);
               // 名前の札は試合の打順の表の札とまったく同じ（幅・字の大きさ・2文字の字の間・真ん中そろえ）
@@ -5387,6 +5445,7 @@ async def main():
         await post_live_check(browser)
         await starter_card_check(browser)
         await one_char_tile_check(browser)
+        await name_one_line_check(browser)
         await player_name_color_check(browser)
         await song_gone_check(browser)
         await balance_check(browser)

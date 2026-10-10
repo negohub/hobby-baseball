@@ -1926,7 +1926,7 @@ html.theme-pawa #songList .ptile:not(#z){container-type:inline-size;padding:0 4p
 html.theme-pawa #songList .ptile.n5:not(#z){--fs:13px}
 html.theme-pawa #songList .ptile.n7:not(#z){--fs:11.5px}
 html.theme-pawa #songList .ptile:not(#z) b{font-size:max(11px, min(var(--fs), calc(100cqw / var(--w, 3.5)))) !important;margin:0 !important;max-width:100%;
-  white-space:normal;word-break:keep-all;overflow-wrap:anywhere;text-wrap:balance;text-align:center;line-height:1.1}
+  white-space:nowrap;text-align:center;line-height:1.1}
 html.theme-pawa #songList .ptile.sp:not(#z) b{margin-right:-.7em !important}
 /* 4字までの名前は、ほかのタブと同じ14pxのまま（1行） */
 html.theme-pawa #songList .ptile:not(.n5):not(.n7):not(#z) b{font-size:14px !important;white-space:nowrap}
@@ -1938,7 +1938,7 @@ html:not(.theme-pawa) #songList .ptile:not(#z){--fmax:16px}
 html:not(.theme-pawa) #songList .ptile:not(#z){height:auto;min-height:64px;padding-top:8px;padding-bottom:8px;box-sizing:border-box}
 html:not(.theme-pawa) #songList .ptile:not(#z) b{font-size:clamp(11px, calc(100cqw / var(--w, 3.5)), var(--fmax));line-height:1.25}
 /* 7字以上の名前：1行に入らなければ2行に（「・」のところ、なければ字の途中で折り返す） */
-html:not(.theme-pawa) #songList .ptile.n7:not(#z) b{font-size:13px;letter-spacing:0;white-space:normal;overflow-wrap:anywhere;word-break:keep-all;line-height:1.15;max-width:100%}
+html:not(.theme-pawa) #songList .ptile.n7:not(#z) b{font-size:13px;letter-spacing:0;white-space:nowrap;line-height:1.15}
 html:not(.theme-pawa) #songList .tno:not(#z){display:none}
 html:not(.theme-pawa) #songList .tft:not(#z){position:relative;z-index:1;display:flex;align-items:center;gap:5px;margin-top:3px}
 html:not(.theme-pawa) #songList .tft .tpos:not(#z){margin-top:0}
@@ -2156,9 +2156,8 @@ html:not(.theme-pawa) .ventab .vnm{display:inline-block;max-width:6.5em;overflow
 /* 名前の札は試合の打順の表（.lnm）とまったく同じ：幅84px（狭いiPhoneは72px）・真ん中そろえ・2文字は字の間をあける・長い名前は字を小さく */
 html.theme-pawa .ventab .sptile{--w:84px;--fs:13px;width:var(--w);height:26px;padding:0 4px;justify-content:center;box-sizing:border-box;overflow:hidden;flex:none}
 html.theme-pawa .ventab .sptile b{font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3))))}
-/* とても長い名前は、11pxより小さくせずに札の中で2行に */
-html.theme-pawa .ventab .sptile.n7:not(#z){height:auto;min-height:26px;padding:2px 4px}
-html.theme-pawa .ventab .sptile.n7 b:not(#z){white-space:normal;line-height:1.1;word-break:break-all;text-align:center}
+/* とても長い名前も1行（11pxより小さくしない。入らなければ fitNames で横に詰める） */
+html.theme-pawa .ventab .sptile.n7 b:not(#z){white-space:nowrap}
 @media (max-width:374px){.ventab th,.ventab td{font-size:11px !important;padding:6px 1px !important}.ventab thead th{font-size:9px !important;letter-spacing:-.03em}html.theme-pawa .ventab .sptile{--w:72px;--fs:12px}.ventab .ventm{width:16px;height:16px;font-size:8.5px;margin-right:2px}}
 /* 歴代記録 */
 /* 歴代記録は個人ランキングと同じ表（.rtab）。ここでは歴代記録だけにある所（期間の列・現役の印・名前の札に入れる長い名前）だけ */
@@ -2423,9 +2422,8 @@ html.theme-pawa .ptile.sp b:not(#z){letter-spacing:.7em !important;margin-right:
 html.theme-pawa .ptile.n5 b:not(#z){letter-spacing:0 !important;margin-right:0 !important}
 html.theme-pawa .ptile.n7 b:not(#z){letter-spacing:-.02em !important;margin-right:.02em !important}
 html.theme-pawa #rankList .ptile,html.theme-pawa #ptList .ptile,html.theme-pawa #songList .ptile,html.theme-pawa #offList .ptile.otl,html.theme-pawa .sp-h .pstile,html.theme-pawa .pn3 .sptile{height:34px !important;min-height:34px !important}
-/* 個人ランキング・チーム別成績：とても長い名前（7文字以上）は省略せず、札の中で2行に（札も少し高くなる） */
-html.theme-pawa .rtab td.pnm .ptile.n7:not(#z){height:auto !important;min-height:34px !important;padding:3px 4px}
-html.theme-pawa .rtab td.pnm .ptile.n7 b:not(#z){white-space:normal;line-height:1.15;word-break:break-all;text-align:center}
+/* 個人ランキング・チーム別成績：とても長い名前（7文字以上）も省略せず1行（札の大きさはほかと同じ。入らなければ fitNames で横に詰める） */
+html.theme-pawa .rtab td.pnm .ptile.n7 b:not(#z){white-space:nowrap}
 .ytab.rtab td.pnm:not(#z){white-space:normal;overflow-wrap:anywhere;word-break:break-all}
 /* 個人ランキングとチーム別成績は、まったく同じ列の幅（球団名の長さで幅が変わらないよう、幅を決めて並べる） */
 #rankList .rtab,#ptTbl{table-layout:fixed;width:100%}
@@ -2548,9 +2546,9 @@ html:not(.theme-pawa) #songList .ptile:not(#z){border-radius:var(--r-md,14px) !i
 /* 「画像にしてLINEで送る」：表の右下に小さく（画面いっぱいの大きなボタンにしない） */
 #shotBtn:not(#z){display:flex;align-items:center;justify-content:center;width:auto;min-height:44px;margin:12px 0 0 auto;padding:0 18px;font-size:13px;border-radius:999px}
 /* たたむ見出し：見出しの右に＋／－。たたんでいる間は中身を出さない */
-/* 名前の札（一球速報の投手・打者・次の打者・打順・投手の表・得点の流れ・走者）：字は11px未満にしない。入らない長い名前は2行に（行の長さをそろえる） */
+/* 名前の札（一球速報の投手・打者・次の打者・打順・投手の表・得点の流れ・走者）：字は11px未満にしない。名前は必ず1行（11pxでも入らない長い名前は fitNames で横に詰める） */
 html.theme-pawa .pn3 .sptile b:not(#z),html.theme-pawa .lnm .sptile b:not(#z),html.theme-pawa .putab td.pnx .sptile b:not(#z),html.theme-pawa .flow .fb .sptile b:not(#z),html.theme-pawa .ptile.rtile b:not(#z),html.theme-pawa .pnx3 .ptile.sptile b:not(#z){
-  font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))) !important;white-space:normal !important;text-wrap:balance;line-height:1.05;text-align:center;overflow-wrap:anywhere}
+  font-size:max(11px, min(var(--fs), calc((var(--w) - 12px) / var(--n, 3)))) !important;white-space:nowrap !important;line-height:1.05;text-align:center}
 /* 開いた試合の中の切り替え（一球速報｜打順｜投手｜ベンチ）：ほかの切り替えと同じボタンを、横幅いっぱいに等分 */
 .tgd .gseg:not(#z){display:flex;width:100%;box-sizing:border-box;margin:12px 0 10px}
 /* 球団名の列：セ・パで同じ幅に（名前の長いパ・リーグに合わせる。幅は枠線・余白こみ） */
@@ -4912,6 +4910,34 @@ function callNameRaw(t, name) {
 // 名前の長さの目印（パワプロ風の札は大きさをそろえ、長い名前は文字を小さくする）
 // 名前の札の字間・文字の大きさの目印（サイト全体で共通）：2文字以下 sp・3〜4文字 なし・5〜6文字 n5・7文字以上 n7（空白は数えない）
 const nmCls = nm => { const n = [...String(nm || "").replace(/\s+/g, "")].length; return n === 1 ? " sp n1" : n <= 2 ? " sp" : n >= 7 ? " n7" : n >= 5 ? " n5" : ""; };   // n1：1文字の名前（東・牧など）も2文字の札と同じ大きさ
+// 名前の札：枠の大きさはそのまま、名前は必ず1行。字を11pxまで小さくしても入らない長い名前（エンカーナシオンなど）は、横に詰めて札の中に収める
+// （描き直し・画面の幅が変わったとき・画面の外の部分が見えたときに、5文字以上の名前だけ測る。測る→書くの順でまとめて）
+let FIT_Q = false;
+function fitNames() {
+  FIT_Q = false;
+  const seen = b => b.checkVisibility ? b.checkVisibility({ contentVisibilityAuto: true }) : !!b.getClientRects().length;
+  const bs = [...document.querySelectorAll(".ptile.n5 > b, .ptile.n7 > b")].filter(seen);
+  bs.forEach(b => { if (b.dataset.fit) { ["transform", "margin-left", "margin-right", "display", "font-size", "transform-origin", "max-width", "width"].forEach(k => b.style.removeProperty(k)); delete b.dataset.fit; } });
+  const todo = [];
+  for (const b of bs) {
+    const t = b.parentElement, cs = getComputedStyle(t), bc = getComputedStyle(b), r = document.createRange();
+    let room = t.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - Math.max(0, parseFloat(bc.marginLeft) || 0) - Math.max(0, parseFloat(bc.marginRight) || 0) - 2;
+    r.selectNodeContents(b); const w = r.getBoundingClientRect().width;
+    const k = t.querySelector(":scope > .tsong"); if (k && getComputedStyle(k).display !== "none") room -= 16;   // 選手名鑑（パワプロ風）の右上の♪の角にかからないよう、左右を少しあける
+    if (room > 0 && w > room) todo.push([b, w, room, parseFloat(bc.fontSize)]);
+  }
+  // まず字を小さく（11pxまで）、それでも入らない分だけ横に詰める
+  for (const [b, w0, room, fs] of todo) { b.dataset.fit = "1";
+    const f2 = Math.max(11, Math.min(fs, fs * room / w0)), w = w0 * f2 / fs;
+    if (f2 < fs - .05) b.style.setProperty("font-size", f2.toFixed(2) + "px", "important");
+    if (w > room) { const d = (w - room) / 2, st = b.style;   // 左右の余白は、ほかの指定（!important）に負けないよう同じ強さで
+      st.setProperty("display", "inline-block", "important"); st.setProperty("max-width", "none", "important"); st.setProperty("width", "auto", "important"); st.setProperty("margin-left", `${-d}px`, "important"); st.setProperty("margin-right", `${-d}px`, "important");
+      st.setProperty("transform", `scaleX(${(room / w).toFixed(3)})`, "important"); st.transformOrigin = "50% 50%"; } }
+}
+const queueFit = () => { if (!FIT_Q) { FIT_Q = true; requestAnimationFrame(fitNames); } };
+new MutationObserver(queueFit).observe(document.documentElement, { childList: true, subtree: true });
+addEventListener("resize", queueFit);
+document.addEventListener("contentvisibilityautostatechange", queueFit, true);
 function pwName(t, name, fallback) {
   if (!isPawa() || !name) return esc(callName(t, name));
   const gr = rosterGroups(t, name, fallback), nm = callName(t, name);
@@ -6512,7 +6538,7 @@ function renderSong() {
     const gr = posGroups(t, x.n, x.p), n = [...sur.replace(/\s+/g, "")].length, off = offTag(t, x.n);
     const w = n <= 2 ? 2.8 : n >= 7 ? n * 1.02 : n >= 5 ? n * 1.08 : n * 1.16;   // 名前の幅（字の大きさの何倍か）。タイルの幅に合わせて字の大きさを決める
     const note = x.song ? `<i class="tsong" role="img" aria-label="応援歌あり">${NOTE_SVG}</i>` : "";
-    return `<button type="button" class="ptile ${TILEC[gr[0]] || POSC[x.p] || "pp"}${nmCls(sur)}${n >= 5 ? " lg" : ""}${off ? " ho" : ""}" style="${tileStyle(gr)};${tv(t)};--w:${w.toFixed(2)}" data-song="${esc(x.no)}|${esc(x.n)}"${x.song ? ` data-hs="1"` : ""}><span class="tno"><small class="num">${esc(x.no)}</small></span><i class="twm num" aria-hidden="true">${esc(x.no)}</i><b>${n >= 6 && !sur.includes("・") ? esc([...sur].slice(0, Math.ceil(n / 2)).join("")) + "<wbr>" + esc([...sur].slice(Math.ceil(n / 2)).join("")) : esc(sur)}</b><span class="tft"><em class="tpos">${gr.map(k => PLBL[k] || k).join("・")}</em>${note}</span>${note}${off}</button>`; };
+    return `<button type="button" class="ptile ${TILEC[gr[0]] || POSC[x.p] || "pp"}${nmCls(sur)}${n >= 5 ? " lg" : ""}${off ? " ho" : ""}" style="${tileStyle(gr)};${tv(t)};--w:${w.toFixed(2)}" data-song="${esc(x.no)}|${esc(x.n)}"${x.song ? ` data-hs="1"` : ""}><span class="tno"><small class="num">${esc(x.no)}</small></span><i class="twm num" aria-hidden="true">${esc(x.no)}</i><b>${esc(sur)}</b><span class="tft"><em class="tpos">${gr.map(k => PLBL[k] || k).join("・")}</em>${note}</span>${note}${off}</button>`; };
   let html = "";
   for (const [pos, dev] of groups) {
     const list = all.filter(x => x.dev === dev && (dev || x.p === pos) && hit(x)).sort((a, b) => Number(a.no) - Number(b.no) || a.no.length - b.no.length);

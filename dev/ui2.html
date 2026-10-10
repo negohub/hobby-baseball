@@ -3044,12 +3044,19 @@ html.theme-pawa .pb-g{border-width:2px;border-radius:14px;box-shadow:0 2px 0 rgb
 .pb-gh b{font-size:12px;font-weight:800}
 .pb-gh span{font-size:11.5px;color:var(--pb-mu);font-weight:600}
 .pb-td{align-self:center;font-style:normal;font-size:11px;font-weight:800;padding:0 6px;height:18px;line-height:18px;border-radius:9px;background:var(--pb-gold);color:#2A1E00}
-.pb-gr{display:flex;align-items:center;gap:6px;min-height:22px;white-space:nowrap;min-width:0}
+.pb-gr{display:flex;align-items:center;gap:6px;min-height:24px;white-space:nowrap;min-width:0}
+.pb-gt{display:inline-flex;flex:none}
+.pb-gt.l .badge{opacity:.4}
 .pb-gr .badge{width:22px;height:22px;font-size:11px;border-radius:5px}
-.pb-gr b{font-size:16px;font-weight:800;letter-spacing:.02em}
-.pb-gr small{font-size:11px;font-weight:700;color:var(--pb-mu)}
-.pb-gr em{margin-left:auto;font-style:normal;font-size:11px;color:var(--pb-mu);overflow:hidden;text-overflow:ellipsis}
-.pb-dr{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:5px;background:#5B6378;color:#fff;font-size:11px;font-weight:800}
+.pb-gr b{font-size:17px;font-weight:800;min-width:10px;text-align:center;color:var(--pb-mu)}
+.pb-gr b.w{color:var(--pb-tx)}
+.pb-g.glive .pb-gr b{color:var(--pb-tx)}
+.pb-gd{width:7px;height:2px;border-radius:1px;background:var(--pb-mu);flex:none}
+.pb-vs{font-style:normal;font-size:11px;font-weight:800;color:var(--pb-mu);padding:0 2px}
+.pb-gr em{margin-left:auto;font-style:normal;font-size:11.5px;font-weight:700;color:var(--pb-mu);overflow:hidden;text-overflow:ellipsis}
+.pb-gv{font-size:11px;color:var(--pb-mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb-inn{font-size:11px;font-weight:700;color:var(--pb-mu)}
+@media (max-width:374px){.pb-g{padding-left:8px;padding-right:8px}.pb-gr{gap:4px}.pb-gr .badge{width:20px;height:20px}.pb-gr b{font-size:16px}.pb-gr em{font-size:11px}}
 .pb-live{font-style:normal;font-size:11px;font-weight:900;color:#fff;background:#E5262E;padding:0 5px;height:18px;line-height:18px;border-radius:4px}
 .pb-g.glive{border-color:#E5262E;box-shadow:0 0 0 1px rgba(229,38,46,.35),0 0 14px rgba(229,38,46,.25)}
 .pb-g.gtd:not(.glive){border-color:var(--pb-gold)}
@@ -5930,25 +5937,29 @@ function renderBracket() {
   const jsNode = node({ k: "js", name: "日本シリーズ", l: seW, r: paW, wl: js.wh, wr: js.wl, win: champ, sub: sub(4, jsg), place: pos(150, 450, Y.js, Y.jsH) });
   const tree = `<div class="pb-tree" aria-label="勝ち上がり表"><div class="pb-in" style="height:${H}px">${svg}${jsNode}${half(C, "C")}${half(P2, "P")}${teams}</div></div>`;
   // ===== 日程・結果：ステージごと。CSはセ・パを左右に（同じ日が同じ段） =====
-  const card = (g, home, done) => {
-    const x = lv(g), today = g.d === j.iso, hi = Math.max(x.hs ?? 0, x.as ?? 0), lo = Math.min(x.hs ?? 0, x.as ?? 0), lead = x.hs > x.as ? x.h : x.as > x.hs ? x.a : null;
-    let r, k = "";
-    if (x.st === "final" && lead) { r = `${bd(lead)}<b class="num">${hi}-${lo}</b><small>勝ち</small>`; k = " gfin"; }
-    else if (x.st === "final") { r = `<span class="pb-dr">分</span><b class="num">${hi}-${lo}</b><small>引き分け</small>`; k = " gfin"; }
-    else if (x.st === "live") { r = `<i class="pb-live">LIVE</i>${lead ? bd(lead) : ""}<b class="num">${hi}-${lo}</b>${x.inn ? `<small>${esc(String(x.inn))}</small>` : ""}`; k = " glive"; }
-    else if (x.st === "canc") { r = `<small>中止</small>`; k = " gcx"; }
-    else if (done) { r = `<small>試合なし</small>`; k = " gno"; }
-    else { const tm = g.t || (home && (POST_TIME[`${g.lg || "C"}|${g.stage}|${home}`] || {})[g.no]); r = `<small>${tm ? `<span class="num">${tm}</span> 開始` : "開始時刻未定"}</small>`; }
-    const v = g.stage === "JS" && x.st !== "final" ? (home ? homeVenue(home) : `${g.home || ""}本拠地`) : "";
-    return `<div class="pb-g${k}${today ? " gtd" : ""}${g.only7 ? " g7" : ""}"><div class="pb-gh"><b>第${g.no}戦</b>${today ? `<i class="pb-td">今日</i>` : `<span class="num">${md(g.d)}（${wd(g.d)}）</span>`}</div>
-      <div class="pb-gr">${r}${v ? `<em>${esc(v)}</em>` : ""}</div>${g.only7 ? `<div class="pb-g7">7試合制のときだけ</div>` : ""}</div>`;
+  // 1試合：左がホーム・右がビジター（球団のマークと点）。勝った方の点を強く、負けた方のマークは薄く。試合前は「vs」と開始時刻
+  const card = (g, home, away, done) => {
+    const x = lv(g), today = g.d === j.iso, H = x.h || home, A = x.a || away, sc = x.st === "final" || x.st === "live";
+    const hs = x.hs ?? 0, as = x.as ?? 0, fin = x.st === "final", wH = sc && hs > as, wA = sc && as > hs;
+    const side = (t, l) => `<span class="pb-gt${fin && l ? " l" : ""}">${bd(t)}</span>`;
+    const mid = sc ? `<b class="num${wH ? " w" : ""}">${hs}</b><i class="pb-gd" aria-hidden="true"></i><b class="num${wA ? " w" : ""}">${as}</b>` : `<i class="pb-vs">vs</i>`;
+    let r = "", k = "";
+    if (fin) { k = " gfin"; if (hs === as) r = "引分"; }
+    else if (x.st === "live") k = " glive";
+    else if (x.st === "canc") { r = "中止"; k = " gcx"; }
+    else if (done) { r = "試合なし"; k = " gno"; }
+    else { const tm = g.t || (H && (POST_TIME[`${g.lg || "C"}|${g.stage}|${H}`] || {})[g.no]); r = tm || (g.stage === "JS" ? "" : "時刻未定"); }
+    const tag = x.st === "live" ? `<i class="pb-live">LIVE</i>${x.inn ? `<small class="pb-inn">${esc(String(x.inn))}</small>` : ""}` : today ? `<i class="pb-td">今日</i>` : `<span class="num">${md(g.d)}（${wd(g.d)}）</span>`;
+    const v = g.stage === "JS" ? (H ? homeVenue(H) : `${g.home || ""}本拠地`) + (!r && !sc && x.st === "sched" && !done ? "・時刻未定" : "") : "";
+    return `<div class="pb-g${k}${today ? " gtd" : ""}${g.only7 ? " g7" : ""}"><div class="pb-gh"><b>第${g.no}戦</b>${tag}</div>
+      <div class="pb-gr">${side(H, wA)}${mid}${side(A, wH)}${r ? `<em class="num">${esc(r)}</em>` : ""}</div>${v ? `<div class="pb-gv">${esc(v)}</div>` : ""}${g.only7 ? `<div class="pb-g7">7試合制のときだけ</div>` : ""}</div>`;
   };
   const range = gs => gs.length ? `${md(gs[0].d)}〜${md(gs[gs.length - 1].d)}` : "";
-  const col = (X, lg, st) => { const gs = st === "CS1" ? X.cs1 : X.csf, home = st === "CS1" ? X.rk[1] : X.rk[0], s = st === "CS1" ? X.s1 : X.sf;
-    return `<div class="pb-col"><div class="pb-ch"><i class="pb-lg ${lg === "C" ? "c" : "p"}">${lg === "C" ? "セ" : "パ"}</i><span>${home ? esc(homeVenue(home)) : "未定"}</span></div>${gs.map(g => card(g, home, !!s.win)).join("")}</div>`; };
+  const col = (X, lg, st) => { const gs = st === "CS1" ? X.cs1 : X.csf, home = st === "CS1" ? X.rk[1] : X.rk[0], away = st === "CS1" ? X.rk[2] : X.s1.win, s = st === "CS1" ? X.s1 : X.sf;
+    return `<div class="pb-col"><div class="pb-ch"><i class="pb-lg ${lg === "C" ? "c" : "p"}">${lg === "C" ? "セ" : "パ"}</i><span>${home ? esc(homeVenue(home)) : "未定"}</span></div>${gs.map(g => card(g, home, away, !!s.win)).join("")}</div>`; };
   const csSec = (st, name) => { const gs = [...C[st === "CS1" ? "cs1" : "csf"], ...P2[st === "CS1" ? "cs1" : "csf"]].sort((a, b) => a.d < b.d ? -1 : 1);
     return `<section class="pb-sec"><div class="pb-sh"><b>${name}</b><span class="num">${range(gs)}</span></div><div class="pb-cols">${col(C, "C", st)}${col(P2, "P", st)}</div></section>`; };
-  const jsSec = `<section class="pb-sec"><div class="pb-sh"><b>日本シリーズ</b><span class="num">${range(jsg)}</span></div><div class="pb-jsg">${jsg.map(g => card(g, g.home === "パ" ? paW : seW, !!champ)).join("")}</div></section>`;
+  const jsSec = `<section class="pb-sec"><div class="pb-sh"><b>日本シリーズ</b><span class="num">${range(jsg)}</span></div><div class="pb-jsg">${jsg.map(g => card(g, g.home === "パ" ? paW : seW, g.home === "パ" ? seW : paW, !!champ)).join("")}</div></section>`;
   const sched = `<div class="pb-sched"><h2>日程・結果</h2>${csSec("CS1", "ファーストステージ")}${csSec("CSF", "ファイナルステージ")}${jsSec}</div>`;
   // ファイナルの形が勝ち上がる球団で変わるときだけ1行
   const ruleLine = [[C, "セ"], [P2, "パ"]].filter(([X]) => !X.rule && X.rule2.two !== X.rule3.two).map(([X, L]) => { const two = r => r.two ? "先に5勝（アドバンテージ2勝）" : "先に4勝（アドバンテージ1勝）";

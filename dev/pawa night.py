@@ -7,7 +7,7 @@
 import colorsys
 import re
 
-KEEP = re.compile(r"ptile|otile|sptile|rtile|\.rc\b|rcw|offtag|\.badge|ykb|\.stp|pk-f|\.hd\b|hand|pressed|\.lamp|\.ldot|\.lv\b|wxhi|\.hb\b|\.stg\b|\.mt\.ng|first b|last b|\.ytag|\.tag\b|mvp|\.pcnt|\.abd|\.tb\b|\.tb-")
+KEEP = re.compile(r"ptile|otile|sptile|rtile|\.rc\b|rcw|offtag|\.badge|ykb|\.stp|pk-f|\.hd\b|hand|pressed|\.lamp|\.ldot|\.lv\b|wxhi|\.hb\b|\.stg\b|\.mt\.ng|first b|last b|\.ytag|\.tag\b|mvp|\.pcnt|\.abd|\.tb\b|\.tb-|\.pb\b|\.pb-")
 COL = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b|\bwhite\b", re.I)
 
 

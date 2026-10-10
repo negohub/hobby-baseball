@@ -1141,7 +1141,11 @@ async def tournament_check(browser):
                   const cards = [...box.querySelectorAll('.pb-g')], nG = C.cs1.length + C.csf.length + P.cs1.length + P.csf.length + jsg.length;
                   if (cards.length !== nG) ng.push(`日程・結果の試合の数が違う（${cards.length}・${nG}）`);
                   const g0 = C.cs1[0], c0 = box.querySelector('.pb-cols .pb-col .pb-g');
-                  if (g0 && g0.st === 'final' && c0) { const w = g0.hs > g0.as ? g0.h : g0.a; if (badge(c0.querySelector('.pb-gr')) !== sn(w) || !c0.querySelector('.pb-gr b').textContent.includes(`${Math.max(g0.hs, g0.as)}-${Math.min(g0.hs, g0.as)}`)) ng.push('日程・結果の第1戦の勝ち・スコアが違う'); }
+                  // 1試合：左がホーム・右がビジター（マークと点）、勝った方の点が強い
+                  if (g0 && g0.st === 'final' && c0) { const bs = [...c0.querySelectorAll('.pb-gr .badge')].map(e => e.textContent), ns = [...c0.querySelectorAll('.pb-gr b')];
+                    if (bs.join() !== [sn(g0.h), sn(g0.a)].join() || ns.map(e => e.textContent).join('-') !== `${g0.hs}-${g0.as}` || ns[0].classList.contains('w') !== g0.hs > g0.as || ns[1].classList.contains('w') !== g0.as > g0.hs) ng.push(`日程・結果の第1戦（ホーム・ビジター・点・勝ち）が違う：${c0.querySelector('.pb-gr').textContent}`); }
+                  // 試合前の試合にも両チームのマーク（決まっていない側は「?」）
+                  box.querySelectorAll('.pb-g').forEach(c => { if (c.querySelectorAll('.pb-gr .pb-gt').length !== 2) ng.push(`日程・結果に両チームが出ない：${c.textContent.trim().slice(0, 20)}`); });
                   if (!done && !box.querySelector('.pb-g.glive .pb-live')) ng.push('試合中の試合に LIVE が出ない');
                   // はみ出し・重なり・折り返し・字の大きさ
                   const W = box.getBoundingClientRect(), T = tree.getBoundingClientRect(), X2 = (a, b) => a.right > b.left + .5 && a.left < b.right - .5 && a.bottom > b.top + .5 && a.top < b.bottom - .5;
@@ -1150,6 +1154,7 @@ async def tournament_check(browser):
                   const ps = [...tree.querySelectorAll('.pb-n, .pb-t')]; ps.forEach((a, i) => ps.slice(i + 1).forEach(b => { if (X2(a.getBoundingClientRect(), b.getBoundingClientRect())) ng.push(`重なり：${a.className} と ${b.className}`); }));
                   box.querySelectorAll('.pb-nh, .pb-sc, .pb-sub, .pb-go, .pb-adv, .pb-gh, .pb-gr, .pb-seed, .pb-ch').forEach(e => { if (e.scrollWidth > e.clientWidth + 1) ng.push(`入りきらない：${e.textContent.trim()}`);
                     const r = document.createRange(); r.selectNodeContents(e); const tops = [...r.getClientRects()].filter(x => x.width > 1).map(x => x.top + x.height / 2); if (tops.length && Math.max(...tops) - Math.min(...tops) > 8) ng.push(`2行になっている：${e.textContent.trim()}`); });
+                  box.querySelectorAll('.pb-gr em, .pb-gv, .pb-ch span').forEach(e => { if (e.scrollWidth > e.clientWidth + 1) ng.push(`字が切れる（…）：${e.textContent}`); });
                   box.querySelectorAll('.pb-n').forEach(n => { const N = n.getBoundingClientRect(); n.querySelectorAll('.pb-nh, .pb-sc, .pb-sub, .pb-go, .pb-adv').forEach(e => { const b = e.getBoundingClientRect(); if (b.bottom > N.bottom - 1 || b.top < N.top) ng.push(`箱からはみ出す：${e.textContent.trim()}`); }); });
                   const wk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT); let x; while ((x = wk.nextNode())) { const el = x.parentElement; if (x.textContent.trim() && el.getClientRects().length && parseFloat(getComputedStyle(el).fontSize) < 10.95) ng.push(`11px未満の字：${x.textContent.trim()}`); }
                   return [...new Set(ng)].slice(0, 10); }""", done)
@@ -2662,8 +2667,10 @@ async def post_bracket_check(browser):
               if (!fin || !(fin.querySelector('.pb-go') || {}).textContent?.includes(fn(rk[0]) + '突破')) ng.push('ファイナルステージの勝ち上がり（突破）が出ない');
               // 日程・結果（ファーストステージのこのリーグの列）：勝った球団のマークとスコア、引き分けは「分」
               const col = box.querySelectorAll('.pb-sec')[0].querySelectorAll('.pb-col')[k];
-              const tl = col ? [...col.querySelectorAll('.pb-g')].map(e => ((e.querySelector('.pb-gr .badge') || e.querySelector('.pb-dr') || {}).textContent || '') + ' ' + (e.querySelector('.pb-gr b') || {}).textContent) : [];
-              if (JSON.stringify(tl) !== JSON.stringify([sn(rk[1]) + ' 3-1', sn(rk[2]) + ' 5-2', '分 4-4'])) ng.push(`1試合ずつの結果の札が違う：${JSON.stringify(tl)}`);
+              const tl = col ? [...col.querySelectorAll('.pb-g')].map(e => { const bs = [...e.querySelectorAll('.pb-gr .badge')].map(x => x.textContent), ns = [...e.querySelectorAll('.pb-gr b')];
+                return `${bs[0]} ${ns.map(x => x.textContent + (x.classList.contains('w') ? '*' : '')).join('-')} ${bs[1]}${(e.querySelector('.pb-gr em') || {}).textContent || ''}`; }) : [];
+              const H2 = sn(rk[1]), A2 = sn(rk[2]);
+              if (JSON.stringify(tl) !== JSON.stringify([`${H2} 3*-1 ${A2}`, `${H2} 2-5* ${A2}`, `${H2} 4-4 ${A2}引分`])) ng.push(`1試合ずつの結果が違う：${JSON.stringify(tl)}`);
               const W = box.getBoundingClientRect().right + 1;
               box.querySelectorAll('*').forEach(e => { const b = e.getBoundingClientRect(); if (b.width && b.right > W) ng.push(`はみ出し：${e.className}`); });
               return [...new Set(ng)].slice(0, 6);

@@ -3775,7 +3775,7 @@ async def tab_group_check(browser):
           document.querySelector('#subNav button[data-p="cal"]').click(); if (S.tab !== 'cal' || sub() !== '今日,日程*' + ps) ng.push(`日程に切り替わらない（${S.tab} ${sub()}）`);
           if (POST_SHOWN) { document.querySelector('#subNav button[data-p="post"]').click(); if (S.tab !== 'post' || !document.querySelector('#v-post .pb-tree')) ng.push('CS・日本Sに切り替わらない・トーナメント表がない'); document.querySelector('#subNav button[data-p="cal"]').click(); }
           if (document.querySelector('.tabbar button[aria-selected="true"]').dataset.grp !== 'game') ng.push('日程のときに「試合」のタブが選ばれていない');
-          click('data'); if (S.tab !== 'stats' || sub() !== '今季*,球場別,歴代') ng.push(`データ：${S.tab} ${sub()}`);
+          click('data'); if (S.tab !== 'stats' || sub() !== (POST_SHOWN ? '今季*,球場別,CS・日本S,歴代' : '今季*,球場別,歴代')) ng.push(`データ：${S.tab} ${sub()}`);
           document.querySelector('#subNav button[data-p="rec"]').click(); if (S.tab !== 'rec') ng.push('歴代に切り替わらない');
           click('std'); if (S.tab !== 'std' || sub() !== '今季*,歴代') ng.push(`順位：${S.tab} ${sub()}`);
           click('game'); if (S.tab !== 'cal') ng.push(`試合を押すと最後に開いていた日程に戻らない（${S.tab}）`);
@@ -3806,7 +3806,7 @@ async def tab_group_check(browser):
           // 上の小さいヘッダーを押すと、いちばん上へ
           { setTab('stats'); window.scrollTo(0, 900); await wait(300); document.getElementById('miniTtl').click(); await wait(800); if (scrollY > 5) ng.push('上の小さいヘッダーを押してもいちばん上に戻らない'); }
           if (JSON.parse(localStorage.getItem('sub-v1') || '{}').game !== 'cal') ng.push('最後に開いていたページを端末に覚えていない');
-          const ord = tabOrder().join(); if (!new RegExp('^magic,game,cal,' + (POST_SHOWN ? 'post,' : '') + 'std,stdh,stats,ven,rec,song').test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
+          const ord = tabOrder().join(); if (!new RegExp('^magic,game,cal,' + (POST_SHOWN ? 'post,' : '') + 'std,stdh,stats,ven,' + (POST_SHOWN ? 'pst,' : '') + 'rec,song').test(ord)) ng.push(`スワイプの順が違う（${ord}）`);
           // 季節で下のタブの数が変わらない
           const cols = () => getComputedStyle(document.querySelector('.tabbar nav')).gridTemplateColumns.split(' ').length;
           if (cols() !== 5) ng.push(`下のタブが5列でない（${cols()}）`);
@@ -4177,7 +4177,7 @@ PST_MOCK = """() => {
     return { bat: b.map((x, j) => [t, x.n, 4, (i + j) % 3, j === 2 ? 1 : 0, j % 2, j % 3 === 0 ? 1 : 0, 0, 0, (i + j) % 3 + (j === 2 ? 3 : 0)]), pit: p.map((x, j) => [t, x.n, j ? 3 : 18, j ? 0 : 1, j || i ? 0 : 1, j || !i ? 0 : 1, j === 2 ? 1 : 0, 0, 5 - j, 4, 1]) }; };
   const g = (k, st, lg, no, h, a, i) => { const x = mk(h, i), y = mk(a, i + 1); return { k, st, lg, no, bat: [...x.bat, ...y.bat], pit: [...x.pit, ...y.pit] }; };
   VEN = Object.assign({}, VEN || { teams: {} }, { at: '2026-10-11T23:00:00+09:00', post: [g('2026-10-10|G|DB', 'CS1', 'C', 1, 'G', 'DB', 0), g('2026-10-10|L|F', 'CS1', 'P', 1, 'L', 'F', 1), g('2026-10-11|G|DB', 'CS1', 'C', 2, 'G', 'DB', 1), g('2026-10-11|L|F', 'CS1', 'P', 2, 'L', 'F', 0)], post_total: 4 });
-  POST_SHOWN = true; setTab('post'); renderPostStats(); }"""
+  POST_SHOWN = true; renderSubNav(); goPage('pst'); renderPostStats(); }"""
 
 
 async def post_stats_check(browser):
@@ -4188,11 +4188,13 @@ async def post_stats_check(browser):
             label = f"[ポストシーズン成績 {'パワプロ風' if theme else 'スタイリッシュ'} 幅{width}]"
             pg, errs = await open_page(browser, width, theme)
             await pg.evaluate(PST_MOCK)
-            r = await pg.evaluate("""async () => { const ng = [], blk = document.getElementById('pstBlk');
-              if (!blk || blk.hidden) return ['ポストシーズン成績が出ない'];
-              blk.style.contentVisibility = 'visible';
+            r = await pg.evaluate("""async () => { const ng = [], blk = document.getElementById('v-pst');
+              if (!blk || blk.hidden || S.tab !== 'pst') return ['ポストシーズン成績（データの「CS・日本S」）が出ない'];
+              if (!document.querySelector('#subNav button[data-p="pst"]')) ng.push('データの上の切り替えに「CS・日本S」がない');
+              if (!document.querySelector('#lgBar') || document.querySelector('#lgBar').hidden) ng.push('セ・パの切り替えが出ない');
               const rows = () => [...document.querySelectorAll('#pstTbl tbody tr:not(.vdiv)')].filter(r => r.querySelector('td.vn'));
-              const want = new Set(VEN.post.flatMap(g => g.bat.map(x => x[0] + x[1]))).size;
+              // セ・リーグ：セの試合の選手だけ
+              const want = new Set(VEN.post.filter(g => (g.lg || 'C') === 'C').flatMap(g => g.bat.map(x => x[0] + x[1]))).size;
               if (rows().length !== want) ng.push(`打撃の選手の数が違う（${rows().length}・${want}）`);
               // 1人目の数字：2試合ぶん足したもの
               const a = postAgg('CS'), t0 = 'DB', b0 = a[t0].bat[0], src = VEN.post.flatMap(g => g.bat).filter(x => x[0] === t0 && x[1] === b0[0]);
@@ -4201,7 +4203,7 @@ async def post_stats_check(browser):
               document.querySelector('#pstKey button[data-k="h"]') && document.querySelector('#pstKey button[data-k="h"]').click();
               const hs = rows().map(r => +r.children[3].textContent); if (hs.some((v, i) => i && v > hs[i - 1])) ng.push('安打の多い順になっていない');
               // 球団の切り替え（すべて＋出た球団）・ステージ（通算＋ファースト）
-              const opts = [...document.querySelectorAll('#pstTeam option')].map(o => o.value); if (opts[0] !== 'all' || opts.length !== 5) ng.push(`球団の選択肢が違う：${opts}`);
+              const opts = [...document.querySelectorAll('#pstTeam option')].map(o => o.value); if (opts.join() !== 'all,' + lgPost('C').rk.filter(x => x === 'G' || x === 'DB').join()) ng.push(`球団の選択肢がセの出た球団になっていない：${opts}`);
               const sel = document.getElementById('pstTeam'); sel.value = 'G'; sel.dispatchEvent(new Event('change'));
               if (rows().some(r => !r.querySelector('td.vn').dataset.pl.startsWith('G|'))) ng.push('球団で絞れていない');
               sel.value = 'all'; sel.dispatchEvent(new Event('change'));
@@ -4211,23 +4213,31 @@ async def post_stats_check(browser):
               if (rows().length || !document.querySelector('#pstTbl .recmsg')) ng.push('日本シリーズの試合がないのに選手が出る');
               const jsRow = (tm, i) => { const r = DATA.rosters[tm].filter(x => x.p !== '投手').slice(0, 3), q = DATA.rosters[tm].filter(x => x.p === '投手').slice(0, 1);
                 return { bat: r.map(x => [tm, x.n, 4, 2, 0, 1, 0, 0, 0, 2]), pit: q.map(x => [tm, x.n, 27, 1, i ? 0 : 1, i ? 1 : 0, 0, 0, 8, 5, 1]) }; };
-              const j1 = jsRow('T', 0), j2 = jsRow('DB', 1); VEN.post.push({ k: '2026-10-24|T|DB', st: 'JS', lg: '', no: 1, bat: [...j1.bat, ...j2.bat], pit: [...j1.pit, ...j2.pit] }); renderPostStats();
+              const j1 = jsRow('DB', 0), j2 = jsRow('H', 1); VEN.post.push({ k: '2026-10-24|DB|H', st: 'JS', lg: '', no: 1, bat: [...j1.bat, ...j2.bat], pit: [...j1.pit, ...j2.pit] }); renderPostStats();
+              // 日本シリーズ：セを見ているときはセの代表（DeNA）の選手だけ
               const jt = rows().map(r => r.querySelector('td.vn').dataset.pl.split('|')[0]);
-              if (jt.length !== 6 || jt.some(x => x !== 'T' && x !== 'DB')) ng.push(`日本シリーズの表に CS の成績が混ざる：${jt}`);
-              const db0 = postAgg('JS').DB.bat.find(x => x[0] === j2.bat[0][1]); if (!db0 || db0[1] !== 1 || db0[2] !== 4) ng.push('日本シリーズの数字が CS と足し合わされている');
+              if (jt.length !== 3 || jt.some(x => x !== 'DB')) ng.push(`日本シリーズ（セ）の表が違う（CSが混ざる・パの代表が出る）：${jt}`);
+              const db0 = postAgg('JS').DB.bat.find(x => x[0] === j1.bat[0][1]); if (!db0 || db0[1] !== 1 || db0[2] !== 4) ng.push('日本シリーズの数字が CS と足し合わされている');
+              // パ・リーグに切り替え：日本シリーズはパの代表（ソフトバンク）、クライマックスはパの試合（西武・日本ハム）だけ
+              switchLeague('P'); renderPostStats();
+              const pt = rows().map(r => r.querySelector('td.vn').dataset.pl.split('|')[0]); if (!pt.length || pt.some(x => x !== 'H')) ng.push(`日本シリーズ（パ）の表が違う：${pt}`);
               document.querySelector('#pstStage button[data-k="CS"]').click();
-              if (rows().some(r => r.querySelector('td.vn').dataset.pl.startsWith('T|'))) ng.push('CS の表に日本シリーズの成績が混ざる');
+              const pc = new Set(rows().map(r => r.querySelector('td.vn').dataset.pl.split('|')[0])); if ([...pc].sort().join() !== 'F,L') ng.push(`クライマックス（パ）の表に、パの試合の球団以外が出る：${[...pc]}`);
+              switchLeague('C'); renderPostStats();
+              document.querySelector('#pstStage button[data-k="CS"]').click();
+              if (rows().some(r => r.querySelector('td.vn').dataset.pl.startsWith('H|'))) ng.push('CS の表に日本シリーズの成績が混ざる');
+              if (rows().length !== want) ng.push('CS（セ）の選手の数が、日本シリーズを足したあとに変わった');
               document.querySelector('#pstSide button[data-k="p"]').click();
               if (!rows().length || !document.querySelector('#pstTbl thead').textContent.includes('防御率')) ng.push('投手の表に切り替わらない');
-              const W = document.getElementById('v-post').getBoundingClientRect().right + 1;
+              const W = document.getElementById('v-pst').getBoundingClientRect().right + 1;
               blk.querySelectorAll('*').forEach(e => { if (e.getBoundingClientRect().right > W) ng.push(`はみ出し：${e.className || e.tagName}`); });
               const tb = document.getElementById('pstTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('表が横にはみ出す');
               // 選手の画面：CS・日本シリーズの欄
               await openPlayer('DB', b0[0]); await new Promise(r => setTimeout(r, 300));
               const secs = [...document.querySelectorAll('.ps-post')].map(e => e.dataset.st).join();
-              const inJS = !!postAgg('JS').DB.bat.find(x => x[0] === b0[0]);
+              const inJS = !!(postAgg('JS').DB || { bat: [] }).bat.find(x => x[0] === b0[0]);
               if (secs !== (inJS ? 'CS,JS' : 'CS')) ng.push(`選手の画面のクライマックスシリーズ・日本シリーズの欄が違う（${secs}・${b0[0]}）`);
-              await openPlayer('DB', j2.bat[0][1]); await new Promise(r => setTimeout(r, 300));
+              await openPlayer('DB', j1.bat[0][1]); await new Promise(r => setTimeout(r, 300));
               const secs2 = [...document.querySelectorAll('.ps-post')].map(e => e.dataset.st + ':' + e.querySelector('.ps-t').textContent).join();
               if (!secs2.includes('JS:日本シリーズ')) ng.push(`日本シリーズに出た選手の画面に日本シリーズの欄がない（${secs2}）`);
               return [...new Set(ng)].slice(0, 8); }""")

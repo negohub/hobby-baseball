@@ -2761,7 +2761,8 @@ def box_compact(bats, pits, h, a):
     return {"bat": B, "pit": P}
 
 
-def update_venues(games, season, budget=VEN_BUDGET):
+def update_venues(games, season, budget=VEN_BUDGET, post=None):
+    """post：CS・日本シリーズの試合（data の post）。終わった試合の出場成績も読み、venues.json の post に1試合ずつ入れる（ポストシーズン成績）"""
     cache = {}
     if os.path.exists(BOX_OUT):
         try:
@@ -2775,9 +2776,14 @@ def update_venues(games, season, budget=VEN_BUDGET):
     fin = {(g["d"], g["h"], g["a"]): g for g in games if g.get("st") == "final" and g.get("d", "")[:4] == str(season) and g["d"] < today}
     want = {f"{d}|{h}|{a}" for (d, h, a) in fin}
     have = set(cache["games"])
+    # ポストシーズン：終わった試合（その日のうちに読む。NPBの結果が「終わり」になってから）
+    pfin = {(p["d"], p["h"], p["a"]): p for p in (post or []) if p.get("st") == "final" and p.get("h") and p.get("a") and p.get("d", "")[:4] == str(season) and p["d"] <= today}
+    pwant = {f"{d}|{h}|{a}" for (d, h, a) in pfin}
+    cache.setdefault("post", {})
+    cache["post"] = {k: v for k, v in cache["post"].items() if k in pwant}
     start, fetched = time.time(), 0
     # 1) 試合のID：まだIDのない試合がある週の日程を読む（月曜はじまりの週ごと）
-    need_days = sorted({k.split("|")[0] for k in want - have - set(cache["ids"].values())})
+    need_days = sorted({k.split("|")[0] for k in (want - have) | (pwant - set(cache["post"])) if k not in set(cache["ids"].values())})
     weeks = []
     for d in need_days:
         dt = datetime.strptime(d, "%Y-%m-%d")
@@ -2787,7 +2793,7 @@ def update_venues(games, season, budget=VEN_BUDGET):
     for wk in weeks:
         if time.time() - start > budget:
             break
-        if cache["weeks"].get(wk) == today:
+        if cache["weeks"].get(wk) == today and not any(k.split("|")[0] == today and k not in set(cache["ids"].values()) for k in pwant):
             continue
         html = fetch(f"{YAHOO}/schedule/?date={wk}")
         fetched += 1
@@ -2800,12 +2806,15 @@ def update_venues(games, season, budget=VEN_BUDGET):
     for gid in list(cache["ids"]):
         if time.time() - start > budget:
             break
-        if cache["ids"][gid] and cache["ids"][gid] in cache["games"]:
-            continue
-        if cache["bad"].get(gid) in (today, "x"):
-            continue
         k0 = cache["ids"][gid]
-        if k0 and k0 not in want and k0.split("|")[0] < today:
+        if k0 in pwant:   # ポストシーズンの終わった試合：まだ読んでいなければ読む（前に「公式戦でない」として外した試合も）
+            if k0 in cache["post"]:
+                continue
+        elif cache["ids"][gid] and cache["ids"][gid] in cache["games"]:
+            continue
+        elif cache["bad"].get(gid) in (today, "x"):
+            continue
+        if k0 and k0 not in want and k0 not in pwant and k0.split("|")[0] < today:
             cache["bad"][gid] = "x"   # 終わった日の、今季の公式戦でない試合（ポストシーズン・中止など）はもう読まない
             continue
         html = fetch(f"{YAHOO}/game/{gid}/stats")
@@ -2817,6 +2826,15 @@ def update_venues(games, season, budget=VEN_BUDGET):
         d, h, a = tt
         key = f"{d}|{h}|{a}"
         cache["ids"][gid] = key
+        pg = pfin.get((d, h, a))
+        if pg:
+            comp = box_compact(*parse_ybox(html), h, a)
+            if comp:
+                cache["post"][key] = {"st": pg.get("stage"), "lg": pg.get("lg", "C") if pg.get("stage") != "JS" else "", "no": pg.get("no"), "bat": comp["bat"], "pit": comp["pit"]}
+                cache["bad"].pop(gid, None)
+            else:
+                cache["bad"][gid] = today
+            continue
         g = fin.get((d, h, a))
         if not g:
             # まだ終わっていない試合は明日もう一度。終わった日なのに公式戦の結果にない試合（ポストシーズンなど）はもう読まない
@@ -2851,7 +2869,9 @@ def update_venues(games, season, budget=VEN_BUDGET):
     got = len(want & set(cache["games"]))
     out = {"season": season, "at": datetime.now(JST).isoformat(timespec="seconds"), "have": got, "total": len(want),
            "bat_cols": ["試合", "打数", "安打", "本塁打", "打点", "四球", "死球", "犠飛", "塁打"],
-           "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"], "teams": teams}
+           "pit_cols": ["登板", "アウト", "自責点", "勝", "敗", "S", "H", "奪三振", "被安打", "与四死球"], "teams": teams,
+           # ポストシーズン成績：1試合ずつ（ステージ CS1・CSF・JS、リーグ C・P）。打者 [球団, 名前, 打数, 安打, 本塁打, 打点, 四球, 死球, 犠飛, 塁打]・投手 [球団, 名前, アウト, 自責点, 勝, 敗, S, H, 奪三振, 被安打, 与四死球]
+           "post": [dict(k=k, **v) for k, v in sorted(cache["post"].items())], "post_total": len(pwant)}
     with open(BOX_OUT, "w", encoding="utf-8") as f:
         json.dump(cache, f, ensure_ascii=False, separators=(",", ":"))
     old = None
@@ -2864,7 +2884,7 @@ def update_venues(games, season, budget=VEN_BUDGET):
     if not old or {k: v for k, v in old.items() if k != "at"} != {k: v for k, v in out.items() if k != "at"}:
         with open(VEN_OUT, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
-    print(f"[球場別成績] {got}/{len(want)}試合（今回 {fetched}ページ）")
+    print(f"[球場別成績] {got}/{len(want)}試合（今回 {fetched}ページ）" + (f"・ポストシーズン {len(cache['post'])}/{len(pwant)}試合" if pwant else ""))
 
 
 def main():
@@ -2881,7 +2901,7 @@ def main():
             except json.JSONDecodeError:
                 old = None
     try:
-        update_venues((old or {}).get("games") or [], season)
+        update_venues((old or {}).get("games") or [], season, post=(old or {}).get("post"))
     except Exception as e:   # 球場別成績が取れなくても、ふだんのデータ更新は止めない
         print(f"[球場別成績] 取得できませんでした: {e}")
     if old is not None and "tstats" not in old and os.path.exists(TSTATS_OUT):

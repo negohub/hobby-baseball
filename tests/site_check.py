@@ -2085,6 +2085,11 @@ async def offseason_check(browser):
             [("岡本 和真", 3, 0, 0, 0, 0, ["三ゴロ", "三振", "遊飛"])], [("佐藤 輝明", 4, 2, 0, 0, 1, ["左本", "中安", "三振", "二ゴロ"])],
             [("", "戸郷 翔征", "5.2", 2)], [("", "才木 浩人", "0.2", 0)]),
         "https://baseball.yahoo.co.jp/npb/game/2021000003/stats": box_html("2026年10月30日", "阪神タイガース", "読売ジャイアンツ", [], [], [], []),
+        # ポストシーズン（CSファーストステージ）：公式戦の集計には入れず、post に1試合ずつ
+        "https://baseball.yahoo.co.jp/npb/schedule/?date=2026-10-05": '<a href="/npb/game/2021000009/top">9</a>',
+        "https://baseball.yahoo.co.jp/npb/game/2021000009/stats": box_html("2026年10月10日", "読売ジャイアンツ", "横浜DeNAベイスターズ",
+            [("牧 秀悟", 4, 2, 2, 0, 1, ["左本", "三振", "中安", "二ゴロ"])], [("岡本 和真", 4, 1, 1, 1, 0, ["四球", "右安", "三振", "遊ゴロ"])],
+            [("勝", "東 克樹", "7", 1)], [("敗", "戸郷 翔征", "6", 2)]),
     }
     keep_f, keep_bo, keep_vo = ud.fetch, ud.BOX_OUT, ud.VEN_OUT
     import tempfile
@@ -2093,8 +2098,17 @@ async def offseason_check(browser):
         ud.fetch = lambda u: pages.get(u)
         ud.BOX_OUT, ud.VEN_OUT = os.path.join(tmpd, "box.json"), os.path.join(tmpd, "ven.json")
         gms = [{"d": "2026-09-29", "h": "T", "a": "G", "st": "final", "v": "甲子園"}, {"d": "2026-09-30", "h": "T", "a": "G", "st": "final", "v": "甲子園"}]
-        ud.update_venues(gms, 2026)
+        pst = [{"d": "2026-10-10", "stage": "CS1", "no": 1, "h": "G", "a": "DB", "hs": 1, "as": 2, "st": "final"}, {"d": "2026-10-11", "stage": "CS1", "no": 2}]
+        ud.update_venues(gms, 2026, post=pst)
         vj = json.load(open(ud.VEN_OUT, encoding="utf-8"))
+        # ポストシーズン：終わった試合だけ・ステージとリーグ・打者と投手の行（公式戦の球場別には入らない）
+        pp = vj.get("post") or []
+        if [(x["k"], x["st"], x["lg"], x["no"]) for x in pp] != [("2026-10-10|G|DB", "CS1", "C", 1)] or vj.get("post_total") != 1:
+            bad(f"[ポストシーズン成績の集計] 試合の読み方が違う：{[(x.get('k'), x.get('st')) for x in pp]}・{vj.get('post_total')}")
+        elif ["DB", "牧 秀悟", 4, 2, 1, 2, 0, 0, 0, 5] not in pp[0]["bat"] or not any(r[:6] == ["DB", "東 克樹", 21, 1, 1, 0] for r in pp[0]["pit"]):
+            bad(f"[ポストシーズン成績の集計] 打者・投手の数字が違う：{pp[0]['bat']}・{pp[0]['pit']}")
+        if any("東京ドーム" in v for v in vj["teams"].get("G", {})) or "DB" in vj["teams"]:
+            bad("[ポストシーズン成績の集計] ポストシーズンの試合が公式戦の球場別成績に入っている")
         ko = dict((r[0], r[1:]) for r in vj["teams"]["T"]["甲子園"]["bat"])
         # 佐藤：2試合・7打数3安打1本・1打点・四球0・死球1・犠飛1・塁打 1+3+4+1=9
         if ko.get("佐藤 輝明") != [2, 7, 3, 1, 1, 0, 1, 1, 9]:
@@ -2117,8 +2131,8 @@ async def offseason_check(browser):
         # 2回目：読んだ試合はもう読まない（終わっていない試合も毎回は読まない）
         n_calls = []
         ud.fetch = lambda u: (n_calls.append(u), pages.get(u))[1]
-        ud.update_venues(gms, 2026)
-        if any("/game/2021000001/" in u or "/game/2021000002/" in u for u in n_calls):
+        ud.update_venues(gms, 2026, post=pst)
+        if any("/game/2021000001/" in u or "/game/2021000002/" in u or "/game/2021000009/" in u for u in n_calls):
             bad(f"[球場別成績の集計] 読んだ試合をもう一度読んでいる：{n_calls}")
     finally:
         ud.fetch, ud.BOX_OUT, ud.VEN_OUT = keep_f, keep_bo, keep_vo
@@ -4158,6 +4172,72 @@ LONGNAME_SETUP = """(team) => {
   S.open[k] = true; S.lu = S.lu || {}; renderAll(); setTab('game'); return 'ok'; }"""
 
 
+PST_MOCK = """() => {
+  const R = t => (DATA.rosters[t] || []), mk = (t, i) => { const b = R(t).filter(x => x.p !== '投手').slice(0, 9), p = R(t).filter(x => x.p === '投手').slice(0, 3);
+    return { bat: b.map((x, j) => [t, x.n, 4, (i + j) % 3, j === 2 ? 1 : 0, j % 2, j % 3 === 0 ? 1 : 0, 0, 0, (i + j) % 3 + (j === 2 ? 3 : 0)]), pit: p.map((x, j) => [t, x.n, j ? 3 : 18, j ? 0 : 1, j || i ? 0 : 1, j || !i ? 0 : 1, j === 2 ? 1 : 0, 0, 5 - j, 4, 1]) }; };
+  const g = (k, st, lg, no, h, a, i) => { const x = mk(h, i), y = mk(a, i + 1); return { k, st, lg, no, bat: [...x.bat, ...y.bat], pit: [...x.pit, ...y.pit] }; };
+  VEN = Object.assign({}, VEN || { teams: {} }, { at: '2026-10-11T23:00:00+09:00', post: [g('2026-10-10|G|DB', 'CS1', 'C', 1, 'G', 'DB', 0), g('2026-10-10|L|F', 'CS1', 'P', 1, 'L', 'F', 1), g('2026-10-11|G|DB', 'CS1', 'C', 2, 'G', 'DB', 1), g('2026-10-11|L|F', 'CS1', 'P', 2, 'L', 'F', 0)], post_total: 4 });
+  POST_SHOWN = true; setTab('post'); renderPostStats(); }"""
+
+
+async def post_stats_check(browser):
+    """ポストシーズン成績（CS・日本Sのタブ・10/11）：試合ごとの出場成績を足した数字（2試合で打数・安打・登板）、ステージ・球団の切り替え、
+    並べる項目の順、選手の画面の「CS・日本シリーズ」の欄。表は画面からはみ出さない（2つの見た目×幅390/320）"""
+    for theme in ["pawa", ""]:
+        for width in [390, 320]:
+            label = f"[ポストシーズン成績 {'パワプロ風' if theme else 'スタイリッシュ'} 幅{width}]"
+            pg, errs = await open_page(browser, width, theme)
+            await pg.evaluate(PST_MOCK)
+            r = await pg.evaluate("""async () => { const ng = [], blk = document.getElementById('pstBlk');
+              if (!blk || blk.hidden) return ['ポストシーズン成績が出ない'];
+              blk.style.contentVisibility = 'visible';
+              const rows = () => [...document.querySelectorAll('#pstTbl tbody tr:not(.vdiv)')].filter(r => r.querySelector('td.vn'));
+              const want = new Set(VEN.post.flatMap(g => g.bat.map(x => x[0] + x[1]))).size;
+              if (rows().length !== want) ng.push(`打撃の選手の数が違う（${rows().length}・${want}）`);
+              // 1人目の数字：2試合ぶん足したもの
+              const a = postAgg('CS'), t0 = 'DB', b0 = a[t0].bat[0], src = VEN.post.flatMap(g => g.bat).filter(x => x[0] === t0 && x[1] === b0[0]);
+              if (b0[1] !== src.length || b0[2] !== src.reduce((s, x) => s + x[2], 0) || b0[3] !== src.reduce((s, x) => s + x[3], 0)) ng.push(`足し合わせが違う：${JSON.stringify(b0)}`);
+              // 並べる項目（安打）の順
+              document.querySelector('#pstKey button[data-k="h"]') && document.querySelector('#pstKey button[data-k="h"]').click();
+              const hs = rows().map(r => +r.children[3].textContent); if (hs.some((v, i) => i && v > hs[i - 1])) ng.push('安打の多い順になっていない');
+              // 球団の切り替え（すべて＋出た球団）・ステージ（通算＋ファースト）
+              const opts = [...document.querySelectorAll('#pstTeam option')].map(o => o.value); if (opts[0] !== 'all' || opts.length !== 5) ng.push(`球団の選択肢が違う：${opts}`);
+              const sel = document.getElementById('pstTeam'); sel.value = 'G'; sel.dispatchEvent(new Event('change'));
+              if (rows().some(r => !r.querySelector('td.vn').dataset.pl.startsWith('G|'))) ng.push('球団で絞れていない');
+              sel.value = 'all'; sel.dispatchEvent(new Event('change'));
+              const st = [...document.querySelectorAll('#pstStage button')].map(b => b.textContent).join(); if (st !== 'クライマックス,日本シリーズ') ng.push(`クライマックスシリーズ｜日本シリーズの切り替えが違う：${st}`);
+              // 日本シリーズはまだ：切り替えると「まだありません」。日本シリーズの試合を足すと、CSと分かれて別に数える
+              document.querySelector('#pstStage button[data-k="JS"]').click();
+              if (rows().length || !document.querySelector('#pstTbl .recmsg')) ng.push('日本シリーズの試合がないのに選手が出る');
+              const jsRow = (tm, i) => { const r = DATA.rosters[tm].filter(x => x.p !== '投手').slice(0, 3), q = DATA.rosters[tm].filter(x => x.p === '投手').slice(0, 1);
+                return { bat: r.map(x => [tm, x.n, 4, 2, 0, 1, 0, 0, 0, 2]), pit: q.map(x => [tm, x.n, 27, 1, i ? 0 : 1, i ? 1 : 0, 0, 0, 8, 5, 1]) }; };
+              const j1 = jsRow('T', 0), j2 = jsRow('DB', 1); VEN.post.push({ k: '2026-10-24|T|DB', st: 'JS', lg: '', no: 1, bat: [...j1.bat, ...j2.bat], pit: [...j1.pit, ...j2.pit] }); renderPostStats();
+              const jt = rows().map(r => r.querySelector('td.vn').dataset.pl.split('|')[0]);
+              if (jt.length !== 6 || jt.some(x => x !== 'T' && x !== 'DB')) ng.push(`日本シリーズの表に CS の成績が混ざる：${jt}`);
+              const db0 = postAgg('JS').DB.bat.find(x => x[0] === j2.bat[0][1]); if (!db0 || db0[1] !== 1 || db0[2] !== 4) ng.push('日本シリーズの数字が CS と足し合わされている');
+              document.querySelector('#pstStage button[data-k="CS"]').click();
+              if (rows().some(r => r.querySelector('td.vn').dataset.pl.startsWith('T|'))) ng.push('CS の表に日本シリーズの成績が混ざる');
+              document.querySelector('#pstSide button[data-k="p"]').click();
+              if (!rows().length || !document.querySelector('#pstTbl thead').textContent.includes('防御率')) ng.push('投手の表に切り替わらない');
+              const W = document.getElementById('v-post').getBoundingClientRect().right + 1;
+              blk.querySelectorAll('*').forEach(e => { if (e.getBoundingClientRect().right > W) ng.push(`はみ出し：${e.className || e.tagName}`); });
+              const tb = document.getElementById('pstTbl'); if (tb.scrollWidth > tb.parentElement.clientWidth + 1) ng.push('表が横にはみ出す');
+              // 選手の画面：CS・日本シリーズの欄
+              await openPlayer('DB', b0[0]); await new Promise(r => setTimeout(r, 300));
+              const secs = [...document.querySelectorAll('.ps-post')].map(e => e.dataset.st).join();
+              const inJS = !!postAgg('JS').DB.bat.find(x => x[0] === b0[0]);
+              if (secs !== (inJS ? 'CS,JS' : 'CS')) ng.push(`選手の画面のクライマックスシリーズ・日本シリーズの欄が違う（${secs}・${b0[0]}）`);
+              await openPlayer('DB', j2.bat[0][1]); await new Promise(r => setTimeout(r, 300));
+              const secs2 = [...document.querySelectorAll('.ps-post')].map(e => e.dataset.st + ':' + e.querySelector('.ps-t').textContent).join();
+              if (!secs2.includes('JS:日本シリーズ')) ng.push(`日本シリーズに出た選手の画面に日本シリーズの欄がない（${secs2}）`);
+              return [...new Set(ng)].slice(0, 8); }""")
+            for m in r:
+                bad(f"{label} {m}")
+            for e in errs:
+                bad(f"{label}: 画面のエラー {e}")
+            await pg.close()
+
+
 async def name_one_line_check(browser):
     """名前の札（10/10）：エンカーナシオンなど長い名前も必ず1行。札の大きさはほかの名前と同じ（打順の札の幅がそろう）、字は11px以上、
     名前は札の左右からはみ出さない（入らない分は横に詰める・詰めすぎない）。試合（打順・投手・次の打者など）と各タブ、2つの見た目×幅390/320"""
@@ -5446,6 +5526,7 @@ async def main():
         await starter_card_check(browser)
         await one_char_tile_check(browser)
         await name_one_line_check(browser)
+        await post_stats_check(browser)
         await player_name_color_check(browser)
         await song_gone_check(browser)
         await balance_check(browser)

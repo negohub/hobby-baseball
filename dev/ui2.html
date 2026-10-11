@@ -2140,7 +2140,13 @@ html.theme-pawa.pawa-dark .find-bar button,html.theme-pawa.pawa-dark .find-list 
 /* ポストシーズン成績（CS・日本シリーズのタブ）：球場別成績と同じ並び・間隔（見出し→12px→切り替え→12px→…） */
 .pstblk > :is(.venbar,.seg,.recnote):not(#z):not(#y){margin-top:0 !important;margin-bottom:12px !important}
 .pstblk .venbar:not(#z){grid-template-columns:200px}
-#pstStage[hidden]:not(#z),#pstBlk [hidden]:not(#z){display:none !important}
+#pstStage[hidden]:not(#z),#v-pst [hidden]:not(#z){display:none !important}
+/* CS・日本Sのページの下：選手の成績（データの「CS・日本S」）へ */
+.pstgo{margin:24px 0 0;text-align:center}
+.pstgob:not(#z){display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:999px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  background:var(--card2,#15151A);color:var(--text,#F2F2F4);border:1px solid var(--soft-line,rgba(255,255,255,.1))}
+html.sty-light:not(.theme-pawa) .pstgob:not(#z){background:#FFFFFF;color:#15161A;border-color:rgba(0,0,0,.12)}
+html.theme-pawa .pstgob:not(#z){background:linear-gradient(180deg,#FFFFFF,#E6F0FB);color:#13264A;border:2px solid #1D3E7C;box-shadow:0 3px 0 rgba(19,38,74,.3)}
 /* 並べる項目のタブ：横にすべらせて選ぶ（成績タブの項目と同じボタン） */
 .venkey{display:flex !important;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin:0 0 8px;padding-bottom:2px;scrollbar-width:none;-webkit-overflow-scrolling:touch;width:100% !important;max-width:100% !important;min-width:0;box-sizing:border-box}   /* 画面の幅の中で横にすべらせる（ページ全体をはみ出させない） */
 .venkey::-webkit-scrollbar{display:none}
@@ -3170,16 +3176,7 @@ html.theme-pawa .seg:not(.subnav):not(.mseg) button[aria-pressed="true"]:not(#z)
   </section>
   <section class="view" id="v-post" aria-label="CS・日本シリーズ" hidden>
     <div id="bracketBox"></div>
-    <section class="blk pstblk" id="pstBlk" hidden>
-      <h2>ポストシーズン成績<small id="pstAsof"></small></h2>
-      <div class="seg" id="pstStage" aria-label="ステージ"></div>
-      <div class="venbar"><label class="catsel"><select id="pstTeam" aria-label="球団"></select></label></div>
-      <div class="seg" id="pstSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
-      <div class="seg venkey" id="pstKey" role="tablist" aria-label="並べる項目"></div>
-      <p class="recnote" id="pstNote"></p>
-      <div class="ywrap"><table class="ytab ventab" id="pstTbl"></table></div>
-      <p class="srcnote">データ：スポーツナビ（試合ごとの出場成績を足したもの）</p>
-    </section>
+    <p class="pstgo"><button type="button" class="pstgob" data-gopst>選手の成績（CS・日本シリーズ）を見る</button></p>
   </section>
   <section class="view" id="v-game" aria-label="今日の試合" hidden>
     <section class="blk" id="todayBlk">
@@ -3229,6 +3226,16 @@ html.theme-pawa .seg:not(.subnav):not(.mseg) button[aria-pressed="true"]:not(#z)
     <label class="catsel stdhsel"><select id="stdhYear" aria-label="年度"></select></label>
     <div class="ywrap"><table class="ytab hstd" id="stdhTbl"></table></div>
     <p class="srcnote">データ：NPB（日本野球機構）</p>
+  </section>
+  <section class="view pstblk" id="v-pst" aria-label="ポストシーズン成績" hidden>
+    <h2>ポストシーズン成績<small id="pstAsof"></small></h2>
+    <div class="seg" id="pstStage" aria-label="ステージ"></div>
+    <div class="venbar"><label class="catsel"><select id="pstTeam" aria-label="球団"></select></label></div>
+    <div class="seg" id="pstSide"><button type="button" data-k="b" aria-pressed="true">打撃</button><button type="button" data-k="p" aria-pressed="false">投手</button></div>
+    <div class="seg venkey" id="pstKey" role="tablist" aria-label="並べる項目"></div>
+    <p class="recnote" id="pstNote"></p>
+    <div class="ywrap"><table class="ytab ventab" id="pstTbl"></table></div>
+    <p class="srcnote">データ：スポーツナビ（試合ごとの出場成績を足したもの）</p>
   </section>
   <section class="view" id="v-ven" aria-label="球場別成績" hidden>
     <h2>球場別成績<small id="venAsof"></small></h2>
@@ -3428,7 +3435,7 @@ S.lgPref = store("league") === "P" ? "P" : "C";
 // 戦況のリーグは、ほかのページとは別に覚える（最初はセ・リーグ＝支払いのゲーム。パは最下位争いだけ）
 S.magicLg = store("magicLg") === "P" ? "P" : "C";
 // リーグごとのページ（上に「セ・リーグ｜パ・リーグ」）。試合の「今日」とCS・日本Sは両リーグ
-const LG_PAGE = new Set(["magic", "cal", "std", "stdh", "stats", "ven", "rec", "song", "off"]);
+const LG_PAGE = new Set(["magic", "cal", "std", "stdh", "stats", "ven", "pst", "rec", "song", "off"]);
 // あなたの担当（球団の記号。"none"＝選ばない、null＝まだ聞いていない）
 S.me = store("me");
 const ME = () => (S.me && S.me !== "none" && CONFIG.owners[S.me] ? S.me : null);
@@ -3468,6 +3475,7 @@ const TAB_TITLE = {
   off: ["hobby baseball", "入退団"],
   rec: ["hobby baseball", "歴代記録"],
   ven: ["hobby baseball", "球場別成績"],
+  pst: ["hobby baseball", "ポストシーズン成績"],
   stdh: ["hobby baseball", "歴代順位表"],
 };
 function moveLens(instant) {
@@ -3637,13 +3645,13 @@ const TAB_GROUPS = [
   { g: "magic", pages: [["magic", ""]] },
   { g: "game", pages: [["game", "今日"], ["cal", "日程"], ["post", "CS・日本S"]] },   // CS・日本Sは、CSの3週間前から日本シリーズの1か月後まで
   { g: "std", pages: [["std", "今季"], ["stdh", "歴代"]] },
-  { g: "data", pages: [["stats", "今季"], ["ven", "球場別"], ["rec", "歴代"]] },
+  { g: "data", pages: [["stats", "今季"], ["ven", "球場別"], ["pst", "CS・日本S"], ["rec", "歴代"]] },   // CS・日本S（ポストシーズン成績）は、試合タブの「CS・日本S」と同じ時期だけ
   { g: "player", pages: [["song", "名鑑"], ["off", "入退団"]] },
 ];
 const PAGE_GROUP = Object.fromEntries(TAB_GROUPS.flatMap(x => x.pages.map(([p]) => [p, x.g])));
 let OFF_SHOWN = false;
 let POST_SHOWN = false;
-const pageShown = p => p === "off" ? OFF_SHOWN : p === "post" ? POST_SHOWN : true;
+const pageShown = p => p === "off" ? OFF_SHOWN : p === "post" || p === "pst" ? POST_SHOWN : true;
 const groupPages = g => ((TAB_GROUPS.find(x => x.g === g) || {}).pages || []).filter(([p]) => pageShown(p));
 // グループごとに最後に開いていたページ（次にそのタブを押したらそこへ）
 const SUB_LAST = (() => { try { return JSON.parse(localStorage.getItem("sub-v1") || "{}") || {}; } catch { return {}; } })();
@@ -3738,7 +3746,7 @@ function setTab(t) {
   document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.grp === grp)));
   if (groupPages(grp).length > 1 && SUB_LAST[grp] !== t) { SUB_LAST[grp] = t; try { localStorage.setItem("sub-v1", JSON.stringify(SUB_LAST)); } catch {} }
   renderSubNav();
-  ["magic", "game", "cal", "post", "std", "stdh", "song", "stats", "rec", "ven", "off"].forEach(k => { const v = $("v-" + k); v.hidden = k !== t; if (k !== t) v.classList.remove("swin"); });
+  ["magic", "game", "cal", "post", "std", "stdh", "song", "stats", "rec", "ven", "pst", "off"].forEach(k => { const v = $("v-" + k); v.hidden = k !== t; if (k !== t) v.classList.remove("swin"); });
   window.scrollTo({ top: 0 });
 }
 let autoGame = true;
@@ -4285,6 +4293,7 @@ function postNextHTML() {
   if (js.length) html += `<h3 class="lgh">日本シリーズ<small>${dl(js[0].d)}</small></h3>` + js.map(card).join("");
   return { post: true, html };   // 勝ち上がり表は、すぐ隣の「CS・日本S」のページにあるので、ここにボタンは置かない
 }
+document.addEventListener("click", e => { if (e.target.closest("[data-gopst]")) goPage("pst"); });
 document.addEventListener("click", e => { if (!e.target.closest("[data-gobk]")) return; setTab("post"); requestAnimationFrame(() => { const b = $("bracketBox"); if (b) b.scrollIntoView({ block: "start" }); }); });
 // ===== 予告先発 =====
 const todayKey = () => { const j = jst(); return j.iso; };
@@ -6820,6 +6829,7 @@ function syncPostTab() {
   const show = ds.length > 0 && jst().iso >= sh(ds[0], -21) && jst().iso <= sh(ds[ds.length - 1], 30);
   if (POST_SHOWN !== show) { POST_SHOWN = show; renderSubNav(); }
   if (!show && S.tab === "post") setTab("game");
+  if (!show && S.tab === "pst") setTab("stats");
   return show;
 }
 function syncOffTab() {
@@ -7434,8 +7444,8 @@ function virtualMakeups() {
   for (const p of pendingMakeups()) for (let i = 0; i < p.n; i++) list.push({ d, h: p.a, a: p.b || "__", st: "sched", t: "", v: "", virt: true });
   return { pid: fin.id, list };
 }
-const TAB_RENDER = { magic: () => renderMagic(), game: () => renderGame(), cal: () => renderCal(), std: () => renderStd(), post: () => { renderBracket(); renderPostStats(); }, stats: () => renderStats(), song: () => renderSong(), off: () => renderOff(), rec: () => renderRec(), ven: () => renderVen(), stdh: () => renderStdh() };
-const TAB_IDLE_ORDER = ["game", "std", "post", "cal", "stats", "magic", "off", "song", "rec", "ven", "stdh"];   // 開かれやすい順
+const TAB_RENDER = { magic: () => renderMagic(), game: () => renderGame(), cal: () => renderCal(), std: () => renderStd(), post: () => renderBracket(), pst: () => renderPostStats(), stats: () => renderStats(), song: () => renderSong(), off: () => renderOff(), rec: () => renderRec(), ven: () => renderVen(), stdh: () => renderStdh() };
+const TAB_IDLE_ORDER = ["game", "std", "post", "cal", "stats", "magic", "off", "song", "rec", "ven", "pst", "stdh"];   // 開かれやすい順
 let TAB_DIRTY = new Set(), restTimer = 0;
 function renderTab(t) { if (TAB_DIRTY.has(t)) { TAB_DIRTY.delete(t); TAB_RENDER[t](); } }
 function renderRestSoon() {
@@ -7846,10 +7856,10 @@ async function loadVen(force) {
       if (d && d.teams && (!VEN || d.at !== VEN.at)) {
         VEN = d; try { localStorage.setItem("ven-v1", JSON.stringify(d)); } catch {}
         if (S.tab === "ven") renderVen(); else TAB_DIRTY.add("ven");
-        if (S.tab === "post") renderPostStats(); else TAB_DIRTY.add("post");
+        if (S.tab === "pst") renderPostStats(); else TAB_DIRTY.add("pst");
       }
     }
-  } catch {} finally { venBusy = false; if (S.tab === "ven" && !VEN) renderVen(); if (S.tab === "post") renderPostStats(); }
+  } catch {} finally { venBusy = false; if (S.tab === "ven" && !VEN) renderVen(); if (S.tab === "pst") renderPostStats(); }
 }
 // 打率・OPS：小数第4位を四捨五入（2進数の誤差で .2995 が .299 にならないよう、整数で丸める）
 const rate3 = (n, d) => { if (!d) return "-"; const v = Math.round(n / d * 1000 + 1e-9) / 1000; return v >= 1 ? v.toFixed(3) : v.toFixed(3).replace(/^0/, ""); };
@@ -7961,29 +7971,31 @@ function venTable(tbl, side, key, parts, all) {
 const PST_STAGES = [["CS", "クライマックス"], ["JS", "日本シリーズ"]];
 const pstIn = (stage, st) => stage === "JS" ? st === "JS" : st === "CS1" || st === "CSF";
 // 選んだステージの試合を、球団ごとに [{games, bat, pit}] に足す（行は球場別成績と同じ形：[名前, 試合, …]）
-function postAgg(stage) {
-  const gs = ((VEN && VEN.post) || []).filter(g => pstIn(stage, g.st)), out = {};
+// lg：そのリーグの球団だけ（クライマックスはそのリーグの試合、日本シリーズはそのリーグの代表の選手）。なしなら全部
+function postAgg(stage, lg) {
+  const mine = lg ? new Set(lgPost(lg).rk) : null;
+  const gs = ((VEN && VEN.post) || []).filter(g => pstIn(stage, g.st) && (!lg || g.st === "JS" || (g.lg || "C") === lg)), out = {};
   for (const g of gs) {
     const seen = new Set();
     for (const [side, rows] of [["bat", g.bat], ["pit", g.pit]]) for (const r of rows || []) {
-      const [t, n, ...v] = r, o = (out[t] = out[t] || { games: 0, bat: new Map(), pit: new Map() });
+      const [t, n, ...v] = r; if (mine && !mine.has(t)) continue;
+      const o = (out[t] = out[t] || { games: 0, bat: new Map(), pit: new Map() });
       if (!seen.has(t)) { seen.add(t); o.games++; }
       const c = o[side].get(n) || [n, 0, ...v.map(() => 0)]; c[1]++; v.forEach((x, i) => (c[i + 2] += x)); o[side].set(n, c);
     }
   }
   return Object.fromEntries(Object.entries(out).map(([t, o]) => [t, { games: o.games, bat: [...o.bat.values()], pit: [...o.pit.values()] }]));
 }
-// 球団の並び：セ（1〜3位）→ パ（1〜3位）の順
-function postTeamOrder(ts) { const ord = [...lgPost("C").rk.slice(0, 3), ...lgPost("P").rk.slice(0, 3)]; return ts.slice().sort((a, b) => (ord.indexOf(a) + 1 || 99) - (ord.indexOf(b) + 1 || 99)); }
+// 球団の並び：そのリーグの順位の順
+function postTeamOrder(ts, lg) { const ord = lgPost(lg).rk; return ts.slice().sort((a, b) => (ord.indexOf(a) + 1 || 99) - (ord.indexOf(b) + 1 || 99)); }
 function renderPostStats() {
-  const blk = $("pstBlk"); if (!blk) return;
+  if (!$("v-pst")) return;
   venRestore();
-  const list = (VEN && VEN.post) || [];
+  // 見ているリーグ（上のセ｜パの切り替え・左右のスワイプ）の球団だけ。クライマックスはそのリーグの試合、日本シリーズはそのリーグの代表
+  const lg = isPL() ? "P" : "C", inLg = g => g.stage === "JS" || g.st === "JS" || (g.lg || "C") === lg;
+  const list = ((VEN && VEN.post) || []).filter(inLg);
   if (!VEN) { if (!venBusy) loadVen(); }
-  const post = DATA.post || [];
-  const started = post.some(g => g.st === "final");
-  blk.hidden = !started && !list.length;
-  if (blk.hidden) return;
+  const post = (DATA.post || []).filter(inLg);
   // クライマックスシリーズ｜日本シリーズ：はじめは、日本シリーズが始まっていれば日本シリーズ、まだならクライマックスシリーズ
   const jsOn = post.some(g => g.stage === "JS" && g.st === "final") || list.some(g => g.st === "JS");
   const st = PST_STAGES.some(([k]) => k === S.pstStage) ? S.pstStage : jsOn ? "JS" : "CS";
@@ -7992,14 +8004,14 @@ function renderPostStats() {
   document.querySelectorAll("#pstSide button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === side)));
   const keys = VEN_KEYS[side], key = keys.some(([k]) => k === S.pstKey) ? S.pstKey : keys[0][0];
   $("pstKey").innerHTML = keys.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${k === key}">${l}</button>`).join("");
-  const agg = postAgg(st), ts = postTeamOrder(Object.keys(agg)), t = S.pstTeam && ts.includes(S.pstTeam) ? S.pstTeam : "all";
+  const agg = postAgg(st, lg), ts = postTeamOrder(Object.keys(agg), lg), t = S.pstTeam && ts.includes(S.pstTeam) ? S.pstTeam : "all";
   $("pstTeam").innerHTML = `<option value="all"${t === "all" ? " selected" : ""}>すべての球団</option>` + ts.map(x => `<option value="${x}"${x === t ? " selected" : ""}>${esc(fn(x))}</option>`).join("");
   const at = String((VEN && VEN.at) || "").match(/^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   $("pstAsof").textContent = at ? `${+at[1]}/${+at[2]} ${at[3]}:${at[4]} 更新` : "";
   const tbl = $("pstTbl");
   if (!list.some(g => pstIn(st, g.st))) {
     const none = !post.some(g => g.st === "final" && pstIn(st, g.stage));
-    tbl.innerHTML = `<tbody><tr><td class="recmsg">${!VEN && venBusy ? "読み込み中…" : none ? `${st === "JS" ? "日本シリーズ" : "クライマックスシリーズ"}の試合はまだありません` : "試合の出場成績は、試合が終わったあとの自動更新で入ります"}</td></tr></tbody>`;
+    tbl.innerHTML = `<tbody><tr><td class="recmsg">${!VEN && venBusy ? "読み込み中…" : none ? `${st === "JS" ? "日本シリーズ" : `${lg === "P" ? "パ" : "セ"}・リーグのクライマックスシリーズ`}の試合はまだありません` : "試合の出場成績は、試合が終わったあとの自動更新で入ります"}</td></tr></tbody>`;
     $("pstNote").textContent = ""; return;
   }
   const parts = (t === "all" ? ts : [t]).map(x => [x, agg[x]]).filter(([, d]) => d);
